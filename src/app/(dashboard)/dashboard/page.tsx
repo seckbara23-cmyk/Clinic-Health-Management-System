@@ -29,8 +29,8 @@ export default function DashboardPage() {
       title: 'Total Patients',
       value: stats?.total_patients ?? 0,
       icon: Users,
-      color: 'text-blue-600',
-      bg: 'bg-blue-50',
+      color: 'text-green-700',
+      bg: 'bg-green-50',
       desc: 'Patients enregistrés',
     },
     {
@@ -53,16 +53,16 @@ export default function DashboardPage() {
       title: 'Recettes du jour',
       value: formatCurrency(stats?.revenue_today ?? 0),
       icon: TrendingUp,
-      color: 'text-emerald-600',
-      bg: 'bg-emerald-50',
+      color: 'text-amber-700',
+      bg: 'bg-amber-50',
       desc: 'Paiements reçus',
     },
     {
       title: 'Recettes du mois',
       value: formatCurrency(stats?.revenue_month ?? 0),
       icon: Activity,
-      color: 'text-orange-600',
-      bg: 'bg-orange-50',
+      color: 'text-emerald-600',
+      bg: 'bg-emerald-50',
       desc: `${new Date().toLocaleString('fr-SN', { month: 'long' })} ${new Date().getFullYear()}`,
     },
     {
@@ -83,6 +83,19 @@ export default function DashboardPage() {
       />
 
       <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+        {/* Welcome banner */}
+        <div className="flex items-center gap-3 rounded-xl border bg-white p-4 shadow-sm">
+          <div aria-hidden="true" className="flex w-1 self-stretch flex-col rounded-full overflow-hidden shrink-0">
+            <div className="flex-1 bg-[#009E60]" />
+            <div className="flex-1 bg-[#FDEF42]" />
+            <div className="flex-1 bg-[#E31B23]" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">Bienvenue sur CHMS Sénégal</h2>
+            <p className="text-sm text-gray-500 mt-0.5">Pilotez les opérations de votre clinique en toute simplicité.</p>
+          </div>
+        </div>
+
         {/* Stat cards */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {statCards.map((card) => (
@@ -117,7 +130,10 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {!queue || queue.length === 0 ? (
-                <p className="text-center py-8 text-sm text-gray-400">Aucun rendez-vous aujourd&apos;hui</p>
+                <div className="flex flex-col items-center justify-center gap-2 py-8 text-gray-400">
+                  <Clock className="h-8 w-8 opacity-30" />
+                  <p className="text-sm">Aucun rendez-vous aujourd&apos;hui</p>
+                </div>
               ) : (
                 queue.slice(0, 8).map((appt) => {
                   const cfg = statusConfig[appt.status] ?? { label: appt.status, variant: 'default' as const }
@@ -125,7 +141,7 @@ export default function DashboardPage() {
                   return (
                     <div key={appt.id} className="flex items-center justify-between rounded-lg border p-3 hover:bg-gray-50">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-100 text-xs font-bold text-teal-700">
                           {appt.queue_number ?? '#'}
                         </div>
                         <div>
@@ -151,10 +167,10 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-3">
               {[
-                { href: '/patients', label: 'Nouveau patient', icon: Users, color: 'bg-blue-50 text-blue-700 hover:bg-blue-100' },
+                { href: '/patients', label: 'Nouveau patient', icon: Users, color: 'bg-teal-50 text-teal-700 hover:bg-teal-100' },
                 { href: '/appointments', label: 'Rendez-vous', icon: CalendarDays, color: 'bg-violet-50 text-violet-700 hover:bg-violet-100' },
-                { href: '/consultations', label: 'Consultation', icon: Stethoscope, color: 'bg-teal-50 text-teal-700 hover:bg-teal-100' },
-                { href: '/billing', label: 'Nouvelle facture', icon: TrendingUp, color: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' },
+                { href: '/consultations', label: 'Consultation', icon: Stethoscope, color: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' },
+                { href: '/billing', label: 'Nouvelle facture', icon: TrendingUp, color: 'bg-amber-50 text-amber-700 hover:bg-amber-100' },
               ].map(({ href, label, icon: Icon, color }) => (
                 <Link
                   key={href}

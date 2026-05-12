@@ -100,7 +100,7 @@ export function Topbar({ title, description }: TopbarProps) {
         </Popover>
 
         {clinic && (
-          <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
+          <span className="rounded-full bg-teal-100 px-3 py-1 text-xs font-medium text-teal-700">
             {clinic.subscription_plan.toUpperCase()}
           </span>
         )}

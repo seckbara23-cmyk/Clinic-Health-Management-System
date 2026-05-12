@@ -37,15 +37,26 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-100 p-4">
       <div className="w-full max-w-md space-y-6">
         {/* Brand */}
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 shadow-lg">
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-700 shadow-lg">
             <Stethoscope className="h-7 w-7 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">CHMS Sénégal</h1>
-          <p className="text-sm text-gray-500 mt-1">Système de Gestion Clinique</p>
+          {/* Senegal flag accent strip */}
+          <div aria-hidden="true" className="mx-auto mb-3 flex h-1 w-20 overflow-hidden rounded-full">
+            <div className="flex-1 bg-[#009E60]" />
+            <div className="flex-1 bg-[#FDEF42]" />
+            <div className="flex-1 bg-[#E31B23]" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            CHMS Sénégal{' '}
+            <span className="text-[#009E60] text-xl" aria-hidden="true">★</span>
+          </h1>
+          <p className="text-sm text-gray-500 mt-1.5 max-w-xs mx-auto leading-relaxed">
+            Système de gestion clinique adapté aux structures de santé sénégalaises
+          </p>
         </div>
 
         <Card>
@@ -63,7 +74,7 @@ export default function LoginPage() {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Mot de passe</Label>
-                  <Link href="/forgot-password" className="text-xs text-blue-600 hover:underline">
+                  <Link href="/forgot-password" className="text-xs text-teal-700 hover:underline">
                     Mot de passe oublié?
                   </Link>
                 </div>
@@ -84,7 +95,7 @@ export default function LoginPage() {
           <CardFooter className="justify-center">
             <p className="text-sm text-gray-500">
               Nouvelle clinique?{' '}
-              <Link href="/signup" className="font-medium text-blue-600 hover:underline">
+              <Link href="/signup" className="font-medium text-teal-700 hover:underline">
                 Créer un compte
               </Link>
             </p>

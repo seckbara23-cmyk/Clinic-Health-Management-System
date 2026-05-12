@@ -7,7 +7,7 @@
   --card-foreground: #0f172a;
   --popover: #ffffff;
   --popover-foreground: #0f172a;
-  --primary: #2563eb;
+  --primary: #0f766e;
   --primary-foreground: #ffffff;
   --secondary: #f1f5f9;
   --secondary-foreground: #0f172a;
@@ -15,12 +15,17 @@
   --muted-foreground: #64748b;
   --accent: #f1f5f9;
   --accent-foreground: #0f172a;
-  --destructive: #ef4444;
+  --destructive: #e31b23;
   --destructive-foreground: #ffffff;
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --ring: #2563eb;
+  --ring: #0f766e;
   --radius: 0.5rem;
+
+  /* Senegal flag palette */
+  --sn-green: #009E60;
+  --sn-gold: #C9A100;
+  --sn-red: #E31B23;
 }
 
 @theme inline {
