@@ -4,7 +4,14 @@ import { Sidebar } from '@/components/layout/Sidebar'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error } = await supabase.auth.getUser()
+
+  if (error) {
+    console.error('[DashboardLayout] auth.getUser error:', {
+      message: error.message,
+      status:  error.status,
+    })
+  }
 
   if (!user) redirect('/login')
 

@@ -31,7 +31,16 @@ export default function LoginPage() {
   async function onSubmit(data: FormData) {
     setError(null)
     const { error } = await supabase.auth.signInWithPassword(data)
-    if (error) { setError(error.message); return }
+    if (error) {
+      // Full error logged to browser console / Vercel function logs for diagnosis
+      console.error('[Login] signInWithPassword error:', {
+        message: error.message,
+        status:  error.status,
+        code:    (error as { code?: string }).code,
+      })
+      setError(error.message)
+      return
+    }
     router.push('/dashboard')
     router.refresh()
   }
