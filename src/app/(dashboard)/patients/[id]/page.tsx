@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import {
   ArrowLeft, UserRound, Phone, Mail, MapPin, AlertCircle,
   Droplets, Calendar, Stethoscope, Receipt, Clock, Pencil,
-  Pill, FlaskConical, History, MessageCircle,
+  Pill, FlaskConical, History, MessageCircle, Activity,
 } from 'lucide-react'
 import { Topbar } from '@/components/layout/Topbar'
 import { Badge } from '@/components/ui/badge'
@@ -23,6 +23,7 @@ import { useInvoices } from '@/hooks/useInvoices'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
 import { useLabRequests } from '@/hooks/useLabRequests'
 import { useDoctors } from '@/hooks/useDoctors'
+import { useLatestPatientVitals } from '@/hooks/useVitals'
 import { useClinic } from '@/context/ClinicContext'
 import { formatDate, formatTime, formatCurrency, age, cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -78,6 +79,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
   const [apptNotes, setApptNotes] = useState('')
 
   const { data: patient, isLoading } = usePatient(id)
+  const { data: latestVitals } = useLatestPatientVitals(id)
   const { data: patientAppointments } = useAppointments(undefined, id)
   const { data: consultations } = useConsultations(id)
   const { data: patientInvoices } = useInvoices(undefined, id)
@@ -317,6 +319,89 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                     <a href={`tel:${patient.emergency_phone}`} className="flex items-center gap-2 text-gray-600 hover:text-blue-600">
                       <Phone className="h-3.5 w-3.5" /> {patient.emergency_phone}
                     </a>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Latest vitals snapshot */}
+            {latestVitals && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-rose-500" /> Derniers signes vitaux
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm space-y-3">
+                  <p className="text-xs text-gray-400 flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {formatDate(latestVitals.created_at)} à {new Intl.DateTimeFormat('fr-SN', { timeStyle: 'short' }).format(new Date(latestVitals.created_at))}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {latestVitals.systolic_bp != null && latestVitals.diastolic_bp != null && (
+                      <div className="rounded-lg bg-rose-50 border border-rose-100 px-2.5 py-2">
+                        <p className="text-[10px] text-rose-500 font-medium uppercase tracking-wide">Tension</p>
+                        <p className="font-bold text-rose-800 tabular-nums">
+                          {latestVitals.systolic_bp}/{latestVitals.diastolic_bp}
+                          <span className="text-xs font-normal text-rose-500 ml-1">mmHg</span>
+                        </p>
+                      </div>
+                    )}
+                    {latestVitals.heart_rate != null && (
+                      <div className="rounded-lg bg-pink-50 border border-pink-100 px-2.5 py-2">
+                        <p className="text-[10px] text-pink-500 font-medium uppercase tracking-wide">FC</p>
+                        <p className="font-bold text-pink-800 tabular-nums">
+                          {latestVitals.heart_rate}
+                          <span className="text-xs font-normal text-pink-500 ml-1">bpm</span>
+                        </p>
+                      </div>
+                    )}
+                    {latestVitals.temperature_c != null && (
+                      <div className="rounded-lg bg-amber-50 border border-amber-100 px-2.5 py-2">
+                        <p className="text-[10px] text-amber-600 font-medium uppercase tracking-wide">Temp.</p>
+                        <p className="font-bold text-amber-800 tabular-nums">
+                          {latestVitals.temperature_c}
+                          <span className="text-xs font-normal text-amber-600 ml-1">°C</span>
+                        </p>
+                      </div>
+                    )}
+                    {latestVitals.spo2 != null && (
+                      <div className="rounded-lg bg-blue-50 border border-blue-100 px-2.5 py-2">
+                        <p className="text-[10px] text-blue-500 font-medium uppercase tracking-wide">SpO₂</p>
+                        <p className="font-bold text-blue-800 tabular-nums">
+                          {latestVitals.spo2}
+                          <span className="text-xs font-normal text-blue-500 ml-1">%</span>
+                        </p>
+                      </div>
+                    )}
+                    {latestVitals.weight_kg != null && (
+                      <div className="rounded-lg bg-violet-50 border border-violet-100 px-2.5 py-2">
+                        <p className="text-[10px] text-violet-500 font-medium uppercase tracking-wide">Poids</p>
+                        <p className="font-bold text-violet-800 tabular-nums">
+                          {latestVitals.weight_kg}
+                          <span className="text-xs font-normal text-violet-500 ml-1">kg</span>
+                        </p>
+                      </div>
+                    )}
+                    {latestVitals.bmi != null && (
+                      <div className="rounded-lg bg-violet-50 border border-violet-100 px-2.5 py-2">
+                        <p className="text-[10px] text-violet-500 font-medium uppercase tracking-wide">IMC</p>
+                        <p className="font-bold text-violet-800 tabular-nums">{latestVitals.bmi}</p>
+                      </div>
+                    )}
+                  </div>
+                  {latestVitals.pain_scale != null && (
+                    <div className="flex items-center gap-2 text-xs text-gray-600">
+                      <span className="text-gray-400">Douleur :</span>
+                      <span className={cn(
+                        'font-bold',
+                        latestVitals.pain_scale <= 3 ? 'text-emerald-600'
+                        : latestVitals.pain_scale <= 6 ? 'text-amber-600'
+                        : 'text-red-600',
+                      )}>
+                        {latestVitals.pain_scale}/10
+                      </span>
+                    </div>
                   )}
                 </CardContent>
               </Card>

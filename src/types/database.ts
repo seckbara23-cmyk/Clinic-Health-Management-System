@@ -268,6 +268,27 @@ export interface ClinicService {
   updated_at: string
 }
 
+export interface ConsultationVitals {
+  id: string
+  clinic_id: string
+  patient_id: string
+  consultation_id: string
+  systolic_bp: number | null
+  diastolic_bp: number | null
+  heart_rate: number | null
+  respiratory_rate: number | null
+  spo2: number | null
+  weight_kg: number | null
+  height_cm: number | null
+  bmi: number | null
+  temperature_c: number | null
+  blood_glucose: number | null
+  pain_scale: number | null
+  notes: string | null
+  recorded_by: string
+  created_at: string
+}
+
 // ─── Dashboard Stats ────────────────────────────────────────────
 export interface DashboardStats {
   total_patients: number
