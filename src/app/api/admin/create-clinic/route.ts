@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomBytes } from 'crypto'
 import { createServiceClient } from '@/lib/supabase/service'
 import { createClient } from '@/lib/supabase/server'
+
+function generateTempPassword(): string {
+  // Excludes visually ambiguous chars (0/O, 1/l/I) so it's safe to read aloud or copy by hand
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
+  return Array.from(randomBytes(12), b => chars[b % chars.length]).join('')
+}
 
 export async function POST(req: NextRequest) {
   // Verify caller is super_admin
@@ -49,9 +56,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: clinicError.message }, { status: 400 })
   }
 
-  // 2. Create auth user (no password — they set it via the setup link)
+  // 2. Create auth user with a temporary password the super admin will share out-of-band.
+  //    must_change_password = true ensures they are forced to set their own password on first login.
+  //    The temp password is returned to the caller and NEVER logged.
+  const tempPassword = generateTempPassword()
   const { data: authData, error: authError } = await service.auth.admin.createUser({
     email:         admin_email.toLowerCase().trim(),
+    password:      tempPassword,
     email_confirm: true,
     user_metadata: {
       full_name: admin_full_name.trim(),
@@ -66,17 +77,18 @@ export async function POST(req: NextRequest) {
 
   const adminUserId = authData.user.id
 
-  // 3. Upsert user_profile linked to the new clinic
+  // 3. Upsert user_profile linked to the new clinic — flag forces password change on first login
   const { error: profileError } = await service
     .from('user_profiles')
     .upsert({
-      id:        adminUserId,
-      email:     admin_email.toLowerCase().trim(),
-      full_name: admin_full_name.trim(),
-      role:      'admin',
-      clinic_id: clinic.id,
-      is_active: true,
-    })
+      id:                   adminUserId,
+      email:                admin_email.toLowerCase().trim(),
+      full_name:            admin_full_name.trim(),
+      role:                 'admin',
+      clinic_id:            clinic.id,
+      is_active:            true,
+      must_change_password: true,
+    } as never)
 
   if (profileError) {
     await service.auth.admin.deleteUser(adminUserId)
@@ -84,23 +96,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: profileError.message }, { status: 400 })
   }
 
-  // 4. Generate a magic link — clinic admin clicks it, lands on /reset-password, sets password.
-  //    The redirectTo URL must be listed in Supabase Auth > URL Configuration > Redirect URLs.
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
-  const { data: linkData, error: linkError } = await service.auth.admin.generateLink({
-    type:    'magiclink',
-    email:   admin_email.toLowerCase().trim(),
-    options: { redirectTo: `${appUrl}/reset-password` },
-  })
-
-  const setupLink = linkError ? null : linkData?.properties?.action_link ?? null
-
   return NextResponse.json({
     clinic,
-    setupLink,
     adminUserId,
-    note: setupLink
-      ? 'Partagez ce lien une seule fois avec l\'administrateur de la clinique.'
-      : 'Génération du lien échouée — utilisez Supabase Auth Dashboard pour en créer un manuellement.',
+    // temp_password is shown once in the UI — never logged server-side
+    temp_password: tempPassword,
+    note: 'Communiquez ce mot de passe temporaire à l\'administrateur de la clinique. Il devra le changer à la première connexion.',
   })
 }

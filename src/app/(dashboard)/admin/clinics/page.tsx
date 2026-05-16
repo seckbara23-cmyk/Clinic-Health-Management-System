@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
-  Plus, Loader2, MapPin, Shield, Copy, CheckCircle2, ExternalLink,
+  Plus, Loader2, MapPin, Shield, Copy, CheckCircle2,
   AlertCircle, Ban, RefreshCw,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -50,7 +50,7 @@ const statusConfig: Record<string, { label: string; variant: string; dot: string
 export default function AdminClinicsPage() {
   const { profile } = useClinic()
   const [open, setOpen] = useState(false)
-  const [setupLink, setSetupLink] = useState<string | null>(null)
+  const [tempPassword, setTempPassword] = useState<{ password: string; email: string } | null>(null)
   const [copied, setCopied] = useState(false)
   const qc = useQueryClient()
   const supabase = createClient()
@@ -77,13 +77,13 @@ export default function AdminClinicsPage() {
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Erreur')
-      return json as { clinic: Clinic; setupLink: string | null }
+      return json as { clinic: Clinic; temp_password: string }
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['admin-clinics'] })
       toast.success('Clinique et compte admin créés')
       reset()
-      setSetupLink(data.setupLink)
+      setTempPassword({ password: data.temp_password, email: data.clinic.email ?? '' })
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -109,9 +109,9 @@ export default function AdminClinicsPage() {
     defaultValues: { subscription_plan: 'free' },
   })
 
-  async function copyLink() {
-    if (!setupLink) return
-    await navigator.clipboard.writeText(setupLink)
+  async function copyPassword() {
+    if (!tempPassword) return
+    await navigator.clipboard.writeText(tempPassword.password)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -135,7 +135,7 @@ export default function AdminClinicsPage() {
       <div className="flex-1 p-6 space-y-4 overflow-y-auto">
         <div className="flex justify-between items-center">
           <p className="text-sm text-gray-500">{clinics?.length ?? 0} clinique(s) enregistrée(s)</p>
-          <Button onClick={() => { reset(); setSetupLink(null); setOpen(true) }}>
+          <Button onClick={() => { reset(); setTempPassword(null); setOpen(true) }}>
             <Plus className="h-4 w-4" /> Nouvelle clinique
           </Button>
         </div>
@@ -207,36 +207,33 @@ export default function AdminClinicsPage() {
       </div>
 
       {/* Create clinic dialog */}
-      <Dialog open={open} onOpenChange={(o) => { if (!o) { reset(); setSetupLink(null) } setOpen(o) }}>
+      <Dialog open={open} onOpenChange={(o) => { if (!o) { reset(); setTempPassword(null) } setOpen(o) }}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Créer une clinique</DialogTitle>
           </DialogHeader>
 
-          {setupLink ? (
+          {tempPassword ? (
             <div className="space-y-4">
               <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 p-3">
                 <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
                 <p className="text-sm text-emerald-800 font-medium">Clinique et compte admin créés.</p>
               </div>
               <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                  <ExternalLink className="h-4 w-4" />
-                  Lien de configuration (valide 1h)
-                </p>
+                <p className="text-sm font-medium text-gray-700">Mot de passe temporaire de l&apos;admin</p>
                 <div className="flex gap-2">
-                  <Input value={setupLink} readOnly className="text-xs font-mono bg-gray-50" />
-                  <Button variant="outline" size="icon" onClick={copyLink} title="Copier">
+                  <Input value={tempPassword.password} readOnly className="font-mono tracking-widest bg-gray-50" />
+                  <Button variant="outline" size="icon" onClick={copyPassword} title="Copier">
                     {copied ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
                   </Button>
                 </div>
                 <p className="text-xs text-amber-700 flex gap-1.5 items-start">
                   <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                  Ce lien ne s&apos;affichera qu&apos;une seule fois. Copiez-le et partagez-le avec l&apos;admin de la clinique.
+                  Ce mot de passe ne s&apos;affichera qu&apos;une seule fois. L&apos;admin devra le changer à la première connexion.
                 </p>
               </div>
               <DialogFooter>
-                <Button onClick={() => { setOpen(false); setSetupLink(null) }}>Fermer</Button>
+                <Button onClick={() => { setOpen(false); setTempPassword(null) }}>Fermer</Button>
               </DialogFooter>
             </div>
           ) : (
@@ -290,7 +287,7 @@ export default function AdminClinicsPage() {
                   {errors.admin_email && <p className="text-xs text-red-500">{errors.admin_email.message}</p>}
                 </div>
                 <p className="text-xs text-gray-400">
-                  Un lien de connexion sera généré. L&apos;admin pourra définir son mot de passe via ce lien.
+                  Un mot de passe temporaire sera généré. L&apos;admin devra le changer à la première connexion.
                 </p>
               </div>
 

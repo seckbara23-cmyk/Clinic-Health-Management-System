@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, Stethoscope } from 'lucide-react'
+import { Loader2, Stethoscope, KeyRound } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,7 +13,10 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 const schema = z.object({
-  password: z.string().min(8, 'Minimum 8 caractères'),
+  password: z.string()
+    .min(8, 'Minimum 8 caractères')
+    .regex(/[A-Z]/, 'Doit contenir au moins une majuscule')
+    .regex(/[0-9]/, 'Doit contenir au moins un chiffre'),
   confirm: z.string(),
 }).refine(d => d.password === d.confirm, {
   message: 'Les mots de passe ne correspondent pas',
@@ -21,10 +24,20 @@ const schema = z.object({
 })
 type FormData = z.infer<typeof schema>
 
-export default function ResetPasswordPage() {
+export default function ChangePasswordPage() {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
+  const [checking, setChecking] = useState(true)
   const supabase = createClient()
+
+  // Guard: if user is not logged in, go to login; if not flagged, go to dashboard
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) { router.replace('/login'); return }
+      setChecking(false)
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -32,14 +45,31 @@ export default function ResetPasswordPage() {
 
   async function onSubmit(data: FormData) {
     setError(null)
-    const { error } = await supabase.auth.updateUser({ password: data.password })
-    if (error) {
-      setError(error.message)
+
+    // 1. Update the password via Supabase Auth (uses current session)
+    const { error: authError } = await supabase.auth.updateUser({ password: data.password })
+    if (authError) {
+      setError(authError.message)
       return
     }
-    // Clear must_change_password if it was set (no-op if already false)
-    await fetch('/api/auth/change-password', { method: 'POST' })
-    router.push('/dashboard')
+
+    // 2. Clear must_change_password in user_profiles
+    const res = await fetch('/api/auth/change-password', { method: 'POST' })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      setError(body.error ?? 'Erreur lors de la mise à jour du profil')
+      return
+    }
+
+    router.replace('/dashboard')
+  }
+
+  if (checking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
+      </div>
+    )
   }
 
   return (
@@ -62,21 +92,27 @@ export default function ResetPasswordPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Nouveau mot de passe</CardTitle>
-            <CardDescription>Choisissez un mot de passe sécurisé</CardDescription>
+            <div className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-teal-700" />
+              <CardTitle>Changer votre mot de passe</CardTitle>
+            </div>
+            <CardDescription>
+              Un mot de passe temporaire vous a été fourni. Choisissez maintenant un mot de passe personnel sécurisé.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="password">Nouveau mot de passe</Label>
-                <Input id="password" type="password" {...register('password')} />
+                <Input id="password" type="password" autoComplete="new-password" {...register('password')} />
                 {errors.password && (
                   <p className="text-xs text-red-500">{errors.password.message}</p>
                 )}
+                <p className="text-xs text-gray-400">Minimum 8 caractères, une majuscule, un chiffre</p>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="confirm">Confirmer le mot de passe</Label>
-                <Input id="confirm" type="password" {...register('confirm')} />
+                <Input id="confirm" type="password" autoComplete="new-password" {...register('confirm')} />
                 {errors.confirm && (
                   <p className="text-xs text-red-500">{errors.confirm.message}</p>
                 )}
@@ -86,9 +122,9 @@ export default function ResetPasswordPage() {
                   {error}
                 </div>
               )}
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+              <Button type="submit" className="w-full bg-teal-700 hover:bg-teal-800" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="animate-spin" />}
-                Enregistrer le mot de passe
+                Enregistrer et accéder au tableau de bord
               </Button>
             </form>
           </CardContent>

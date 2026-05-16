@@ -18,14 +18,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (!user) redirect('/login')
 
-  // Enforce is_active — inactive users (pending approval, suspended, etc.) cannot use dashboard
+  // Enforce is_active and must_change_password before rendering the dashboard
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('is_active, role')
+    .select('is_active, role, must_change_password')
     .eq('id', user.id)
-    .single()
+    .single() as { data: { is_active: boolean; role: string; must_change_password: boolean } | null }
 
   if (!profile || !profile.is_active) redirect('/suspended')
+  if (profile.must_change_password) redirect('/change-password')
 
   return (
     <SidebarProvider>

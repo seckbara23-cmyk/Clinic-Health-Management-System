@@ -5,7 +5,7 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, Users, Mail } from 'lucide-react'
+import { Loader2, Users, Mail, KeyRound, Copy, Check, ShieldAlert } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Topbar } from '@/components/layout/Topbar'
 import { Button } from '@/components/ui/button'
@@ -20,6 +20,11 @@ import { useClinic } from '@/context/ClinicContext'
 import { formatDate, cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import type { UserProfile, Clinic, Role } from '@/types/database'
+
+interface ResetResult {
+  temp_password: string
+  user: { email: string; full_name: string }
+}
 
 const inviteSchema = z.object({
   email: z.string().email('Email invalide'),
@@ -44,6 +49,8 @@ const roleLabels: Record<string, string> = {
 export default function AdminUsersPage() {
   const { profile } = useClinic()
   const [open, setOpen] = useState(false)
+  const [resetResult, setResetResult] = useState<ResetResult | null>(null)
+  const [copied, setCopied] = useState(false)
   const supabase = createClient()
 
   const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
@@ -70,6 +77,29 @@ export default function AdminUsersPage() {
       return data as Pick<Clinic, 'id' | 'name'>[]
     },
   })
+
+  const isSuperAdmin = profile?.role === 'super_admin'
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await fetch('/api/admin/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId }),
+      })
+      const body = await res.json()
+      if (!res.ok) throw new Error(body.error ?? 'Erreur')
+      return body as ResetResult
+    },
+    onSuccess: (data) => setResetResult(data),
+    onError: (e: Error) => toast.error(e.message),
+  })
+
+  function copyPassword(pwd: string) {
+    navigator.clipboard.writeText(pwd)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   const inviteMutation = useMutation({
     mutationFn: async (input: InviteFormData) => {
@@ -129,19 +159,20 @@ export default function AdminUsersPage() {
                   <TableHead>Clinique</TableHead>
                   <TableHead>Statut</TableHead>
                   <TableHead>Inscrit le</TableHead>
+                  {isSuperAdmin && <TableHead className="text-right">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
+                    <TableCell colSpan={isSuperAdmin ? 7 : 6} className="text-center py-8">
                       <Loader2 className="mx-auto h-5 w-5 animate-spin text-gray-400" />
                     </TableCell>
                   </TableRow>
                 )}
                 {!isLoading && (!users || users.length === 0) && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-gray-400">
+                    <TableCell colSpan={isSuperAdmin ? 7 : 6} className="text-center py-12 text-gray-400">
                       <Users className="mx-auto h-10 w-10 mb-3 opacity-30" />
                       <p>Aucun utilisateur</p>
                     </TableCell>
@@ -149,7 +180,16 @@ export default function AdminUsersPage() {
                 )}
                 {users?.map(u => (
                   <TableRow key={u.id}>
-                    <TableCell className="font-medium">{u.full_name}</TableCell>
+                    <TableCell className="font-medium">
+                      <span className="flex items-center gap-1.5">
+                        {u.must_change_password && (
+                          <span title="Doit changer son mot de passe">
+                            <ShieldAlert className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                          </span>
+                        )}
+                        {u.full_name}
+                      </span>
+                    </TableCell>
                     <TableCell className="text-sm text-gray-500">{u.email}</TableCell>
                     <TableCell>
                       <span className={cn('rounded-full px-2.5 py-1 text-xs font-medium', roleColors[u.role])}>
@@ -163,6 +203,24 @@ export default function AdminUsersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-gray-400">{formatDate(u.created_at)}</TableCell>
+                    {isSuperAdmin && (
+                      <TableCell className="text-right">
+                        {u.role !== 'super_admin' && (
+                          <Button
+                            size="sm" variant="outline"
+                            className="h-7 text-xs gap-1.5"
+                            disabled={resetPasswordMutation.isPending}
+                            onClick={() => resetPasswordMutation.mutate(u.id)}
+                          >
+                            {resetPasswordMutation.isPending && resetPasswordMutation.variables === u.id
+                              ? <Loader2 className="h-3 w-3 animate-spin" />
+                              : <KeyRound className="h-3 w-3" />
+                            }
+                            Réinit. MDP
+                          </Button>
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -170,6 +228,46 @@ export default function AdminUsersPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Temp password result dialog */}
+      {resetResult && (
+        <Dialog open onOpenChange={() => setResetResult(null)}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <KeyRound className="h-5 w-5 text-amber-600" />
+                Mot de passe temporaire
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 text-sm">
+              <p className="text-gray-600">
+                Communiquez ce mot de passe à <strong>{resetResult.user.full_name}</strong>{' '}
+                (<span className="text-gray-500">{resetResult.user.email}</span>).
+                L&apos;utilisateur devra le changer à la prochaine connexion.
+              </p>
+              <div className="flex items-center gap-2 rounded-lg border bg-gray-50 px-3 py-2">
+                <code className="flex-1 font-mono text-base tracking-widest text-gray-900 select-all">
+                  {resetResult.temp_password}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => copyPassword(resetResult.temp_password)}
+                  className="shrink-0 rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-700 transition-colors"
+                  aria-label="Copier le mot de passe"
+                >
+                  {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+                </button>
+              </div>
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                Ce mot de passe ne sera plus affiché après la fermeture de cette fenêtre.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setResetResult(null)}>Fermer</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Invite dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
