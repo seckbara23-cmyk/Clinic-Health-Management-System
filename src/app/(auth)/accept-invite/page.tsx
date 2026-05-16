@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -22,7 +22,7 @@ const schema = z.object({
 })
 type FormData = z.infer<typeof schema>
 
-export default function AcceptInvitePage() {
+function AcceptInviteForm() {
   const searchParams = useSearchParams()
   const token = searchParams.get('token') ?? ''
   const [error, setError] = useState<string | null>(null)
@@ -120,5 +120,13 @@ export default function AcceptInvitePage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function AcceptInvitePage() {
+  return (
+    <Suspense>
+      <AcceptInviteForm />
+    </Suspense>
   )
 }
