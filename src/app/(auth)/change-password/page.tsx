@@ -39,6 +39,8 @@ export default function ChangePasswordPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const [step, setStep] = useState<'password' | 'finalizing' | 'redirecting' | null>(null)
+
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
   })
@@ -46,44 +48,57 @@ export default function ChangePasswordPage() {
   async function onSubmit(data: FormData) {
     setError(null)
 
-    // 1. Update the password via Supabase Auth (uses current session)
+    // Step 1: update password via Supabase Auth
+    setStep('password')
+    const t0 = Date.now()
+    console.log('[change-pw] step 1: updateUser start')
     const { error: authError } = await supabase.auth.updateUser({ password: data.password })
+    console.log(`[change-pw] step 1: updateUser ${Date.now() - t0}ms`)
     if (authError) {
       setError(authError.message)
+      setStep(null)
       return
     }
 
-    // 2. Clear must_change_password in user_profiles
-    const res = await fetch('/api/auth/change-password', { method: 'POST' })
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}))
-      setError(body.error ?? 'Erreur lors de la mise à jour du profil')
-      return
-    }
-
-    // 3. Redirect admin users to onboarding if clinic setup isn't complete
-    const { data: { user: currentUser } } = await supabase.auth.getUser()
-    if (currentUser) {
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('role, clinic_id, clinic:clinics(onboarding_completed_at)')
-        .eq('id', currentUser.id)
-        .single() as {
-          data: {
-            role: string
-            clinic_id: string | null
-            clinic: { onboarding_completed_at: string | null } | null
-          } | null
-        }
-
-      if (profile?.role === 'admin' && profile.clinic_id && !profile.clinic?.onboarding_completed_at) {
-        router.replace('/onboarding')
+    // Step 2: clear flag + get redirect target (server handles both in parallel)
+    setStep('finalizing')
+    const t1 = Date.now()
+    console.log('[change-pw] step 2: API call start')
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 8000)
+    let redirectTo = '/dashboard'
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        signal: controller.signal,
+      })
+      clearTimeout(timeout)
+      console.log(`[change-pw] step 2: API ${Date.now() - t1}ms status=${res.status}`)
+      if (res.ok) {
+        const json = await res.json() as { ok: boolean; redirect_to: string }
+        redirectTo = json.redirect_to ?? '/dashboard'
+      } else {
+        const body = await res.json().catch(() => ({})) as { error?: string }
+        setError(body.error ?? 'Erreur lors de la mise à jour du profil')
+        setStep(null)
         return
       }
+    } catch {
+      clearTimeout(timeout)
+      console.warn(`[change-pw] step 2: timeout/error after ${Date.now() - t1}ms — falling back to /dashboard`)
+      // Timeout or network error: fall back, the password update already succeeded
     }
 
-    router.replace('/dashboard')
+    setStep('redirecting')
+    console.log(`[change-pw] redirecting to ${redirectTo} total=${Date.now() - t0}ms`)
+    router.replace(redirectTo)
   }
+
+  const stepLabel =
+    step === 'password'    ? 'Mise à jour du mot de passe…' :
+    step === 'finalizing'  ? 'Finalisation…' :
+    step === 'redirecting' ? 'Redirection…' :
+    'Enregistrer et continuer'
 
   if (checking) {
     return (
@@ -143,9 +158,9 @@ export default function ChangePasswordPage() {
                   {error}
                 </div>
               )}
-              <Button type="submit" className="w-full bg-teal-700 hover:bg-teal-800" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="animate-spin" />}
-                Enregistrer et accéder au tableau de bord
+              <Button type="submit" className="w-full bg-teal-700 hover:bg-teal-800" disabled={isSubmitting || !!step}>
+                {(isSubmitting || !!step) && <Loader2 className="h-4 w-4 animate-spin" />}
+                {stepLabel}
               </Button>
             </form>
           </CardContent>
