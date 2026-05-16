@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Users, CalendarDays, Receipt,
   Settings, LogOut, Stethoscope, ShieldCheck,
-  Building2, ChevronRight, ClipboardList, Pill, FlaskConical, BarChart2,
+  Building2, ChevronRight, ClipboardList, Pill, FlaskConical, BarChart2, Inbox,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useClinic } from '@/context/ClinicContext'
@@ -56,6 +56,7 @@ const navItems: NavItem[] = [
 
 const adminItems: NavItem[] = [
   { href: '/admin/clinics', label: 'Cliniques', icon: Building2 },
+  { href: '/admin/clinic-requests', label: 'Demandes', icon: Inbox, roles: ['super_admin'] },
   { href: '/admin/users', label: 'Utilisateurs', icon: ShieldCheck },
 ]
 
@@ -113,7 +114,10 @@ export function Sidebar() {
               <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Administration</p>
             </div>
             {adminItems
-              .filter(item => isSuperAdmin || item.href !== '/admin/clinics')
+              .filter(item => {
+                if (item.roles) return role ? item.roles.includes(role) : false
+                return isSuperAdmin || item.href !== '/admin/clinics'
+              })
               .map(({ href, label, icon: Icon }) => {
                 const active = pathname === href || pathname.startsWith(href + '/')
                 return (

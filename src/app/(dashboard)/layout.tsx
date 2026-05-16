@@ -15,6 +15,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (!user) redirect('/login')
 
+  // Enforce is_active — inactive users (pending approval, suspended, etc.) cannot use dashboard
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('is_active, role')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile || !profile.is_active) redirect('/suspended')
+
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />

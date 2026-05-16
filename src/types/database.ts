@@ -3,6 +3,8 @@ export type Json = string | number | boolean | null | { [key: string]: Json } | 
 export type Role = 'super_admin' | 'admin' | 'doctor' | 'receptionist' | 'nurse' | 'cashier'
 export type SubscriptionPlan = 'free' | 'basic' | 'pro' | 'enterprise'
 export type SubscriptionStatus = 'active' | 'suspended' | 'cancelled'
+export type ClinicStatus = 'pending' | 'active' | 'rejected' | 'suspended'
+export type ClinicRequestStatus = 'pending' | 'approved' | 'rejected'
 export type Gender = 'male' | 'female' | 'other'
 export type BloodType = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-'
 export type AppointmentStatus =
@@ -32,6 +34,24 @@ export interface Clinic {
   logo_url: string | null
   subscription_plan: SubscriptionPlan
   subscription_status: SubscriptionStatus
+  status: ClinicStatus
+  created_at: string
+  updated_at: string
+}
+
+export interface ClinicRequest {
+  id: string
+  clinic_name: string
+  location: string
+  phone: string | null
+  admin_full_name: string
+  admin_email: string
+  message: string | null
+  status: ClinicRequestStatus
+  reviewed_by: string | null
+  reviewed_at: string | null
+  rejection_reason: string | null
+  clinic_id: string | null
   created_at: string
   updated_at: string
 }
