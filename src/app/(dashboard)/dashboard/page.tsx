@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { Users, CalendarDays, TrendingUp, Clock, Activity, ArrowUpRight, Stethoscope, AlertCircle } from 'lucide-react'
+import { Users, CalendarDays, TrendingUp, Clock, Activity, ArrowUpRight, Stethoscope, AlertCircle, Wrench } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Topbar } from '@/components/layout/Topbar'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { useDashboardStats } from '@/hooks/useInvoices'
 import { useTodayQueue } from '@/hooks/useAppointments'
 import { useClinic } from '@/context/ClinicContext'
@@ -20,7 +21,7 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'succes
 }
 
 export default function DashboardPage() {
-  const { clinic } = useClinic()
+  const { clinic, profile } = useClinic()
   const { data: stats, isLoading: statsLoading } = useDashboardStats()
   const { data: queue } = useTodayQueue()
 
@@ -82,7 +83,25 @@ export default function DashboardPage() {
         description={`Tableau de bord — ${clinic?.name ?? ''}`}
       />
 
-      <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+      <div className="flex-1 p-4 md:p-6 space-y-4 md:space-y-6 overflow-y-auto">
+        {/* Onboarding banner — only for clinic admins who haven't completed setup */}
+        {profile?.role === 'admin' && clinic && !clinic.onboarding_completed_at && (
+          <div className="flex items-center gap-4 rounded-xl border-2 border-teal-200 bg-teal-50 p-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-700">
+              <Wrench className="h-5 w-5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-teal-900">Configurez votre clinique</p>
+              <p className="text-xs text-teal-700 mt-0.5">
+                Étape {clinic.onboarding_step}/4 — Complétez le profil, les services et l&apos;équipe pour démarrer.
+              </p>
+            </div>
+            <Button size="sm" className="shrink-0 bg-teal-700 hover:bg-teal-800" asChild>
+              <Link href="/onboarding">Continuer</Link>
+            </Button>
+          </div>
+        )}
+
         {/* Welcome banner */}
         <div className="flex items-center gap-3 rounded-xl border bg-white p-4 shadow-sm">
           <div aria-hidden="true" className="flex w-1 self-stretch flex-col rounded-full overflow-hidden shrink-0">

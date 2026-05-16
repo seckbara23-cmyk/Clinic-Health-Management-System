@@ -35,6 +35,8 @@ export interface Clinic {
   subscription_plan: SubscriptionPlan
   subscription_status: SubscriptionStatus
   status: ClinicStatus
+  onboarding_completed_at: string | null
+  onboarding_step: number
   created_at: string
   updated_at: string
 }
@@ -226,6 +228,21 @@ export interface ClinicInvitation {
   accepted_at: string | null
   expires_at: string
   created_at: string
+}
+
+export interface ClinicService {
+  id: string
+  clinic_id: string
+  name: string
+  description: string | null
+  price: number
+  currency: string
+  duration_min: number | null
+  category: string | null
+  is_active: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
 }
 
 // ─── Dashboard Stats ────────────────────────────────────────────
