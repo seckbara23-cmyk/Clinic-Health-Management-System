@@ -1,11 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { Bell, Search, Clock, FlaskConical, Receipt, AlertTriangle } from 'lucide-react'
+import { Bell, Search, Clock, FlaskConical, Receipt, AlertTriangle, Menu } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useClinic } from '@/context/ClinicContext'
+import { useSidebar } from '@/context/SidebarContext'
 import { useNotifications, type Notification } from '@/hooks/useNotifications'
 import { formatDate, cn } from '@/lib/utils'
 
@@ -30,14 +31,27 @@ const notifColor: Record<Notification['type'], string> = {
 
 export function Topbar({ title, description }: TopbarProps) {
   const { clinic } = useClinic()
+  const { openMobile } = useSidebar()
   const { data: notifications } = useNotifications()
   const count = notifications?.length ?? 0
 
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-white px-6">
-      <div>
-        <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
-        {description && <p className="text-xs text-gray-500">{description}</p>}
+    <header className="flex h-14 items-center justify-between border-b bg-white px-4 md:h-16 md:px-6">
+      <div className="flex items-center gap-3 min-w-0">
+        {/* Hamburger — mobile only */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="shrink-0 md:hidden"
+          onClick={openMobile}
+          aria-label="Ouvrir le menu"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+        <div className="min-w-0">
+          <h1 className="truncate text-base font-semibold text-gray-900 md:text-lg">{title}</h1>
+          {description && <p className="hidden text-xs text-gray-500 sm:block">{description}</p>}
+        </div>
       </div>
       <div className="flex items-center gap-3">
         <div className="relative hidden md:block">

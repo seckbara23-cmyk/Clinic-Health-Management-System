@@ -145,17 +145,17 @@ export default function BillingPage() {
     <div className="flex flex-col h-full">
       <Topbar title="Facturation" description="Gérez les factures et paiements" />
 
-      <div className="flex-1 p-6 space-y-4">
+      <div className="flex-1 p-4 md:p-6 space-y-4">
         {/* Summary */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-3 md:gap-4">
           {[
-            { label: 'Total encaissé', value: formatCurrency(totalRevenue), color: 'text-emerald-700', bg: 'bg-emerald-50' },
+            { label: 'Encaissé', value: formatCurrency(totalRevenue), color: 'text-emerald-700', bg: 'bg-emerald-50' },
             { label: 'En attente', value: formatCurrency(totalPending), color: 'text-amber-700', bg: 'bg-amber-50' },
-            { label: 'Nb factures', value: invoices?.length ?? 0, color: 'text-blue-700', bg: 'bg-blue-50' },
+            { label: 'Factures', value: invoices?.length ?? 0, color: 'text-blue-700', bg: 'bg-blue-50' },
           ].map(s => (
-            <div key={s.label} className={cn('rounded-xl p-4', s.bg)}>
-              <p className="text-xs font-medium text-gray-500">{s.label}</p>
-              <p className={cn('text-xl font-bold mt-1', s.color)}>{s.value}</p>
+            <div key={s.label} className={cn('rounded-xl p-3 md:p-4', s.bg)}>
+              <p className="text-[10px] md:text-xs font-medium text-gray-500">{s.label}</p>
+              <p className={cn('text-lg md:text-xl font-bold mt-0.5', s.color)}>{s.value}</p>
             </div>
           ))}
         </div>
@@ -163,8 +163,8 @@ export default function BillingPage() {
         {/* Toolbar */}
         <div className="flex items-center gap-3">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Tous les statuts" />
+            <SelectTrigger className="w-36 md:w-40">
+              <SelectValue placeholder="Tous" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">Tous</SelectItem>
@@ -173,88 +173,129 @@ export default function BillingPage() {
               ))}
             </SelectContent>
           </Select>
-          <Button className="ml-auto" onClick={() => { reset(); setCreateOpen(true) }}>
-            <Plus className="h-4 w-4" /> Nouvelle facture
+          <Button className="ml-auto shrink-0" onClick={() => { reset(); setCreateOpen(true) }}>
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Nouvelle facture</span>
           </Button>
         </div>
 
-        {/* Table */}
+        {/* Invoice list */}
         <Card>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>N° Facture</TableHead>
-                  <TableHead>Patient</TableHead>
-                  <TableHead>Montant</TableHead>
-                  <TableHead>Payé</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
-                      <Loader2 className="mx-auto h-5 w-5 animate-spin text-gray-400" />
-                    </TableCell>
-                  </TableRow>
-                )}
-                {!isLoading && (!invoices || invoices.length === 0) && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12 text-gray-400">
-                      <Receipt className="mx-auto h-10 w-10 mb-3 opacity-30" />
-                      <p>Aucune facture</p>
-                    </TableCell>
-                  </TableRow>
-                )}
-                {invoices?.map(inv => (
-                  <TableRow key={inv.id}>
-                    <TableCell className="font-mono text-xs text-blue-600">{inv.invoice_number}</TableCell>
-                    <TableCell className="font-medium">
-                      {(inv as { patient?: { full_name?: string } }).patient?.full_name ?? '—'}
-                    </TableCell>
-                    <TableCell className="font-semibold">{formatCurrency(Number(inv.total_amount))}</TableCell>
-                    <TableCell>{formatCurrency(Number(inv.amount_paid))}</TableCell>
-                    <TableCell>
-                      <span className={cn('rounded-full px-2.5 py-1 text-xs font-medium', statusVariant[inv.status])}>
+            {isLoading && (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+              </div>
+            )}
+            {!isLoading && (!invoices || invoices.length === 0) && (
+              <div className="flex flex-col items-center py-12 text-gray-400">
+                <Receipt className="h-10 w-10 mb-3 opacity-30" />
+                <p>Aucune facture</p>
+              </div>
+            )}
+
+            {/* Mobile card list */}
+            <div className="divide-y md:hidden">
+              {invoices?.map(inv => {
+                const patientName = (inv as { patient?: { full_name?: string } }).patient?.full_name ?? '—'
+                const unpaid = inv.status !== 'paid' && inv.status !== 'cancelled'
+                return (
+                  <div key={inv.id} className="p-4 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-xs text-blue-600">{inv.invoice_number}</span>
+                      <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-medium', statusVariant[inv.status])}>
                         {statusLabel[inv.status]}
                       </span>
-                    </TableCell>
-                    <TableCell className="text-sm text-gray-500">{formatDate(inv.created_at)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          size="sm" variant="ghost" className="h-7 w-7 p-0"
-                          onClick={() => setReceiptInvoice(inv)}
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                        </Button>
-                        {inv.status !== 'paid' && inv.status !== 'cancelled' && (
-                          <>
-                            <Button
-                              size="sm" variant="outline"
-                              className="h-7 text-xs text-amber-600 hover:bg-amber-50"
-                              onClick={() => { setPartialInvoice(inv); partialForm.reset() }}
-                            >
-                              Paiement partiel
-                            </Button>
-                            <Button
-                              size="sm" variant="outline"
-                              className="h-7 text-xs text-emerald-600 hover:bg-emerald-50"
-                              onClick={() => markPaid(inv)}
-                            >
-                              <CheckCircle2 className="h-3 w-3 mr-1" /> Payée
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium truncate mr-2">{patientName}</p>
+                      <p className="shrink-0 font-bold">{formatCurrency(Number(inv.total_amount))}</p>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>{formatDate(inv.created_at)}</span>
+                      {Number(inv.amount_paid) > 0 && (
+                        <span className="text-emerald-600">Payé: {formatCurrency(Number(inv.amount_paid))}</span>
+                      )}
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <Button size="sm" variant="outline" className="flex-1 h-9 text-xs"
+                        onClick={() => setReceiptInvoice(inv)}>
+                        <Eye className="h-3.5 w-3.5 mr-1" /> Voir
+                      </Button>
+                      {unpaid && (
+                        <>
+                          <Button size="sm" variant="outline" className="flex-1 h-9 text-xs text-amber-600 hover:bg-amber-50"
+                            onClick={() => { setPartialInvoice(inv); partialForm.reset() }}>
+                            Partiel
+                          </Button>
+                          <Button size="sm" className="flex-1 h-9 text-xs bg-emerald-600 hover:bg-emerald-700"
+                            onClick={() => markPaid(inv)}>
+                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Payée
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>N° Facture</TableHead>
+                    <TableHead>Patient</TableHead>
+                    <TableHead>Montant</TableHead>
+                    <TableHead>Payé</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {invoices?.map(inv => (
+                    <TableRow key={inv.id}>
+                      <TableCell className="font-mono text-xs text-blue-600">{inv.invoice_number}</TableCell>
+                      <TableCell className="font-medium">
+                        {(inv as { patient?: { full_name?: string } }).patient?.full_name ?? '—'}
+                      </TableCell>
+                      <TableCell className="font-semibold">{formatCurrency(Number(inv.total_amount))}</TableCell>
+                      <TableCell>{formatCurrency(Number(inv.amount_paid))}</TableCell>
+                      <TableCell>
+                        <span className={cn('rounded-full px-2.5 py-1 text-xs font-medium', statusVariant[inv.status])}>
+                          {statusLabel[inv.status]}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-500">{formatDate(inv.created_at)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0"
+                            onClick={() => setReceiptInvoice(inv)}>
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                          {inv.status !== 'paid' && inv.status !== 'cancelled' && (
+                            <>
+                              <Button size="sm" variant="outline"
+                                className="h-7 text-xs text-amber-600 hover:bg-amber-50"
+                                onClick={() => { setPartialInvoice(inv); partialForm.reset() }}>
+                                Paiement partiel
+                              </Button>
+                              <Button size="sm" variant="outline"
+                                className="h-7 text-xs text-emerald-600 hover:bg-emerald-50"
+                                onClick={() => markPaid(inv)}>
+                                <CheckCircle2 className="h-3 w-3 mr-1" /> Payée
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>

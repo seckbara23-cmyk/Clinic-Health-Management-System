@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Sidebar } from '@/components/layout/Sidebar'
+import { BottomNav } from '@/components/layout/BottomNav'
+import { SidebarProvider } from '@/context/SidebarContext'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -25,11 +27,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!profile || !profile.is_active) redirect('/suspended')
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto">
-        {children}
-      </main>
-    </div>
+    <SidebarProvider>
+      <div className="flex h-screen overflow-hidden">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto min-w-0 pb-16 md:pb-0">
+          {children}
+        </main>
+      </div>
+      <BottomNav />
+    </SidebarProvider>
   )
 }

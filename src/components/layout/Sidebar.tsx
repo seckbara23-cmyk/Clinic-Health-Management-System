@@ -5,10 +5,11 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Users, CalendarDays, Receipt,
   Settings, LogOut, Stethoscope, ShieldCheck,
-  Building2, ChevronRight, ClipboardList, Pill, FlaskConical, BarChart2, Inbox,
+  Building2, ChevronRight, ClipboardList, Pill, FlaskConical, BarChart2, Inbox, X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useClinic } from '@/context/ClinicContext'
+import { useSidebar } from '@/context/SidebarContext'
 import { signOut } from '@/lib/auth/actions'
 import { Button } from '@/components/ui/button'
 import type { Role } from '@/types/database'
@@ -60,7 +61,7 @@ const adminItems: NavItem[] = [
   { href: '/admin/users', label: 'Utilisateurs', icon: ShieldCheck },
 ]
 
-export function Sidebar() {
+function SidebarInner() {
   const pathname = usePathname()
   const { clinic, profile } = useClinic()
   const role = profile?.role as Role | undefined
@@ -73,10 +74,10 @@ export function Sidebar() {
   })
 
   return (
-    <aside className="flex h-full w-64 flex-col border-r bg-white">
+    <>
       {/* Logo / Clinic name */}
       <div className="flex h-16 items-center gap-3 border-b px-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-700 text-white font-bold text-sm">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-700 text-white font-bold text-sm">
           {clinic?.name?.[0] ?? 'C'}
         </div>
         <div className="min-w-0 flex-1">
@@ -86,7 +87,7 @@ export function Sidebar() {
       </div>
 
       {/* Main Nav */}
-      <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-1">
+      <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-0.5">
         {visibleNav.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + '/')
           return (
@@ -94,7 +95,7 @@ export function Sidebar() {
               key={href}
               href={href}
               className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                 active
                   ? 'bg-teal-50 text-teal-700'
                   : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
@@ -107,7 +108,7 @@ export function Sidebar() {
           )
         })}
 
-        {/* Admin section — super_admin and admin */}
+        {/* Admin section */}
         {isAdminOrSuper && (
           <>
             <div className="pt-4 pb-1 px-3">
@@ -125,7 +126,7 @@ export function Sidebar() {
                     key={href}
                     href={href}
                     className={cn(
-                      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                      'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                       active
                         ? 'bg-purple-50 text-purple-700'
                         : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
@@ -143,7 +144,7 @@ export function Sidebar() {
       {/* User footer */}
       <div className="border-t p-3 space-y-1">
         <div className="flex items-center gap-3 rounded-lg px-2 py-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-100 text-xs font-semibold text-teal-700">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-100 text-xs font-semibold text-teal-700">
             {profile?.full_name?.[0] ?? '?'}
           </div>
           <div className="min-w-0 flex-1">
@@ -165,6 +166,44 @@ export function Sidebar() {
         <div className="flex-1 bg-[#FDEF42]" />
         <div className="flex-1 bg-[#E31B23]" />
       </div>
-    </aside>
+    </>
+  )
+}
+
+export function Sidebar() {
+  const { mobileOpen, closeMobile } = useSidebar()
+
+  return (
+    <>
+      {/* Mobile backdrop */}
+      <div
+        className={cn(
+          'fixed inset-0 z-40 bg-black/50 transition-opacity duration-200 md:hidden',
+          mobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        )}
+        onClick={closeMobile}
+        aria-hidden="true"
+      />
+
+      {/* Sidebar — fixed on mobile (slide-in), static in flex layout on desktop */}
+      <aside
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 flex h-full w-64 flex-col border-r bg-white shadow-xl transition-transform duration-300 ease-in-out',
+          'md:static md:z-auto md:shadow-none md:translate-x-0',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        )}
+      >
+        {/* Close button — mobile only */}
+        <button
+          className="absolute right-2 top-2 rounded-full p-1.5 text-gray-400 hover:bg-gray-100 md:hidden"
+          onClick={closeMobile}
+          aria-label="Fermer le menu"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        <SidebarInner />
+      </aside>
+    </>
   )
 }

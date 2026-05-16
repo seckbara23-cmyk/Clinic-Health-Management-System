@@ -86,24 +86,24 @@ export default function PatientsPage() {
     <div className="flex flex-col h-full">
       <Topbar title="Patients" description="Gérez les dossiers patients de votre clinique" />
 
-      <div className="flex-1 p-6 space-y-4">
+      <div className="flex-1 p-4 md:p-6 space-y-4">
         {/* Toolbar */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <Input
-              placeholder="Rechercher par nom, numéro, téléphone..."
+              placeholder="Rechercher..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="pl-9"
             />
           </div>
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" /> Nouveau patient
+          <Button onClick={openCreate} className="shrink-0">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Nouveau patient</span>
           </Button>
         </div>
 
-        {/* Table */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">
@@ -111,91 +111,121 @@ export default function PatientsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>N°</TableHead>
-                  <TableHead>Nom</TableHead>
-                  <TableHead>Téléphone</TableHead>
-                  <TableHead>Âge / Genre</TableHead>
-                  <TableHead>Groupe sanguin</TableHead>
-                  <TableHead>Enregistré le</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                  <TableHead className="w-8"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
-                      <Loader2 className="mx-auto h-5 w-5 animate-spin text-gray-400" />
-                    </TableCell>
-                  </TableRow>
-                )}
-                {!isLoading && (!patients || patients.length === 0) && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12 text-gray-400">
-                      <UserRound className="mx-auto h-10 w-10 mb-3 opacity-30" />
-                      <p>Aucun patient trouvé</p>
-                    </TableCell>
-                  </TableRow>
-                )}
-                {patients?.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-mono text-xs text-blue-600">{p.patient_number}</TableCell>
-                    <TableCell className="font-medium">{p.full_name}</TableCell>
-                    <TableCell>
-                      {p.phone ? (
-                        <a href={`tel:${p.phone}`} className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600">
-                          <Phone className="h-3 w-3" /> {p.phone}
+            {isLoading && (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+              </div>
+            )}
+            {!isLoading && (!patients || patients.length === 0) && (
+              <div className="flex flex-col items-center py-12 text-gray-400">
+                <UserRound className="h-10 w-10 mb-3 opacity-30" />
+                <p>Aucun patient trouvé</p>
+              </div>
+            )}
+
+            {/* Mobile card list */}
+            <div className="divide-y md:hidden">
+              {patients?.map((p) => (
+                <div key={p.id} className="flex items-center gap-3 p-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-100 font-bold text-teal-700 text-sm">
+                    {p.full_name[0]}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium truncate">{p.full_name}</p>
+                      <span className="shrink-0 font-mono text-xs text-blue-600">{p.patient_number}</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5 text-xs text-gray-500">
+                      {p.phone && (
+                        <a href={`tel:${p.phone}`} className="flex items-center gap-1 hover:text-blue-600">
+                          <Phone className="h-3 w-3" />{p.phone}
                         </a>
-                      ) : '—'}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {p.date_of_birth && (
-                          <span className="text-sm">{age(p.date_of_birth)} ans</span>
-                        )}
-                        {p.gender && (
-                          <Badge variant="outline" className="text-xs">{genderLabel[p.gender]}</Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {p.blood_type ? (
-                        <Badge variant="secondary" className="font-mono">{p.blood_type}</Badge>
-                      ) : '—'}
-                    </TableCell>
-                    <TableCell className="text-sm text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {formatDate(p.created_at)}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => { if (confirm('Supprimer ce patient?')) deleteMutation.mutate(p.id) }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Link href={`/patients/${p.id}`} className="text-gray-400 hover:text-blue-600">
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </Link>
-                    </TableCell>
+                      )}
+                      {p.date_of_birth && <span>{age(p.date_of_birth)} ans</span>}
+                      {p.gender && <span>{genderLabel[p.gender]}</span>}
+                      {p.blood_type && <span className="font-mono font-semibold text-red-700">{p.blood_type}</span>}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => openEdit(p)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Link href={`/patients/${p.id}`} className="inline-flex h-9 w-9 items-center justify-center rounded-md text-gray-400 hover:text-blue-600 hover:bg-blue-50">
+                      <ExternalLink className="h-4 w-4" />
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>N°</TableHead>
+                    <TableHead>Nom</TableHead>
+                    <TableHead>Téléphone</TableHead>
+                    <TableHead>Âge / Genre</TableHead>
+                    <TableHead>Groupe sanguin</TableHead>
+                    <TableHead>Enregistré le</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="w-8"></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {patients?.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-mono text-xs text-blue-600">{p.patient_number}</TableCell>
+                      <TableCell className="font-medium">{p.full_name}</TableCell>
+                      <TableCell>
+                        {p.phone ? (
+                          <a href={`tel:${p.phone}`} className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600">
+                            <Phone className="h-3 w-3" /> {p.phone}
+                          </a>
+                        ) : '—'}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {p.date_of_birth && <span className="text-sm">{age(p.date_of_birth)} ans</span>}
+                          {p.gender && <Badge variant="outline" className="text-xs">{genderLabel[p.gender]}</Badge>}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {p.blood_type ? (
+                          <Badge variant="secondary" className="font-mono">{p.blood_type}</Badge>
+                        ) : '—'}
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-500">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {formatDate(p.created_at)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost" size="icon"
+                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => { if (confirm('Supprimer ce patient?')) deleteMutation.mutate(p.id) }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Link href={`/patients/${p.id}`} className="text-gray-400 hover:text-blue-600">
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>

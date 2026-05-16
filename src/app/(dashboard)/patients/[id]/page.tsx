@@ -159,12 +159,12 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
     <div className="flex flex-col h-full">
       <Topbar title={patient.full_name} description={`Dossier ${patient.patient_number}`} />
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6">
         <Link href="/patients" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800">
           <ArrowLeft className="h-4 w-4" /> Retour aux patients
         </Link>
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
           {/* Left column — patient info */}
           <div className="space-y-4">
             <Card>
@@ -288,9 +288,9 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                 { label: 'Ordonn.', value: patientPrescriptions.length, color: 'bg-amber-50 text-amber-700' },
                 { label: 'Analyses', value: labRequests?.length ?? 0, color: 'bg-pink-50 text-pink-700' },
               ].map(s => (
-                <div key={s.label} className={cn('rounded-xl p-3 text-center', s.color)}>
-                  <div className="text-xl font-bold">{s.value}</div>
-                  <div className="text-xs mt-0.5">{s.label}</div>
+                <div key={s.label} className={cn('rounded-xl p-2 md:p-3 text-center', s.color)}>
+                  <div className="text-lg font-bold md:text-xl">{s.value}</div>
+                  <div className="text-[10px] md:text-xs mt-0.5">{s.label}</div>
                 </div>
               ))}
             </div>

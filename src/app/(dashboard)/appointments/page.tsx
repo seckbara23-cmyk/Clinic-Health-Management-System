@@ -167,14 +167,14 @@ export default function AppointmentsPage() {
     <div className="flex flex-col h-full">
       <Topbar title="Rendez-vous & File d'attente" />
 
-      <div className="flex-1 p-6 space-y-4">
+      <div className="flex-1 p-4 md:p-6 space-y-4">
         {/* Date nav + view toggle */}
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="icon" onClick={prevDay}><ChevronLeft className="h-4 w-4" /></Button>
-          <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-44" />
+          <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-40" />
           <Button variant="outline" size="icon" onClick={nextDay}><ChevronRight className="h-4 w-4" /></Button>
           <Button variant="outline" size="sm" onClick={() => setDate(today)}>Aujourd&apos;hui</Button>
-          <span className="text-sm text-gray-500">{formatDate(date + 'T12:00:00', { dateStyle: 'full' })}</span>
+          <span className="hidden text-sm text-gray-500 lg:block">{formatDate(date + 'T12:00:00', { dateStyle: 'full' })}</span>
           <div className="ml-auto flex items-center gap-2">
             <div className="flex rounded-lg border overflow-hidden">
               <Button
@@ -192,14 +192,15 @@ export default function AppointmentsPage() {
                 <CalendarDays className="h-4 w-4" />
               </Button>
             </div>
-            <Button onClick={() => { createForm.reset({ duration_min: 30, priority: 'normal' }); setCreateOpen(true) }}>
-              <Plus className="h-4 w-4" /> Nouveau rendez-vous
+            <Button className="shrink-0" onClick={() => { createForm.reset({ duration_min: 30, priority: 'normal' }); setCreateOpen(true) }}>
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Nouveau rendez-vous</span>
             </Button>
           </div>
         </div>
 
         {/* Mini stats */}
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {[
             { label: 'Total', value: stats.total, cls: 'bg-blue-50 text-blue-700' },
             { label: 'En attente', value: stats.waiting, cls: 'bg-amber-50 text-amber-700' },
@@ -283,15 +284,15 @@ export default function AppointmentsPage() {
               const doctor = (appt as { doctor?: { full_name?: string } }).doctor
               const canEdit = !['completed', 'cancelled', 'no_show'].includes(appt.status)
               return (
-                <div key={appt.id} className="flex items-center justify-between rounded-xl border p-4 hover:bg-gray-50 gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700 text-sm">
+                <div key={appt.id} className="flex flex-col gap-3 rounded-xl border p-4 hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700 text-sm">
                       {appt.queue_number ?? '—'}
                     </div>
-                    <div>
-                      <p className="font-medium">{patient?.full_name ?? '—'}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <Clock className="h-3 w-3 text-gray-400" />
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">{patient?.full_name ?? '—'}</p>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                        <Clock className="h-3 w-3 text-gray-400 shrink-0" />
                         <span className="text-xs text-gray-500">{formatTime(appt.scheduled_at)} · {appt.duration_min} min</span>
                         {doctor && <span className="text-xs text-gray-400">Dr. {doctor.full_name}</span>}
                         {appt.priority !== 'normal' && (
@@ -302,7 +303,7 @@ export default function AppointmentsPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-wrap justify-end">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className={cn('rounded-full px-2.5 py-1 text-xs font-medium', statusColors[appt.status])}>
                       {statusLabels[appt.status]}
                     </span>
