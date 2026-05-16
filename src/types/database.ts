@@ -5,7 +5,17 @@ export type SubscriptionPlan = 'free' | 'basic' | 'pro' | 'enterprise'
 export type SubscriptionStatus = 'active' | 'suspended' | 'cancelled'
 export type Gender = 'male' | 'female' | 'other'
 export type BloodType = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-'
-export type AppointmentStatus = 'scheduled' | 'in_queue' | 'in_progress' | 'completed' | 'cancelled' | 'no_show'
+export type AppointmentStatus =
+  | 'scheduled'       // booked, not yet arrived
+  | 'waiting'         // patient arrived, waiting in waiting room
+  | 'called'          // receptionist called patient's name
+  | 'in_consultation' // actively with the doctor
+  | 'completed'
+  | 'cancelled'
+  | 'no_show'
+  // legacy values — kept for backward compat with existing rows
+  | 'in_queue'
+  | 'in_progress'
 export type AppointmentPriority = 'normal' | 'urgent' | 'emergency'
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'partial' | 'overdue' | 'cancelled'
 export type PaymentMethod = 'cash' | 'card' | 'mobile_money' | 'insurance' | 'other'
@@ -71,6 +81,8 @@ export interface Appointment {
   status: AppointmentStatus
   priority: AppointmentPriority
   queue_number: number | null
+  arrived_at: string | null
+  called_at: string | null
   notes: string | null
   created_by: string | null
   created_at: string

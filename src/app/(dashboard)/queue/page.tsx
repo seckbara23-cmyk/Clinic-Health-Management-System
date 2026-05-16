@@ -1,62 +1,72 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useQueryClient } from '@tanstack/react-query'
-import { Loader2, Users, Clock, Stethoscope, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
+import {
+  Loader2, UserCheck, PhoneCall, Stethoscope, CheckCircle,
+  XCircle, AlertCircle, Clock, Users,
+} from 'lucide-react'
 import { Topbar } from '@/components/layout/Topbar'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useAppointments, useUpdateAppointmentStatus } from '@/hooks/useAppointments'
+import { useAppointments, useUpdateAppointmentStatus, useCheckInPatient, useCallPatient } from '@/hooks/useAppointments'
+import { useCreateConsultation } from '@/hooks/useConsultations'
 import { useClinic } from '@/context/ClinicContext'
 import { formatTime, cn } from '@/lib/utils'
+import { toast } from 'sonner'
 import type { Appointment, AppointmentStatus } from '@/types/database'
 
 const today = new Date().toISOString().split('T')[0]
 
-const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
-  scheduled:      { label: 'Planifié',         color: 'text-gray-600',   bg: 'bg-gray-50 border-gray-200' },
-  in_queue:       { label: 'En file',          color: 'text-blue-700',   bg: 'bg-blue-50 border-blue-200' },
-  in_progress:    { label: 'En consultation',  color: 'text-emerald-700',bg: 'bg-emerald-50 border-emerald-200' },
-  completed:      { label: 'Terminé',          color: 'text-gray-400',   bg: 'bg-gray-50 border-gray-100' },
-  cancelled:      { label: 'Annulé',           color: 'text-red-400',    bg: 'bg-red-50 border-red-100' },
-  no_show:        { label: 'Absent',           color: 'text-amber-500',  bg: 'bg-amber-50 border-amber-100' },
+const STATUS_CONFIG: Record<string, { label: string; dot: string; row: string }> = {
+  scheduled:       { label: 'Planifié',         dot: 'bg-gray-400',    row: '' },
+  waiting:         { label: 'En attente',        dot: 'bg-blue-500',    row: 'bg-blue-50/40' },
+  called:          { label: 'Appelé',            dot: 'bg-amber-500',   row: 'bg-amber-50/40' },
+  in_consultation: { label: 'En consultation',   dot: 'bg-emerald-500', row: 'bg-emerald-50/40' },
+  completed:       { label: 'Terminé',           dot: 'bg-gray-300',    row: '' },
+  cancelled:       { label: 'Annulé',            dot: 'bg-red-400',     row: '' },
+  no_show:         { label: 'Absent',            dot: 'bg-amber-400',   row: '' },
+  // legacy
+  in_queue:        { label: 'En file',           dot: 'bg-blue-400',    row: 'bg-blue-50/40' },
+  in_progress:     { label: 'En consultation',   dot: 'bg-emerald-500', row: 'bg-emerald-50/40' },
 }
 
-const priorityBadge: Record<string, string> = {
+const PRIORITY_BADGE: Record<string, string> = {
   normal:    'bg-gray-100 text-gray-600',
   urgent:    'bg-amber-100 text-amber-700',
-  emergency: 'bg-red-100 text-red-700',
+  emergency: 'bg-red-100 text-red-700 font-semibold',
 }
 
-const nextStatus: Partial<Record<AppointmentStatus, AppointmentStatus>> = {
-  scheduled:   'in_queue',
-  in_queue:    'in_progress',
-  in_progress: 'completed',
+function waitingDuration(arrivedAt: string | null, now: Date): string {
+  if (!arrivedAt) return '—'
+  const mins = Math.floor((now.getTime() - new Date(arrivedAt).getTime()) / 60_000)
+  if (mins < 1) return '< 1 min'
+  if (mins < 60) return `${mins} min`
+  return `${Math.floor(mins / 60)}h${String(mins % 60).padStart(2, '0')}`
 }
 
-const nextLabel: Partial<Record<AppointmentStatus, string>> = {
-  scheduled:   'Faire entrer en file',
-  in_queue:    'Débuter consultation',
-  in_progress: 'Terminer',
-}
+const ACTIVE_STATUSES: AppointmentStatus[] = ['scheduled', 'waiting', 'called', 'in_consultation', 'in_queue', 'in_progress']
+const CLOSED_STATUSES: AppointmentStatus[] = ['completed', 'cancelled', 'no_show']
 
 export default function QueuePage() {
-  const { clinic } = useClinic()
+  const router = useRouter()
+  const { clinic, profile } = useClinic()
   const supabase = createClient()
   const qc = useQueryClient()
   const { data: allAppts, isLoading } = useAppointments(today)
   const updateStatus = useUpdateAppointmentStatus()
+  const checkIn = useCheckInPatient()
+  const callPatient = useCallPatient()
+  const createConsultation = useCreateConsultation()
   const [now, setNow] = useState(new Date())
 
-  // Live clock
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 60_000)
+    const t = setInterval(() => setNow(new Date()), 30_000)
     return () => clearInterval(t)
   }, [])
 
-  // Realtime subscription
   useEffect(() => {
     if (!clinic) return
     const ch = supabase
@@ -64,30 +74,34 @@ export default function QueuePage() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'appointments', filter: `clinic_id=eq.${clinic.id}` },
-        () => qc.invalidateQueries({ queryKey: ['appointments', today] }),
+        () => qc.invalidateQueries({ queryKey: ['appointments', clinic.id, today] }),
       )
       .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [clinic, supabase, qc])
 
-  const active = allAppts?.filter(a => !['cancelled', 'no_show'].includes(a.status)) ?? []
-  const byStatus = (s: AppointmentStatus) => active.filter(a => a.status === s)
+  const active = allAppts?.filter(a => ACTIVE_STATUSES.includes(a.status as AppointmentStatus)) ?? []
+  const closed = allAppts?.filter(a => CLOSED_STATUSES.includes(a.status as AppointmentStatus)) ?? []
 
-  const columns: { status: AppointmentStatus; icon: React.ElementType; count: number }[] = [
-    { status: 'scheduled',   icon: Clock,        count: byStatus('scheduled').length },
-    { status: 'in_queue',    icon: Users,        count: byStatus('in_queue').length },
-    { status: 'in_progress', icon: Stethoscope,  count: byStatus('in_progress').length },
-    { status: 'completed',   icon: CheckCircle,  count: byStatus('completed').length },
-  ]
+  const count = (s: string) => (allAppts ?? []).filter(a => a.status === s).length
 
-  function advance(appt: Appointment) {
-    const next = nextStatus[appt.status as AppointmentStatus]
-    if (next) updateStatus.mutate({ id: appt.id, status: next })
+  async function handleStartConsultation(appt: Appointment) {
+    if (!profile) return
+    const doctorId = appt.doctor_id ?? profile.id
+    try {
+      const result = await createConsultation.mutateAsync({
+        patient_id: appt.patient_id,
+        appointment_id: appt.id,
+        doctor_id: doctorId,
+      })
+      await updateStatus.mutateAsync({ id: appt.id, status: 'in_consultation' })
+      router.push(`/consultations/${result.id}`)
+    } catch {
+      toast.error('Impossible de démarrer la consultation')
+    }
   }
 
-  function markNoShow(appt: Appointment) {
-    updateStatus.mutate({ id: appt.id, status: 'no_show' })
-  }
+  const isPending = updateStatus.isPending || checkIn.isPending || callPatient.isPending || createConsultation.isPending
 
   return (
     <div className="flex flex-col h-full">
@@ -97,168 +111,244 @@ export default function QueuePage() {
       />
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        {/* Summary row */}
-        <div className="grid grid-cols-4 gap-4">
-          {columns.map(({ status, icon: Icon, count }) => {
-            const cfg = statusConfig[status]
-            return (
-              <Card key={status} className={cn('border', cfg.bg)}>
-                <CardContent className="p-4 flex items-center gap-3">
-                  <Icon className={cn('h-5 w-5', cfg.color)} />
-                  <div>
-                    <p className={cn('text-xl font-bold', cfg.color)}>{count}</p>
-                    <p className="text-xs text-gray-500">{cfg.label}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
+
+        {/* Stats strip */}
+        <div className="flex flex-wrap gap-3">
+          {[
+            { label: 'Planifiés',       value: count('scheduled'),       icon: Clock,         color: 'text-gray-500' },
+            { label: 'En attente',      value: count('waiting') + count('in_queue'), icon: Users, color: 'text-blue-600' },
+            { label: 'Appelés',         value: count('called'),          icon: PhoneCall,     color: 'text-amber-600' },
+            { label: 'En consultation', value: count('in_consultation') + count('in_progress'), icon: Stethoscope, color: 'text-emerald-600' },
+            { label: 'Terminés',        value: count('completed'),       icon: CheckCircle,   color: 'text-gray-400' },
+          ].map(({ label, value, icon: Icon, color }) => (
+            <div key={label} className="flex items-center gap-2 rounded-lg border bg-white px-4 py-2.5 shadow-sm">
+              <Icon className={cn('h-4 w-4', color)} />
+              <span className={cn('text-lg font-bold tabular-nums', color)}>{value}</span>
+              <span className="text-xs text-gray-500">{label}</span>
+            </div>
+          ))}
         </div>
 
         {isLoading && (
-          <div className="flex justify-center py-12">
+          <div className="flex justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
           </div>
         )}
 
-        {/* Active queue board — 3 columns */}
+        {/* Active queue */}
         {!isLoading && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {(['scheduled', 'in_queue', 'in_progress'] as AppointmentStatus[]).map(status => {
-              const appts = byStatus(status)
-              const cfg = statusConfig[status]
-              return (
-                <div key={status}>
-                  <CardHeader className="px-0 pt-0 pb-3">
-                    <CardTitle className={cn('text-sm flex items-center gap-2', cfg.color)}>
-                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-current text-white text-xs font-bold">
-                        {appts.length}
-                      </span>
-                      {cfg.label}
-                    </CardTitle>
-                  </CardHeader>
-                  <div className="space-y-3">
-                    {appts.length === 0 && (
-                      <div className="rounded-lg border border-dashed p-6 text-center text-sm text-gray-400">
-                        Aucun patient
-                      </div>
-                    )}
-                    {appts.map(appt => (
-                      <QueueCard
-                        key={appt.id}
-                        appt={appt}
-                        onAdvance={() => advance(appt)}
-                        onNoShow={() => markNoShow(appt)}
-                        isPending={updateStatus.isPending}
-                        advanceLabel={nextLabel[appt.status as AppointmentStatus]}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )
-            })}
+          <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+            <div className="px-5 py-3 border-b bg-gray-50">
+              <p className="text-sm font-semibold text-gray-700">File active — {active.length} patient{active.length !== 1 ? 's' : ''}</p>
+            </div>
+
+            {active.length === 0 ? (
+              <div className="py-16 text-center">
+                <Users className="mx-auto h-10 w-10 text-gray-200 mb-3" />
+                <p className="text-sm text-gray-400">Aucun patient en file aujourd&apos;hui</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-xs text-gray-500 uppercase tracking-wide">
+                      <th className="text-left px-4 py-2.5 font-medium w-12">N°</th>
+                      <th className="text-left px-4 py-2.5 font-medium">Patient</th>
+                      <th className="text-left px-4 py-2.5 font-medium hidden md:table-cell">Motif</th>
+                      <th className="text-left px-4 py-2.5 font-medium hidden lg:table-cell">Arrivée</th>
+                      <th className="text-left px-4 py-2.5 font-medium hidden lg:table-cell">Attente</th>
+                      <th className="text-left px-4 py-2.5 font-medium hidden md:table-cell">Médecin</th>
+                      <th className="text-left px-4 py-2.5 font-medium">Statut</th>
+                      <th className="text-right px-4 py-2.5 font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {active.map(appt => {
+                      const patient = (appt as { patient?: { full_name?: string; patient_number?: string } }).patient
+                      const doctor  = (appt as { doctor?: { full_name?: string } }).doctor
+                      const cfg = STATUS_CONFIG[appt.status] ?? STATUS_CONFIG.scheduled
+
+                      return (
+                        <tr key={appt.id} className={cn('transition-colors hover:bg-gray-50/60', cfg.row)}>
+                          {/* Queue number */}
+                          <td className="px-4 py-3">
+                            {appt.queue_number ? (
+                              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-teal-700 text-white text-xs font-bold">
+                                {appt.queue_number}
+                              </span>
+                            ) : (
+                              <span className="text-gray-300">—</span>
+                            )}
+                          </td>
+
+                          {/* Patient */}
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-gray-900 leading-tight">{patient?.full_name ?? '—'}</div>
+                            <div className="text-xs text-gray-400 font-mono">{patient?.patient_number}</div>
+                            <span className={cn('mt-1 inline-flex text-xs rounded-full px-1.5 py-0.5', PRIORITY_BADGE[appt.priority])}>
+                              {appt.priority}
+                            </span>
+                          </td>
+
+                          {/* Reason */}
+                          <td className="px-4 py-3 hidden md:table-cell text-gray-600 max-w-36 truncate">
+                            {appt.title !== 'Consultation' ? appt.title : (appt.notes ?? 'Consultation')}
+                          </td>
+
+                          {/* Arrival time */}
+                          <td className="px-4 py-3 hidden lg:table-cell text-gray-500">
+                            {appt.arrived_at ? formatTime(appt.arrived_at) : '—'}
+                          </td>
+
+                          {/* Waiting duration */}
+                          <td className="px-4 py-3 hidden lg:table-cell">
+                            {appt.arrived_at ? (
+                              <span className={cn(
+                                'font-mono text-xs font-medium',
+                                waitingMinutes(appt.arrived_at, now) > 30 ? 'text-red-600' : 'text-gray-700'
+                              )}>
+                                {waitingDuration(appt.arrived_at, now)}
+                              </span>
+                            ) : '—'}
+                          </td>
+
+                          {/* Doctor */}
+                          <td className="px-4 py-3 hidden md:table-cell text-gray-500 max-w-28 truncate">
+                            {doctor?.full_name ?? <span className="text-gray-300">Non assigné</span>}
+                          </td>
+
+                          {/* Status badge */}
+                          <td className="px-4 py-3">
+                            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-700">
+                              <span className={cn('h-2 w-2 rounded-full flex-shrink-0', cfg.dot)} />
+                              {cfg.label}
+                            </span>
+                          </td>
+
+                          {/* Action buttons */}
+                          <td className="px-4 py-3 text-right">
+                            <QueueActions
+                              appt={appt}
+                              isPending={isPending}
+                              onCheckIn={() => checkIn.mutate(appt.id)}
+                              onCall={() => callPatient.mutate(appt.id)}
+                              onStartConsultation={() => handleStartConsultation(appt)}
+                              onComplete={() => updateStatus.mutate({ id: appt.id, status: 'completed' })}
+                              onNoShow={() => updateStatus.mutate({ id: appt.id, status: 'no_show' })}
+                              onCancel={() => updateStatus.mutate({ id: appt.id, status: 'cancelled' })}
+                            />
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
-        {/* No-shows + cancelled today */}
-        {(() => {
-          const closed = allAppts?.filter(a => a.status === 'no_show' || a.status === 'cancelled') ?? []
-          if (closed.length === 0) return null
-          return (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Absents / Annulés</p>
-              <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
-                {closed.map(appt => (
+        {/* Closed entries */}
+        {!isLoading && closed.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Terminés / Absents / Annulés</p>
+            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-2">
+              {closed.map(appt => {
+                const patient = (appt as { patient?: { full_name?: string } }).patient
+                const cfg = STATUS_CONFIG[appt.status] ?? STATUS_CONFIG.completed
+                return (
                   <div key={appt.id} className="rounded-lg border border-dashed p-3 flex items-center justify-between opacity-60">
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">
-                        {(appt as { patient?: { full_name?: string } }).patient?.full_name ?? '—'}
-                      </p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-700 truncate">{patient?.full_name ?? '—'}</p>
                       <p className="text-xs text-gray-400">{formatTime(appt.scheduled_at)}</p>
                     </div>
-                    <Badge variant="outline" className="text-xs capitalize">{statusConfig[appt.status].label}</Badge>
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 ml-2 flex-shrink-0">
+                      <span className={cn('h-2 w-2 rounded-full', cfg.dot)} />
+                      {cfg.label}
+                    </span>
                   </div>
-                ))}
-              </div>
+                )
+              })}
             </div>
-          )
-        })()}
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
-function QueueCard({
-  appt, onAdvance, onNoShow, isPending, advanceLabel,
+function waitingMinutes(arrivedAt: string | null, now: Date): number {
+  if (!arrivedAt) return 0
+  return Math.floor((now.getTime() - new Date(arrivedAt).getTime()) / 60_000)
+}
+
+function QueueActions({
+  appt, isPending, onCheckIn, onCall, onStartConsultation, onComplete, onNoShow, onCancel,
 }: {
   appt: Appointment
-  onAdvance: () => void
-  onNoShow: () => void
   isPending: boolean
-  advanceLabel?: string
+  onCheckIn: () => void
+  onCall: () => void
+  onStartConsultation: () => void
+  onComplete: () => void
+  onNoShow: () => void
+  onCancel: () => void
 }) {
-  const patient = (appt as { patient?: { full_name?: string; patient_number?: string } }).patient
-  const doctor  = (appt as { doctor?: { full_name?: string } }).doctor
-  const cfg = statusConfig[appt.status]
+  const s = appt.status
 
-  return (
-    <div className={cn('rounded-lg border p-4 space-y-3', cfg.bg)}>
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="font-semibold text-gray-900 truncate">{patient?.full_name ?? '—'}</p>
-          <p className="text-xs text-gray-500 font-mono">{patient?.patient_number}</p>
-        </div>
-        <span className={cn('text-xs font-semibold rounded-full px-2 py-0.5', priorityBadge[appt.priority])}>
-          {appt.priority}
-        </span>
+  if (s === 'scheduled' || s === 'in_queue') {
+    return (
+      <div className="flex items-center justify-end gap-1">
+        <Button size="sm" className="h-7 text-xs gap-1" onClick={onCheckIn} disabled={isPending}>
+          <UserCheck className="h-3.5 w-3.5" /> Arrivée
+        </Button>
+        <Button size="sm" variant="ghost" className="h-7 px-2 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+          onClick={onNoShow} disabled={isPending} title="Marquer absent">
+          <AlertCircle className="h-3.5 w-3.5" />
+        </Button>
       </div>
+    )
+  }
 
-      <div className="flex items-center justify-between text-xs text-gray-500">
-        <span className="flex items-center gap-1">
-          <Clock className="h-3 w-3" />
-          {formatTime(appt.scheduled_at)}
-        </span>
-        {doctor && <span className="truncate">{doctor.full_name}</span>}
+  if (s === 'waiting') {
+    return (
+      <div className="flex items-center justify-end gap-1">
+        <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-amber-300 text-amber-700 hover:bg-amber-50"
+          onClick={onCall} disabled={isPending}>
+          <PhoneCall className="h-3.5 w-3.5" /> Appeler
+        </Button>
+        <Button size="sm" variant="ghost" className="h-7 px-2 text-gray-400 hover:text-red-500 hover:bg-red-50"
+          onClick={onNoShow} disabled={isPending} title="Marquer absent">
+          <AlertCircle className="h-3.5 w-3.5" />
+        </Button>
       </div>
+    )
+  }
 
-      {appt.notes && <p className="text-xs text-gray-500 italic truncate">{appt.notes}</p>}
+  if (s === 'called') {
+    return (
+      <div className="flex items-center justify-end gap-1">
+        <Button size="sm" className="h-7 text-xs gap-1 bg-emerald-600 hover:bg-emerald-700"
+          onClick={onStartConsultation} disabled={isPending}>
+          {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Stethoscope className="h-3.5 w-3.5" />}
+          Démarrer consultation
+        </Button>
+        <Button size="sm" variant="ghost" className="h-7 px-2 text-gray-400 hover:text-red-500 hover:bg-red-50"
+          onClick={onCancel} disabled={isPending} title="Annuler">
+          <XCircle className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    )
+  }
 
-      {advanceLabel && (
-        <div className="flex gap-2 pt-1">
-          <Button
-            size="sm"
-            className="flex-1 h-7 text-xs"
-            onClick={onAdvance}
-            disabled={isPending}
-          >
-            {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : advanceLabel}
-          </Button>
-          {appt.status === 'scheduled' && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 px-2 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-              onClick={onNoShow}
-              disabled={isPending}
-              title="Marquer absent"
-            >
-              <AlertCircle className="h-3.5 w-3.5" />
-            </Button>
-          )}
-          {appt.status === 'in_progress' && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 px-2 text-xs text-red-500 hover:text-red-700 hover:bg-red-50"
-              onClick={onNoShow}
-              disabled={isPending}
-              title="Annuler"
-            >
-              <XCircle className="h-3.5 w-3.5" />
-            </Button>
-          )}
-        </div>
-      )}
-    </div>
-  )
+  if (s === 'in_progress' || s === 'in_consultation') {
+    return (
+      <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+        onClick={onComplete} disabled={isPending}>
+        <CheckCircle className="h-3.5 w-3.5 text-emerald-600" /> Terminer
+      </Button>
+    )
+  }
+
+  return null
 }

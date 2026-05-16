@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Plus, Loader2, Stethoscope, Clock, Pencil, Activity } from 'lucide-react'
+import Link from 'next/link'
+import { Plus, Loader2, Stethoscope, Clock, Pencil, Activity, ExternalLink } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Topbar } from '@/components/layout/Topbar'
 import { Button } from '@/components/ui/button'
@@ -58,6 +60,7 @@ const textFields = [
 ]
 
 export default function ConsultationsPage() {
+  const router = useRouter()
   const { clinic, profile } = useClinic()
   const [createOpen, setCreateOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Consultation | null>(null)
@@ -89,11 +92,11 @@ export default function ConsultationsPage() {
       if (error) throw error
       return res
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['consultations', clinic?.id] })
-      toast.success('Consultation créée')
       setCreateOpen(false)
       createForm.reset()
+      router.push(`/consultations/${res.id}`)
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -219,12 +222,24 @@ export default function ConsultationsPage() {
                     </TableCell>
                     <TableCell className="text-sm text-gray-400">{formatDate(c.created_at)}</TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost" size="icon" className="h-8 w-8"
-                        onClick={() => openEdit(c)}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost" size="icon" className="h-8 w-8"
+                          onClick={() => openEdit(c)}
+                          title="Modifier"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost" size="icon" className="h-8 w-8 text-teal-700 hover:text-teal-800 hover:bg-teal-50"
+                          asChild
+                          title="Ouvrir la consultation"
+                        >
+                          <Link href={`/consultations/${c.id}`}>
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </Link>
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

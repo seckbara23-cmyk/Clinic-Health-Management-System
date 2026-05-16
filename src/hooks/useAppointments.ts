@@ -139,6 +139,58 @@ interface UpdateAppointmentInput {
   status?: string
 }
 
+export function useCheckInPatient() {
+  const qc = useQueryClient()
+  const { clinic } = useClinic()
+  const supabase = createClient()
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase
+        .from('appointments')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .update({ status: 'waiting', arrived_at: new Date().toISOString() } as any)
+        .eq('id', id)
+        .eq('clinic_id', clinic!.id)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['appointments', clinic?.id] })
+      toast.success('Patient enregistré — en salle d\'attente')
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+}
+
+export function useCallPatient() {
+  const qc = useQueryClient()
+  const { clinic } = useClinic()
+  const supabase = createClient()
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase
+        .from('appointments')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .update({ status: 'called', called_at: new Date().toISOString() } as any)
+        .eq('id', id)
+        .eq('clinic_id', clinic!.id)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['appointments', clinic?.id] })
+      toast.success('Patient appelé')
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+}
+
 export function useUpdateAppointment() {
   const qc = useQueryClient()
   const { clinic } = useClinic()
