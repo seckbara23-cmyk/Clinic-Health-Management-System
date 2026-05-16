@@ -20,7 +20,8 @@ export type AppointmentStatus =
   | 'in_progress'
 export type AppointmentPriority = 'normal' | 'urgent' | 'emergency'
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'partial' | 'overdue' | 'cancelled'
-export type PaymentMethod = 'cash' | 'card' | 'mobile_money' | 'insurance' | 'other'
+export type PaymentMethod = 'cash' | 'card' | 'mobile_money' | 'insurance' | 'other' | 'wave' | 'orange_money'
+export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'cancelled' | 'refunded'
 export type PrescriptionStatus = 'active' | 'dispensed' | 'expired' | 'cancelled'
 export type LabRequestStatus = 'ordered' | 'collected' | 'processing' | 'resulted' | 'cancelled'
 export type LabRequestType = 'blood' | 'urine' | 'imaging' | 'biopsy' | 'microbiology' | 'other'
@@ -189,6 +190,10 @@ export interface Invoice {
   currency: string
   status: InvoiceStatus
   payment_method: PaymentMethod | null
+  payment_status: PaymentStatus | null
+  payment_provider_reference: string | null
+  provider_payload: Record<string, unknown> | null
+  webhook_received_at: string | null
   due_date: string | null
   paid_at: string | null
   notes: string | null
@@ -196,6 +201,21 @@ export interface Invoice {
   created_at: string
   updated_at: string
   patient?: Patient
+}
+
+export interface PaymentEvent {
+  id: string
+  clinic_id: string
+  invoice_id: string
+  provider: 'wave' | 'orange_money' | 'manual'
+  event_type: string
+  provider_ref: string | null
+  amount: number | null
+  currency: string
+  status: string | null
+  payload: Record<string, unknown> | null
+  received_at: string
+  created_at: string
 }
 
 export interface LabRequest {

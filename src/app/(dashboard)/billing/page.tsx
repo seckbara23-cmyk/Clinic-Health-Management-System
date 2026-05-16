@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Plus, Loader2, Receipt, Trash2, CheckCircle2, Eye, Printer, Download } from 'lucide-react'
+import { Plus, Loader2, Receipt, Trash2, CheckCircle2, Eye, Printer, Download, Smartphone } from 'lucide-react'
 import { InvoiceRowSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Topbar } from '@/components/layout/Topbar'
@@ -20,6 +20,7 @@ import { usePatients } from '@/hooks/usePatients'
 import { useClinic } from '@/context/ClinicContext'
 import { openInvoicePDF } from '@/lib/pdf'
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
+import { PAYMENT_PROVIDERS } from '@/lib/payments/config'
 import type { Invoice, InvoiceStatus, PaymentMethod } from '@/types/database'
 
 const lineItemSchema = z.object({
@@ -156,6 +157,32 @@ export default function BillingPage() {
       <Topbar title="Facturation" description="Gérez les factures et paiements" />
 
       <div className="flex-1 p-4 md:p-6 space-y-4">
+        {/* Online payments pilot notice */}
+        <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-700">
+              <Smartphone className="h-5 w-5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-blue-900">Paiements en ligne — Bientôt disponibles</p>
+              <p className="text-xs text-blue-700 mt-0.5">
+                Les paiements Wave et Orange Money seront activés après le programme pilote.
+              </p>
+            </div>
+            <div className="hidden sm:flex items-center gap-2 shrink-0">
+              {PAYMENT_PROVIDERS.map(p => (
+                <div key={p.id}
+                  className="flex items-center gap-1.5 rounded-full border border-blue-200 bg-white px-3 py-1 text-xs font-medium text-blue-600 opacity-60">
+                  <span className={cn('flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white', p.color)}>
+                    {p.icon}
+                  </span>
+                  {p.label}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Summary */}
         <div className="grid grid-cols-3 gap-3 md:gap-4">
           {[
@@ -340,6 +367,8 @@ export default function BillingPage() {
                     <SelectItem value="mobile_money">Mobile Money</SelectItem>
                     <SelectItem value="insurance">Assurance</SelectItem>
                     <SelectItem value="other">Autre</SelectItem>
+                    <SelectItem value="wave" disabled>Wave (bientôt)</SelectItem>
+                    <SelectItem value="orange_money" disabled>Orange Money (bientôt)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -538,6 +567,8 @@ export default function BillingPage() {
                     <SelectItem value="mobile_money">Mobile Money</SelectItem>
                     <SelectItem value="insurance">Assurance</SelectItem>
                     <SelectItem value="other">Autre</SelectItem>
+                    <SelectItem value="wave" disabled>Wave (bientôt)</SelectItem>
+                    <SelectItem value="orange_money" disabled>Orange Money (bientôt)</SelectItem>
                   </SelectContent>
                 </Select>
                 {partialForm.formState.errors.payment_method && (

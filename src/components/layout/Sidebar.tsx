@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Users, CalendarDays, Receipt,
   Settings, LogOut, Stethoscope, ShieldCheck,
-  Building2, ChevronRight, ClipboardList, Pill, FlaskConical, BarChart2, Inbox, X,
+  Building2, ChevronRight, ClipboardList, Pill, FlaskConical, BarChart2, Inbox, X, CreditCard,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useClinic } from '@/context/ClinicContext'
@@ -59,6 +59,7 @@ const adminItems: NavItem[] = [
   { href: '/admin/clinics', label: 'Cliniques', icon: Building2 },
   { href: '/admin/clinic-requests', label: 'Demandes', icon: Inbox, roles: ['super_admin'] },
   { href: '/admin/users', label: 'Utilisateurs', icon: ShieldCheck },
+  { href: '/admin/billing', label: 'Paiements', icon: CreditCard, roles: ['super_admin'] },
 ]
 
 function SidebarInner() {
