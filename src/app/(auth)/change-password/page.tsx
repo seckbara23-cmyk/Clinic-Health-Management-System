@@ -2,21 +2,33 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, Stethoscope, KeyRound } from 'lucide-react'
+import { Loader2, Stethoscope, KeyRound, Check, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
+// Must match the Supabase Auth password policy configured in the dashboard.
+// Policy: lower_upper_letters_digits_symbols (strong)
+const RULES = [
+  { key: 'length',  label: 'Minimum 8 caractères',          test: (v: string) => v.length >= 8 },
+  { key: 'lower',   label: 'Au moins une lettre minuscule', test: (v: string) => /[a-z]/.test(v) },
+  { key: 'upper',   label: 'Au moins une lettre majuscule', test: (v: string) => /[A-Z]/.test(v) },
+  { key: 'digit',   label: 'Au moins un chiffre',           test: (v: string) => /[0-9]/.test(v) },
+  { key: 'special', label: 'Au moins un caractère spécial (!@#$%…)', test: (v: string) => /[^A-Za-z0-9]/.test(v) },
+]
+
 const schema = z.object({
   password: z.string()
     .min(8, 'Minimum 8 caractères')
-    .regex(/[A-Z]/, 'Doit contenir au moins une majuscule')
-    .regex(/[0-9]/, 'Doit contenir au moins un chiffre'),
+    .regex(/[a-z]/, 'Doit contenir au moins une lettre minuscule')
+    .regex(/[A-Z]/, 'Doit contenir au moins une lettre majuscule')
+    .regex(/[0-9]/, 'Doit contenir au moins un chiffre')
+    .regex(/[^A-Za-z0-9]/, 'Doit contenir au moins un caractère spécial'),
   confirm: z.string(),
 }).refine(d => d.password === d.confirm, {
   message: 'Les mots de passe ne correspondent pas',
@@ -24,13 +36,27 @@ const schema = z.object({
 })
 type FormData = z.infer<typeof schema>
 
+function translateAuthError(message: string, code?: string): string {
+  const msg = message.toLowerCase()
+  if (msg.includes('password') && (msg.includes('weak') || msg.includes('strength') || msg.includes('policy') || msg.includes('character'))) {
+    return 'Le mot de passe ne respecte pas la politique de sécurité. Vérifiez les exigences ci-dessous.'
+  }
+  if (msg.includes('same password') || msg.includes('different from')) {
+    return 'Le nouveau mot de passe doit être différent du mot de passe actuel.'
+  }
+  if (msg.includes('invalid') || code === 'validation_failed') {
+    return `Mot de passe invalide : ${message}`
+  }
+  return message
+}
+
 export default function ChangePasswordPage() {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [checking, setChecking] = useState(true)
+  const [step, setStep] = useState<'password' | 'finalizing' | 'redirecting' | null>(null)
   const supabase = createClient()
 
-  // Guard: if user is not logged in, go to login; if not flagged, go to dashboard
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) { router.replace('/login'); return }
@@ -39,28 +65,31 @@ export default function ChangePasswordPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const [step, setStep] = useState<'password' | 'finalizing' | 'redirecting' | null>(null)
-
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
+    mode: 'onChange',
   })
+
+  const passwordValue = useWatch({ control, name: 'password', defaultValue: '' })
 
   async function onSubmit(data: FormData) {
     setError(null)
-
-    // Step 1: update password via Supabase Auth
     setStep('password')
     const t0 = Date.now()
     console.log('[change-pw] step 1: updateUser start')
+
     const { error: authError } = await supabase.auth.updateUser({ password: data.password })
     console.log(`[change-pw] step 1: updateUser ${Date.now() - t0}ms`)
+
     if (authError) {
-      setError(authError.message)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[change-pw] updateUser error (full):', authError)
+      }
+      setError(translateAuthError(authError.message, authError.code))
       setStep(null)
       return
     }
 
-    // Step 2: clear flag + get redirect target (server handles both in parallel)
     setStep('finalizing')
     const t1 = Date.now()
     console.log('[change-pw] step 2: API call start')
@@ -86,7 +115,6 @@ export default function ChangePasswordPage() {
     } catch {
       clearTimeout(timeout)
       console.warn(`[change-pw] step 2: timeout/error after ${Date.now() - t1}ms — falling back to /dashboard`)
-      // Timeout or network error: fall back, the password update already succeeded
     }
 
     setStep('redirecting')
@@ -144,8 +172,23 @@ export default function ChangePasswordPage() {
                 {errors.password && (
                   <p className="text-xs text-red-500">{errors.password.message}</p>
                 )}
-                <p className="text-xs text-gray-400">Minimum 8 caractères, une majuscule, un chiffre</p>
+
+                {/* Live requirement checklist */}
+                <ul className="mt-2 space-y-1">
+                  {RULES.map(rule => {
+                    const ok = rule.test(passwordValue ?? '')
+                    return (
+                      <li key={rule.key} className={`flex items-center gap-1.5 text-xs ${ok ? 'text-emerald-600' : 'text-gray-400'}`}>
+                        {ok
+                          ? <Check className="h-3 w-3 shrink-0" />
+                          : <X className="h-3 w-3 shrink-0" />}
+                        {rule.label}
+                      </li>
+                    )
+                  })}
+                </ul>
               </div>
+
               <div className="space-y-1.5">
                 <Label htmlFor="confirm">Confirmer le mot de passe</Label>
                 <Input id="confirm" type="password" autoComplete="new-password" {...register('confirm')} />
@@ -153,11 +196,13 @@ export default function ChangePasswordPage() {
                   <p className="text-xs text-red-500">{errors.confirm.message}</p>
                 )}
               </div>
+
               {error && (
                 <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 border border-red-200">
                   {error}
                 </div>
               )}
+
               <Button type="submit" className="w-full bg-teal-700 hover:bg-teal-800" disabled={isSubmitting || !!step}>
                 {(isSubmitting || !!step) && <Loader2 className="h-4 w-4 animate-spin" />}
                 {stepLabel}
