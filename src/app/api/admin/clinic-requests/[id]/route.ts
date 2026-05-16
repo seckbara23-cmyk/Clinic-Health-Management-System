@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomBytes } from 'crypto'
 import { createServiceClient } from '@/lib/supabase/service'
 import { createClient } from '@/lib/supabase/server'
+
+function generateTempPassword(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
+  return Array.from(randomBytes(12), b => chars[b % chars.length]).join('')
+}
 
 async function getSuperAdmin() {
   const supabase = await createClient()
@@ -16,7 +22,7 @@ async function getSuperAdmin() {
 }
 
 // POST /api/admin/clinic-requests/[id]
-// body: { action: 'approve' | 'reject', rejection_reason?: string }
+// body: { action: 'approve' | 'reject', rejection_reason?: string, review_notes?: string }
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -25,7 +31,7 @@ export async function POST(
   const admin = await getSuperAdmin()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { action, rejection_reason } = await req.json()
+  const { action, rejection_reason, review_notes } = await req.json()
 
   const service = createServiceClient()
 
@@ -51,6 +57,7 @@ export async function POST(
         reviewed_by:      admin.id,
         reviewed_at:      new Date().toISOString(),
         rejection_reason: rejection_reason ?? null,
+        review_notes:     review_notes ?? null,
       })
       .eq('id', id)
 
@@ -76,9 +83,11 @@ export async function POST(
       return NextResponse.json({ error: clinicError.message }, { status: 400 })
     }
 
-    // 2. Create auth user
+    // 2. Create auth user with temporary password — never logged
+    const tempPassword = generateTempPassword()
     const { data: authData, error: authError } = await service.auth.admin.createUser({
       email:         request.admin_email,
+      password:      tempPassword,
       email_confirm: true,
       user_metadata: {
         full_name: request.admin_full_name,
@@ -93,17 +102,18 @@ export async function POST(
 
     const adminUserId = authData.user.id
 
-    // 3. Upsert user_profile
+    // 3. Upsert user_profile — must_change_password forces change on first login
     const { error: profileError } = await service
       .from('user_profiles')
       .upsert({
-        id:        adminUserId,
-        email:     request.admin_email,
-        full_name: request.admin_full_name,
-        role:      'admin',
-        clinic_id: clinic.id,
-        is_active: true,
-      })
+        id:                   adminUserId,
+        email:                request.admin_email,
+        full_name:            request.admin_full_name,
+        role:                 'admin',
+        clinic_id:            clinic.id,
+        is_active:            true,
+        must_change_password: true,
+      } as never)
 
     if (profileError) {
       await service.auth.admin.deleteUser(adminUserId)
@@ -111,29 +121,27 @@ export async function POST(
       return NextResponse.json({ error: profileError.message }, { status: 400 })
     }
 
-    // 4. Generate magic link for first login
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
-    const { data: linkData } = await service.auth.admin.generateLink({
-      type:    'magiclink',
-      email:   request.admin_email,
-      options: { redirectTo: `${appUrl}/reset-password` },
-    })
-
-    const setupLink = linkData?.properties?.action_link ?? null
-
-    // 5. Mark request approved
+    // 4. Mark request approved — record audit trail
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (service as any)
       .from('clinic_requests')
       .update({
-        status:      'approved',
-        reviewed_by: admin.id,
-        reviewed_at: new Date().toISOString(),
-        clinic_id:   clinic.id,
+        status:          'approved',
+        reviewed_by:     admin.id,
+        reviewed_at:     new Date().toISOString(),
+        clinic_id:       clinic.id,
+        created_user_id: adminUserId,
+        review_notes:    review_notes ?? null,
       })
       .eq('id', id)
 
-    return NextResponse.json({ ok: true, clinic, setupLink })
+    return NextResponse.json({
+      ok: true,
+      clinic,
+      // temp_password returned once to caller — never logged server-side
+      temp_password: tempPassword,
+      admin_email: request.admin_email,
+    })
   }
 
   return NextResponse.json({ error: 'Action invalide' }, { status: 400 })

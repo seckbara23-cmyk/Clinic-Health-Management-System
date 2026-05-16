@@ -18,15 +18,32 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (!user) redirect('/login')
 
-  // Enforce is_active and must_change_password before rendering the dashboard
+  // Single query — join clinic status so we can check it without a second round-trip
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('is_active, role, must_change_password')
+    .select('is_active, role, must_change_password, clinic_id, clinic:clinics(status)')
     .eq('id', user.id)
-    .single() as { data: { is_active: boolean; role: string; must_change_password: boolean } | null }
+    .single() as {
+      data: {
+        is_active: boolean
+        role: string
+        must_change_password: boolean
+        clinic_id: string | null
+        clinic: { status: string } | null
+      } | null
+    }
 
-  if (!profile || !profile.is_active) redirect('/suspended')
+  if (!profile || !profile.is_active) redirect('/suspended?reason=inactive')
   if (profile.must_change_password) redirect('/change-password')
+
+  // Clinic-level lifecycle guard (does not apply to super_admin — they have no clinic_id)
+  if (profile.clinic_id && profile.role !== 'super_admin') {
+    const blockedStatuses = ['suspended', 'inactive', 'archived', 'pending']
+    const clinicStatus = profile.clinic?.status ?? 'active'
+    if (blockedStatuses.includes(clinicStatus)) {
+      redirect(`/suspended?reason=${clinicStatus}`)
+    }
+  }
 
   return (
     <SidebarProvider>

@@ -3,7 +3,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json } | 
 export type Role = 'super_admin' | 'admin' | 'doctor' | 'receptionist' | 'nurse' | 'cashier'
 export type SubscriptionPlan = 'free' | 'basic' | 'pro' | 'enterprise'
 export type SubscriptionStatus = 'active' | 'suspended' | 'cancelled'
-export type ClinicStatus = 'pending' | 'active' | 'rejected' | 'suspended'
+export type ClinicStatus = 'pending' | 'active' | 'rejected' | 'suspended' | 'inactive' | 'archived'
 export type ClinicRequestStatus = 'pending' | 'approved' | 'rejected'
 export type Gender = 'male' | 'female' | 'other'
 export type BloodType = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-'
@@ -54,7 +54,9 @@ export interface ClinicRequest {
   reviewed_by: string | null
   reviewed_at: string | null
   rejection_reason: string | null
+  review_notes: string | null
   clinic_id: string | null
+  created_user_id: string | null
   created_at: string
   updated_at: string
 }

@@ -61,6 +61,27 @@ export default function ChangePasswordPage() {
       return
     }
 
+    // 3. Redirect admin users to onboarding if clinic setup isn't complete
+    const { data: { user: currentUser } } = await supabase.auth.getUser()
+    if (currentUser) {
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('role, clinic_id, clinic:clinics(onboarding_completed_at)')
+        .eq('id', currentUser.id)
+        .single() as {
+          data: {
+            role: string
+            clinic_id: string | null
+            clinic: { onboarding_completed_at: string | null } | null
+          } | null
+        }
+
+      if (profile?.role === 'admin' && profile.clinic_id && !profile.clinic?.onboarding_completed_at) {
+        router.replace('/onboarding')
+        return
+      }
+    }
+
     router.replace('/dashboard')
   }
 
