@@ -1,15 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Search, Plus, Loader2, UserRound, Phone, Calendar, Trash2, Pencil, ExternalLink } from 'lucide-react'
+import { Search, Plus, UserRound, Phone, Calendar, Trash2, Pencil, ExternalLink, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { Topbar } from '@/components/layout/Topbar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { PatientRowSkeleton } from '@/components/ui/skeleton'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -37,10 +39,24 @@ const genderLabel: Record<string, string> = { male: 'Homme', female: 'Femme', ot
 
 export default function PatientsPage() {
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(0)
   const [open, setOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
 
-  const { data: patients, isLoading } = usePatients(search)
+  // Reset to page 0 when search changes
+  useEffect(() => { setPage(0) }, [search])
+
+  // Listen for FAB events
+  const openCreate = useCallback(() => { setEditId(null); reset(); setOpen(true) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    window.addEventListener('fab:create-patient', openCreate)
+    return () => window.removeEventListener('fab:create-patient', openCreate)
+  }, [openCreate])
+
+  const { data: result, isLoading, isError, refetch } = usePatients(search, page)
+  const patients = result?.data
+  const totalPatients = result?.total ?? 0
+  const totalPages = Math.ceil(totalPatients / 25)
   const createMutation = useCreatePatient()
   const updateMutation = useUpdatePatient()
   const deleteMutation = useDeletePatient()
@@ -48,12 +64,6 @@ export default function PatientsPage() {
   const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
   })
-
-  function openCreate() {
-    setEditId(null)
-    reset()
-    setOpen(true)
-  }
 
   function openEdit(p: NonNullable<typeof patients>[0]) {
     setEditId(p.id)
@@ -107,20 +117,30 @@ export default function PatientsPage() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">
-              {isLoading ? 'Chargement...' : `${patients?.length ?? 0} patient(s)`}
+              {isLoading ? 'Chargement...' : `${totalPatients} patient(s)`}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             {isLoading && (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+              <div className="divide-y">
+                {Array.from({ length: 8 }).map((_, i) => <PatientRowSkeleton key={i} />)}
               </div>
             )}
-            {!isLoading && (!patients || patients.length === 0) && (
-              <div className="flex flex-col items-center py-12 text-gray-400">
-                <UserRound className="h-10 w-10 mb-3 opacity-30" />
-                <p>Aucun patient trouvé</p>
-              </div>
+            {isError && (
+              <EmptyState
+                icon={UserRound}
+                title="Impossible de charger les patients"
+                description="Une erreur est survenue. Vérifiez votre connexion et réessayez."
+                action={{ label: 'Réessayer', onClick: () => refetch() }}
+              />
+            )}
+            {!isLoading && !isError && (!patients || patients.length === 0) && (
+              <EmptyState
+                icon={UserRound}
+                title={search ? 'Aucun résultat' : 'Aucun patient enregistré'}
+                description={search ? `Aucun patient ne correspond à "${search}".` : 'Créez votre premier dossier patient pour commencer.'}
+                action={!search ? { label: 'Nouveau patient', onClick: openCreate } : undefined}
+              />
             )}
 
             {/* Mobile card list */}
@@ -226,6 +246,29 @@ export default function PatientsPage() {
                 </TableBody>
               </Table>
             </div>
+
+            {/* Pagination */}
+            {!isLoading && !isError && totalPages > 1 && (
+              <div className="flex items-center justify-between border-t px-4 py-3">
+                <Button
+                  variant="outline" size="sm"
+                  disabled={page === 0}
+                  onClick={() => setPage(p => p - 1)}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" /> Précédent
+                </Button>
+                <span className="text-xs text-gray-500">
+                  Page {page + 1} / {totalPages} · {totalPatients} patients
+                </span>
+                <Button
+                  variant="outline" size="sm"
+                  disabled={page >= totalPages - 1}
+                  onClick={() => setPage(p => p + 1)}
+                >
+                  Suivant <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

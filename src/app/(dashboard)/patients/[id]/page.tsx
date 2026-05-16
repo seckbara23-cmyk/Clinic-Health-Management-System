@@ -2,22 +2,30 @@
 
 import { use, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   ArrowLeft, UserRound, Phone, Mail, MapPin, AlertCircle,
   Droplets, Calendar, Stethoscope, Receipt, Clock, Pencil,
-  Pill, FlaskConical, History,
+  Pill, FlaskConical, History, MessageCircle,
 } from 'lucide-react'
 import { Topbar } from '@/components/layout/Topbar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { usePatient } from '@/hooks/usePatients'
-import { useAppointments } from '@/hooks/useAppointments'
-import { useConsultations } from '@/hooks/useConsultations'
+import { useAppointments, useCreateAppointment } from '@/hooks/useAppointments'
+import { useConsultations, useCreateConsultation } from '@/hooks/useConsultations'
 import { useInvoices } from '@/hooks/useInvoices'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
 import { useLabRequests } from '@/hooks/useLabRequests'
+import { useDoctors } from '@/hooks/useDoctors'
+import { useClinic } from '@/context/ClinicContext'
 import { formatDate, formatTime, formatCurrency, age, cn } from '@/lib/utils'
+import { toast } from 'sonner'
 import type { Prescription, LabRequest } from '@/types/database'
 
 const apptStatusColors: Record<string, string> = {
@@ -60,18 +68,56 @@ type Tab = 'history' | 'prescriptions' | 'labs' | 'timeline'
 
 export default function PatientProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
+  const router = useRouter()
+  const { profile } = useClinic()
   const [activeTab, setActiveTab] = useState<Tab>('history')
+  const [quickApptOpen, setQuickApptOpen] = useState(false)
+  const [apptDate, setApptDate] = useState('')
+  const [apptTime, setApptTime] = useState('')
+  const [apptDoctorId, setApptDoctorId] = useState('')
+  const [apptNotes, setApptNotes] = useState('')
 
   const { data: patient, isLoading } = usePatient(id)
-  const { data: appointments } = useAppointments()
+  const { data: patientAppointments } = useAppointments(undefined, id)
   const { data: consultations } = useConsultations(id)
-  const { data: invoices } = useInvoices()
+  const { data: patientInvoices } = useInvoices(undefined, id)
   const { data: prescriptions } = usePrescriptions()
   const { data: labRequests } = useLabRequests(id)
+  const { data: doctors } = useDoctors()
+  const createConsultation = useCreateConsultation()
+  const createAppt = useCreateAppointment()
 
-  const patientAppointments = appointments?.filter(a => a.patient_id === id) ?? []
-  const patientInvoices = invoices?.filter(i => i.patient_id === id) ?? []
   const patientPrescriptions = prescriptions?.filter(rx => rx.patient_id === id) ?? []
+
+  async function handleStartConsultation() {
+    if (!profile?.id) return
+    try {
+      const result = await createConsultation.mutateAsync({
+        patient_id: id,
+        appointment_id: null,
+        doctor_id: profile.id,
+      })
+      router.push(`/consultations/${result.id}`)
+    } catch {
+      // error already toasted by hook
+    }
+  }
+
+  async function handleQuickAppt() {
+    if (!apptDate || !apptTime) { toast.error('Date et heure requises'); return }
+    await createAppt.mutateAsync({
+      patient_id: id,
+      doctor_id: apptDoctorId || null,
+      title: 'Rendez-vous',
+      scheduled_at: `${apptDate}T${apptTime}:00`,
+      duration_min: 30,
+      status: 'scheduled',
+      priority: 'normal',
+      notes: apptNotes || null,
+    })
+    setQuickApptOpen(false)
+    setApptDate(''); setApptTime(''); setApptDoctorId(''); setApptNotes('')
+  }
 
   if (isLoading) {
     return (
@@ -114,7 +160,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
       badgeColor: 'bg-violet-100 text-violet-700',
       icon: Stethoscope,
     })),
-    ...(patientAppointments).map(a => ({
+    ...(patientAppointments ?? []).map(a => ({
       date: a.scheduled_at, type: 'appointment' as const,
       title: `RDV — ${formatTime(a.scheduled_at)}`,
       subtitle: a.notes ?? undefined,
@@ -122,7 +168,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
       badgeColor: apptStatusColors[a.status] ?? '',
       icon: Calendar,
     })),
-    ...(patientInvoices).map(inv => ({
+    ...(patientInvoices ?? []).map(inv => ({
       date: inv.created_at, type: 'invoice' as const,
       title: `${inv.invoice_number} — ${formatCurrency(Number(inv.total_amount))}`,
       subtitle: undefined,
@@ -159,7 +205,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
     <div className="flex flex-col h-full">
       <Topbar title={patient.full_name} description={`Dossier ${patient.patient_number}`} />
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex-1 overflow-y-auto p-4 pb-20 md:pb-6 md:p-6 space-y-4 md:space-y-6">
         <Link href="/patients" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800">
           <ArrowLeft className="h-4 w-4" /> Retour aux patients
         </Link>
@@ -283,8 +329,8 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
             <div className="grid grid-cols-5 gap-2">
               {[
                 { label: 'Consult.', value: consultations?.length ?? 0, color: 'bg-violet-50 text-violet-700' },
-                { label: 'RDV', value: patientAppointments.length, color: 'bg-blue-50 text-blue-700' },
-                { label: 'Factures', value: patientInvoices.length, color: 'bg-emerald-50 text-emerald-700' },
+                { label: 'RDV', value: patientAppointments?.length ?? 0, color: 'bg-blue-50 text-blue-700' },
+                { label: 'Factures', value: patientInvoices?.length ?? 0, color: 'bg-emerald-50 text-emerald-700' },
                 { label: 'Ordonn.', value: patientPrescriptions.length, color: 'bg-amber-50 text-amber-700' },
                 { label: 'Analyses', value: labRequests?.length ?? 0, color: 'bg-pink-50 text-pink-700' },
               ].map(s => (
@@ -363,7 +409,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    {patientAppointments.length === 0 ? (
+                    {!patientAppointments || patientAppointments.length === 0 ? (
                       <p className="text-sm text-gray-400 py-4 text-center">Aucun rendez-vous</p>
                     ) : patientAppointments.slice(0, 5).map(a => (
                       <div key={a.id} className="flex items-center justify-between rounded-lg border p-3">
@@ -388,7 +434,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    {patientInvoices.length === 0 ? (
+                    {!patientInvoices || patientInvoices.length === 0 ? (
                       <p className="text-sm text-gray-400 py-4 text-center">Aucune facture</p>
                     ) : patientInvoices.slice(0, 5).map(inv => (
                       <div key={inv.id} className="flex items-center justify-between rounded-lg border p-3">
@@ -528,6 +574,102 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
           </div>
         </div>
       </div>
+
+      {/* Mobile sticky action bar */}
+      <div className="shrink-0 border-t bg-white md:hidden">
+        <div className="grid grid-cols-4 gap-2 p-3">
+          {patient.phone ? (
+            <a
+              href={`tel:${patient.phone}`}
+              className="flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-xl bg-blue-50 text-blue-700 text-xs font-medium"
+            >
+              <Phone className="h-5 w-5" />
+              Appeler
+            </a>
+          ) : (
+            <div className="flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-xl bg-gray-50 text-gray-300 text-xs font-medium cursor-not-allowed">
+              <Phone className="h-5 w-5" />
+              Appeler
+            </div>
+          )}
+          {patient.phone ? (
+            <a
+              href={`https://wa.me/${patient.phone.replace(/\D/g, '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-xl bg-green-50 text-green-700 text-xs font-medium"
+            >
+              <MessageCircle className="h-5 w-5" />
+              WhatsApp
+            </a>
+          ) : (
+            <div className="flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-xl bg-gray-50 text-gray-300 text-xs font-medium cursor-not-allowed">
+              <MessageCircle className="h-5 w-5" />
+              WhatsApp
+            </div>
+          )}
+          <button
+            onClick={() => setQuickApptOpen(true)}
+            className="flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-xl bg-violet-50 text-violet-700 text-xs font-medium"
+          >
+            <Calendar className="h-5 w-5" />
+            RDV
+          </button>
+          <button
+            onClick={handleStartConsultation}
+            disabled={createConsultation.isPending}
+            className="flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-xl bg-teal-50 text-teal-700 text-xs font-medium disabled:opacity-50"
+          >
+            <Stethoscope className="h-5 w-5" />
+            {createConsultation.isPending ? '...' : 'Consulter'}
+          </button>
+        </div>
+      </div>
+
+      {/* Quick appointment dialog */}
+      <Dialog open={quickApptOpen} onOpenChange={setQuickApptOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Nouveau rendez-vous</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-gray-500">Patient : <span className="font-medium text-gray-900">{patient.full_name}</span></p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Date *</Label>
+                <Input type="date" value={apptDate} onChange={e => setApptDate(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Heure *</Label>
+                <Input type="time" value={apptTime} onChange={e => setApptTime(e.target.value)} />
+              </div>
+            </div>
+            {doctors && doctors.length > 0 && (
+              <div className="space-y-1.5">
+                <Label>Médecin</Label>
+                <Select value={apptDoctorId} onValueChange={setApptDoctorId}>
+                  <SelectTrigger><SelectValue placeholder="Choisir un médecin" /></SelectTrigger>
+                  <SelectContent>
+                    {doctors.map(d => (
+                      <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label>Notes</Label>
+              <Input value={apptNotes} onChange={e => setApptNotes(e.target.value)} placeholder="Motif de visite..." />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQuickApptOpen(false)}>Annuler</Button>
+            <Button onClick={handleQuickAppt} disabled={createAppt.isPending}>
+              {createAppt.isPending ? 'Création...' : 'Créer le RDV'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

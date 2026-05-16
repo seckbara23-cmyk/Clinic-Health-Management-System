@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -87,11 +87,19 @@ export default function AppointmentsPage() {
 
   const { data: appointments, isLoading } = useAppointments(viewMode === 'list' ? date : undefined)
   const { data: weekAppts, isLoading: weekLoading } = useWeekAppointments(weekStart)
-  const { data: patients } = usePatients()
+  const { data: patientsResult } = usePatients()
+  const patients = patientsResult?.data
   const { data: doctors } = useDoctors()
   const createMutation = useCreateAppointment()
   const statusMutation = useUpdateAppointmentStatus()
   const updateMutation = useUpdateAppointment()
+
+  // FAB listener
+  const openNewAppt = useCallback(() => { createForm.reset({ duration_min: 30, priority: 'normal' }); setCreateOpen(true) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    window.addEventListener('fab:create-appointment', openNewAppt)
+    return () => window.removeEventListener('fab:create-appointment', openNewAppt)
+  }, [openNewAppt])
 
   const createForm = useForm<CreateForm>({
     resolver: zodResolver(createSchema),

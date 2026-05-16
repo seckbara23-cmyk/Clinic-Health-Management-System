@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useQueryClient } from '@tanstack/react-query'
 import {
-  Loader2, UserCheck, PhoneCall, Stethoscope, CheckCircle,
+  UserCheck, PhoneCall, Stethoscope, CheckCircle, Loader2,
   XCircle, AlertCircle, Clock, Users,
 } from 'lucide-react'
+import { QueueRowSkeleton } from '@/components/ui/skeleton'
 import { Topbar } from '@/components/layout/Topbar'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -130,8 +131,29 @@ export default function QueuePage() {
         </div>
 
         {isLoading && (
-          <div className="flex justify-center py-16">
-            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+          <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+            <div className="px-5 py-3 border-b bg-gray-50">
+              <div className="h-4 w-32 bg-gray-200 animate-pulse rounded" />
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-xs text-gray-500 uppercase tracking-wide">
+                    <th className="text-left px-4 py-2.5 font-medium w-12">N°</th>
+                    <th className="text-left px-4 py-2.5 font-medium">Patient</th>
+                    <th className="text-left px-4 py-2.5 font-medium hidden md:table-cell">Motif</th>
+                    <th className="text-left px-4 py-2.5 font-medium hidden lg:table-cell">Arrivée</th>
+                    <th className="text-left px-4 py-2.5 font-medium hidden lg:table-cell">Attente</th>
+                    <th className="text-left px-4 py-2.5 font-medium hidden md:table-cell">Médecin</th>
+                    <th className="text-left px-4 py-2.5 font-medium">Statut</th>
+                    <th className="text-right px-4 py-2.5 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {Array.from({ length: 5 }).map((_, i) => <QueueRowSkeleton key={i} />)}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 

@@ -4,13 +4,14 @@ import { useClinic } from '@/context/ClinicContext'
 import type { Appointment } from '@/types/database'
 import { toast } from 'sonner'
 
-export function useAppointments(date?: string) {
+export function useAppointments(date?: string, patientId?: string) {
   const { clinic } = useClinic()
   const supabase = createClient()
 
   return useQuery({
-    queryKey: ['appointments', clinic?.id, date],
+    queryKey: ['appointments', clinic?.id, date, patientId],
     enabled: !!clinic?.id,
+    staleTime: 20_000,
     queryFn: async () => {
       let q = supabase
         .from('appointments')
@@ -22,6 +23,10 @@ export function useAppointments(date?: string) {
         const start = `${date}T00:00:00`
         const end = `${date}T23:59:59`
         q = q.gte('scheduled_at', start).lte('scheduled_at', end)
+      }
+
+      if (patientId) {
+        q = q.eq('patient_id', patientId)
       }
 
       const { data, error } = await q

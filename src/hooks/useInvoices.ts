@@ -4,13 +4,14 @@ import { useClinic } from '@/context/ClinicContext'
 import type { Invoice } from '@/types/database'
 import { toast } from 'sonner'
 
-export function useInvoices(status?: string) {
+export function useInvoices(status?: string, patientId?: string) {
   const { clinic } = useClinic()
   const supabase = createClient()
 
   return useQuery({
-    queryKey: ['invoices', clinic?.id, status],
+    queryKey: ['invoices', clinic?.id, status, patientId],
     enabled: !!clinic?.id,
+    staleTime: 30_000,
     queryFn: async () => {
       let q = supabase
         .from('invoices')
@@ -19,6 +20,7 @@ export function useInvoices(status?: string) {
         .order('created_at', { ascending: false })
 
       if (status) q = q.eq('status', status)
+      if (patientId) q = q.eq('patient_id', patientId)
 
       const { data, error } = await q
       if (error) throw error

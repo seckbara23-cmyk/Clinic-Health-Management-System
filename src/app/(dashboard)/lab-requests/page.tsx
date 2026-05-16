@@ -76,7 +76,8 @@ export default function LabRequestsPage() {
   const [statusTarget, setStatusTarget] = useState<LabRow | null>(null)
 
   const { data: labRequests, isLoading } = useLabRequests()
-  const { data: patients } = usePatients()
+  const { data: patientsResult } = usePatients()
+  const patients = patientsResult?.data
   const createMutation = useCreateLabRequest()
   const updateMutation = useUpdateLabRequest()
 

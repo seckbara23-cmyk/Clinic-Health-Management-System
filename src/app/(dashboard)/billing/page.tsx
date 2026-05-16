@@ -1,10 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Plus, Loader2, Receipt, Trash2, CheckCircle2, Eye, Printer, Download } from 'lucide-react'
+import { InvoiceRowSkeleton } from '@/components/ui/skeleton'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Topbar } from '@/components/layout/Topbar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -63,9 +65,17 @@ export default function BillingPage() {
   const [partialInvoice, setPartialInvoice] = useState<Invoice | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>('')
 
+  // FAB listener
+  const openCreate = useCallback(() => { reset(); setCreateOpen(true) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    window.addEventListener('fab:create-invoice', openCreate)
+    return () => window.removeEventListener('fab:create-invoice', openCreate)
+  }, [openCreate])
+
   const { clinic } = useClinic()
   const { data: invoices, isLoading } = useInvoices(statusFilter || undefined)
-  const { data: patients } = usePatients()
+  const { data: patientsResult } = usePatients()
+  const patients = patientsResult?.data
   const createMutation = useCreateInvoice()
   const updateMutation = useUpdateInvoice()
 
@@ -183,15 +193,17 @@ export default function BillingPage() {
         <Card>
           <CardContent className="p-0">
             {isLoading && (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+              <div className="divide-y md:hidden">
+                {Array.from({ length: 4 }).map((_, i) => <InvoiceRowSkeleton key={i} />)}
               </div>
             )}
             {!isLoading && (!invoices || invoices.length === 0) && (
-              <div className="flex flex-col items-center py-12 text-gray-400">
-                <Receipt className="h-10 w-10 mb-3 opacity-30" />
-                <p>Aucune facture</p>
-              </div>
+              <EmptyState
+                icon={Receipt}
+                title="Aucune facture"
+                description={statusFilter ? 'Aucune facture avec ce statut.' : 'Créez votre première facture.'}
+                action={!statusFilter ? { label: 'Nouvelle facture', onClick: openCreate } : undefined}
+              />
             )}
 
             {/* Mobile card list */}

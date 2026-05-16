@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { BottomNav } from '@/components/layout/BottomNav'
+import { FloatingActionButton } from '@/components/layout/FloatingActionButton'
 import { SidebarProvider } from '@/context/SidebarContext'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -35,6 +36,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </main>
       </div>
       <BottomNav />
+      <FloatingActionButton />
     </SidebarProvider>
   )
 }

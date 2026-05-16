@@ -4,27 +4,34 @@ import { useClinic } from '@/context/ClinicContext'
 import type { Patient } from '@/types/database'
 import { toast } from 'sonner'
 
-export function usePatients(search?: string) {
+export const PATIENTS_PAGE_SIZE = 25
+
+export function usePatients(search?: string, page = 0) {
   const { clinic } = useClinic()
   const supabase = createClient()
 
   return useQuery({
-    queryKey: ['patients', clinic?.id, search],
+    queryKey: ['patients', clinic?.id, search, page],
     enabled: !!clinic?.id,
+    staleTime: 30_000,
     queryFn: async () => {
       let q = supabase
         .from('patients')
-        .select('*')
+        .select(
+          'id, full_name, patient_number, phone, email, date_of_birth, gender, blood_type, created_at',
+          { count: 'exact' }
+        )
         .eq('clinic_id', clinic!.id)
         .order('created_at', { ascending: false })
+        .range(page * PATIENTS_PAGE_SIZE, (page + 1) * PATIENTS_PAGE_SIZE - 1)
 
       if (search?.trim()) {
         q = q.or(`full_name.ilike.%${search}%,patient_number.ilike.%${search}%,phone.ilike.%${search}%`)
       }
 
-      const { data, error } = await q
+      const { data, error, count } = await q
       if (error) throw error
-      return data as Patient[]
+      return { data: data as Patient[], total: count ?? 0 }
     },
   })
 }

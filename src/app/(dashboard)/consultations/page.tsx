@@ -66,7 +66,8 @@ export default function ConsultationsPage() {
   const [editTarget, setEditTarget] = useState<Consultation | null>(null)
   const qc = useQueryClient()
   const supabase = createClient()
-  const { data: patients } = usePatients()
+  const { data: patientsResult } = usePatients()
+  const patients = patientsResult?.data
   const { data: consultations, isLoading } = useConsultations()
   const updateMutation = useUpdateConsultation()
 
