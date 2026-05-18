@@ -1,8 +1,5 @@
 'use client'
 
-// Background: public/clinic-bg.jpg — single clinic reception photo.
-// Gradient layer beneath is the fallback if the file is ever missing.
-
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -12,12 +9,10 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Loader2, Eye, EyeOff, ShieldCheck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useTranslations } from 'next-intl'
+import { LocaleSwitcher } from '@/components/LocaleSwitcher'
 
-const schema = z.object({
-  email: z.string().email('Email invalide'),
-  password: z.string().min(6, 'Mot de passe trop court'),
-})
-type FormData = z.infer<typeof schema>
+type FormData = { email: string; password: string }
 
 export default function LoginPage() {
   const router = useRouter()
@@ -25,9 +20,15 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [bgError, setBgError] = useState(false)
   const supabase = createClient()
+  const t = useTranslations('auth.login')
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(
+      z.object({
+        email: z.string().email(t('emailInvalid')),
+        password: z.string().min(6, t('passwordTooShort')),
+      })
+    ),
   })
 
   async function onSubmit(data: FormData) {
@@ -110,9 +111,9 @@ export default function LoginPage() {
 
               {/* ── Heading ── */}
               <div className="mb-6 text-center">
-                <h1 className="text-xl font-semibold text-gray-900">Bienvenue&nbsp;!</h1>
+                <h1 className="text-xl font-semibold text-gray-900">{t('title')}</h1>
                 <p className="mt-1.5 text-sm leading-relaxed text-gray-500">
-                  Gérez vos patients, rendez-vous et consultations en toute sécurité.
+                  {t('subtitle')}
                 </p>
               </div>
 
@@ -130,13 +131,13 @@ export default function LoginPage() {
                     htmlFor="email"
                     className="mb-1.5 block text-sm font-medium text-gray-700"
                   >
-                    Email
+                    {t('email')}
                   </label>
                   <input
                     id="email"
                     type="email"
                     autoComplete="email"
-                    placeholder="medecin@clinique.sn"
+                    placeholder={t('emailPlaceholder')}
                     aria-invalid={!!errors.email}
                     aria-describedby={errors.email ? 'email-error' : undefined}
                     className="w-full rounded-lg border border-gray-300 bg-white/80 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition-colors focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 disabled:opacity-50"
@@ -156,13 +157,13 @@ export default function LoginPage() {
                       htmlFor="password"
                       className="block text-sm font-medium text-gray-700"
                     >
-                      Mot de passe
+                      {t('password')}
                     </label>
                     <Link
                       href="/forgot-password"
                       className="text-xs font-medium text-teal-600 transition-colors hover:text-teal-700 hover:underline"
                     >
-                      Mot de passe oublié&nbsp;?
+                      {t('forgotPassword')}
                     </Link>
                   </div>
                   <div className="relative">
@@ -179,7 +180,7 @@ export default function LoginPage() {
                       type="button"
                       tabIndex={-1}
                       onClick={() => setShowPassword(v => !v)}
-                      aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                      aria-label={showPassword ? t('hidePassword') : t('showPassword')}
                       className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 transition-colors hover:text-gray-600"
                     >
                       {showPassword
@@ -214,10 +215,10 @@ export default function LoginPage() {
                   {isSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                      Connexion en cours…
+                      {t('submitting')}
                     </>
                   ) : (
-                    'Se connecter'
+                    t('submit')
                   )}
                 </button>
 
@@ -225,16 +226,19 @@ export default function LoginPage() {
             </div>
 
             {/* Card footer */}
-            <div className="border-t border-gray-100 bg-gray-50/80 px-8 py-4 text-center">
-              <p className="text-sm text-gray-500">
-                Nouvelle clinique&nbsp;?{' '}
-                <Link
-                  href="/signup"
-                  className="font-medium text-teal-600 transition-colors hover:text-teal-700 hover:underline"
-                >
-                  Créer un compte
-                </Link>
-              </p>
+            <div className="border-t border-gray-100 bg-gray-50/80 px-8 py-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-500">
+                  {t('newClinic')}{' '}
+                  <Link
+                    href="/signup"
+                    className="font-medium text-teal-600 transition-colors hover:text-teal-700 hover:underline"
+                  >
+                    {t('createAccount')}
+                  </Link>
+                </p>
+                <LocaleSwitcher />
+              </div>
             </div>
           </div>
 
@@ -255,11 +259,11 @@ export default function LoginPage() {
         <div className="mx-auto flex max-w-2xl items-center justify-center gap-3">
           <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-teal-400" aria-hidden="true" />
           <p className="text-xs text-white/70">
-            Sécurisé. Fiable. Conçu pour les cliniques au Sénégal.
+            {t('trustBadge')}
           </p>
           <span className="hidden text-white/25 sm:inline" aria-hidden="true">|</span>
           <p className="hidden text-xs text-white/45 sm:block">
-            Gérez vos patients, rendez-vous et consultations en toute sécurité.
+            {t('trustTagline')}
           </p>
         </div>
       </div>

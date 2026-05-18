@@ -13,53 +13,41 @@ import { useSidebar } from '@/context/SidebarContext'
 import { signOut } from '@/lib/auth/actions'
 import { Button } from '@/components/ui/button'
 import type { Role } from '@/types/database'
+import { useTranslations } from 'next-intl'
+import { LocaleSwitcher } from '@/components/LocaleSwitcher'
 
 interface NavItem {
   href: string
-  label: string
+  labelKey: string
   icon: React.ElementType
   roles?: Role[]
 }
 
 const navItems: NavItem[] = [
-  { href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
-  { href: '/patients', label: 'Patients', icon: Users },
-  {
-    href: '/queue', label: 'Salle d\'attente', icon: ClipboardList,
-    roles: ['super_admin', 'admin', 'doctor', 'nurse', 'receptionist'],
-  },
-  {
-    href: '/appointments', label: 'Rendez-vous', icon: CalendarDays,
-    roles: ['super_admin', 'admin', 'doctor', 'nurse', 'receptionist'],
-  },
-  {
-    href: '/consultations', label: 'Consultations', icon: Stethoscope,
-    roles: ['super_admin', 'admin', 'doctor', 'nurse'],
-  },
-  {
-    href: '/prescriptions', label: 'Ordonnances', icon: Pill,
-    roles: ['super_admin', 'admin', 'doctor', 'nurse'],
-  },
-  {
-    href: '/lab-requests', label: 'Analyses', icon: FlaskConical,
-    roles: ['super_admin', 'admin', 'doctor', 'nurse'],
-  },
-  {
-    href: '/billing', label: 'Facturation', icon: Receipt,
-    roles: ['super_admin', 'admin', 'receptionist', 'cashier', 'doctor'],
-  },
-  {
-    href: '/analytics', label: 'Analytique', icon: BarChart2,
-    roles: ['super_admin', 'admin'],
-  },
-  { href: '/settings', label: 'Paramètres', icon: Settings },
+  { href: '/dashboard',     labelKey: 'dashboard',     icon: LayoutDashboard },
+  { href: '/patients',      labelKey: 'patients',      icon: Users },
+  { href: '/queue',         labelKey: 'queue',         icon: ClipboardList,
+    roles: ['super_admin', 'admin', 'doctor', 'nurse', 'receptionist'] },
+  { href: '/appointments',  labelKey: 'appointments',  icon: CalendarDays,
+    roles: ['super_admin', 'admin', 'doctor', 'nurse', 'receptionist'] },
+  { href: '/consultations', labelKey: 'consultations', icon: Stethoscope,
+    roles: ['super_admin', 'admin', 'doctor', 'nurse'] },
+  { href: '/prescriptions', labelKey: 'prescriptions', icon: Pill,
+    roles: ['super_admin', 'admin', 'doctor', 'nurse'] },
+  { href: '/lab-requests',  labelKey: 'labRequests',   icon: FlaskConical,
+    roles: ['super_admin', 'admin', 'doctor', 'nurse'] },
+  { href: '/billing',       labelKey: 'billing',       icon: Receipt,
+    roles: ['super_admin', 'admin', 'receptionist', 'cashier', 'doctor'] },
+  { href: '/analytics',     labelKey: 'analytics',     icon: BarChart2,
+    roles: ['super_admin', 'admin'] },
+  { href: '/settings',      labelKey: 'settings',      icon: Settings },
 ]
 
 const adminItems: NavItem[] = [
-  { href: '/admin/clinics', label: 'Cliniques', icon: Building2 },
-  { href: '/admin/clinic-requests', label: 'Demandes', icon: Inbox, roles: ['super_admin'] },
-  { href: '/admin/users', label: 'Utilisateurs', icon: ShieldCheck },
-  { href: '/admin/billing', label: 'Paiements', icon: CreditCard, roles: ['super_admin'] },
+  { href: '/admin/clinics',          labelKey: 'adminClinics',   icon: Building2 },
+  { href: '/admin/clinic-requests',  labelKey: 'adminRequests',  icon: Inbox, roles: ['super_admin'] },
+  { href: '/admin/users',            labelKey: 'adminUsers',     icon: ShieldCheck },
+  { href: '/admin/billing',          labelKey: 'adminBilling',   icon: CreditCard, roles: ['super_admin'] },
 ]
 
 function SidebarInner() {
@@ -68,6 +56,7 @@ function SidebarInner() {
   const role = profile?.role as Role | undefined
   const isSuperAdmin = role === 'super_admin'
   const isAdminOrSuper = role === 'super_admin' || role === 'admin'
+  const t = useTranslations('nav')
 
   const visibleNav = navItems.filter(item => {
     if (!item.roles) return true
@@ -89,7 +78,7 @@ function SidebarInner() {
 
       {/* Main Nav */}
       <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-0.5">
-        {visibleNav.map(({ href, label, icon: Icon }) => {
+        {visibleNav.map(({ href, labelKey, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + '/')
           return (
             <Link
@@ -103,7 +92,7 @@ function SidebarInner() {
               )}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              {label}
+              {t(labelKey)}
               {active && <ChevronRight className="ml-auto h-3 w-3" />}
             </Link>
           )
@@ -113,14 +102,14 @@ function SidebarInner() {
         {isAdminOrSuper && (
           <>
             <div className="pt-4 pb-1 px-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Administration</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">{t('adminSection')}</p>
             </div>
             {adminItems
               .filter(item => {
                 if (item.roles) return role ? item.roles.includes(role) : false
                 return isSuperAdmin || item.href !== '/admin/clinics'
               })
-              .map(({ href, label, icon: Icon }) => {
+              .map(({ href, labelKey, icon: Icon }) => {
                 const active = pathname === href || pathname.startsWith(href + '/')
                 return (
                   <Link
@@ -134,7 +123,7 @@ function SidebarInner() {
                     )}
                   >
                     <Icon className="h-4 w-4 shrink-0" />
-                    {label}
+                    {t(labelKey)}
                   </Link>
                 )
               })}
@@ -153,10 +142,13 @@ function SidebarInner() {
             <p className="truncate text-xs text-gray-500 capitalize">{profile?.role}</p>
           </div>
         </div>
+        <div className="flex items-center justify-between px-2 pb-1">
+          <LocaleSwitcher />
+        </div>
         <form action={signOut}>
           <Button variant="ghost" size="sm" className="w-full justify-start text-red-600 hover:bg-red-50 hover:text-red-700">
             <LogOut className="h-4 w-4" />
-            Déconnexion
+            {t('signOut')}
           </Button>
         </form>
       </div>
@@ -173,6 +165,7 @@ function SidebarInner() {
 
 export function Sidebar() {
   const { mobileOpen, closeMobile } = useSidebar()
+  const t = useTranslations('nav')
 
   return (
     <>
@@ -198,7 +191,7 @@ export function Sidebar() {
         <button
           className="absolute right-2 top-2 rounded-full p-1.5 text-gray-400 hover:bg-gray-100 md:hidden"
           onClick={closeMobile}
-          aria-label="Fermer le menu"
+          aria-label={t('closeMenu')}
         >
           <X className="h-5 w-5" />
         </button>

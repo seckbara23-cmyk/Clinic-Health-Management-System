@@ -4,21 +4,24 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, Users, ClipboardList, CalendarDays, Receipt } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-const items = [
-  { href: '/dashboard',    label: 'Accueil',  icon: LayoutDashboard },
-  { href: '/patients',     label: 'Patients', icon: Users },
-  { href: '/queue',        label: 'File',     icon: ClipboardList },
-  { href: '/appointments', label: 'RDV',      icon: CalendarDays },
-  { href: '/billing',      label: 'Factures', icon: Receipt },
-]
+import { useTranslations } from 'next-intl'
 
 export function BottomNav() {
   const pathname = usePathname()
+  const t = useTranslations('bottomNav')
+
+  const items = [
+    { href: '/dashboard',    labelKey: 'home',         icon: LayoutDashboard },
+    { href: '/patients',     labelKey: 'patients',     icon: Users },
+    { href: '/queue',        labelKey: 'queue',        icon: ClipboardList },
+    { href: '/appointments', labelKey: 'appointments', icon: CalendarDays },
+    { href: '/billing',      labelKey: 'billing',      icon: Receipt },
+  ]
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t bg-white safe-area-inset-bottom md:hidden">
       <div className="grid h-16 grid-cols-5">
-        {items.map(({ href, label, icon: Icon }) => {
+        {items.map(({ href, labelKey, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + '/')
           return (
             <Link
@@ -30,7 +33,7 @@ export function BottomNav() {
               )}
             >
               <Icon className={cn('h-5 w-5', active && 'text-teal-700')} />
-              {label}
+              {t(labelKey)}
             </Link>
           )
         })}
