@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import Link from 'next/link'
-import { Plus, Loader2, Stethoscope, Clock, Pencil, Activity, ExternalLink } from 'lucide-react'
+import { Plus, Loader2, Stethoscope, Clock, Pencil, Activity, ExternalLink, AlertTriangle, RefreshCw } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Topbar } from '@/components/layout/Topbar'
 import { Button } from '@/components/ui/button'
@@ -68,7 +68,7 @@ export default function ConsultationsPage() {
   const supabase = createClient()
   const { data: patientsResult } = usePatients()
   const patients = patientsResult?.data
-  const { data: consultations, isLoading } = useConsultations()
+  const { data: consultations, isLoading, isError, refetch } = useConsultations()
   const updateMutation = useUpdateConsultation()
 
   const createMutation = useMutation({
@@ -160,8 +160,8 @@ export default function ConsultationsPage() {
         </div>
 
         <Card>
-          <CardContent className="p-0">
-            <Table>
+          <CardContent className="p-0 overflow-x-auto">
+            <Table className="min-w-[700px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Patient</TableHead>
@@ -182,7 +182,23 @@ export default function ConsultationsPage() {
                     </TableCell>
                   </TableRow>
                 )}
-                {!isLoading && (!consultations || consultations.length === 0) && (
+                {isError && (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-12">
+                      <div className="flex flex-col items-center gap-3 text-gray-400">
+                        <AlertTriangle className="h-8 w-8 text-red-400" />
+                        <p className="text-sm">Impossible de charger les consultations.</p>
+                        <button
+                          onClick={() => refetch()}
+                          className="flex items-center gap-1.5 text-xs text-blue-600 hover:underline"
+                        >
+                          <RefreshCw className="h-3.5 w-3.5" /> Réessayer
+                        </button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!isLoading && !isError && (!consultations || consultations.length === 0) && (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center py-12 text-gray-400">
                       <Stethoscope className="mx-auto h-10 w-10 mb-3 opacity-30" />

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Plus, Loader2, CalendarDays, Clock, ChevronLeft, ChevronRight, Pencil, X, List } from 'lucide-react'
+import { Plus, Loader2, CalendarDays, Clock, ChevronLeft, ChevronRight, Pencil, X, List, AlertTriangle, RefreshCw } from 'lucide-react'
 import { Topbar } from '@/components/layout/Topbar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -80,12 +80,13 @@ function getWeekDays(weekStart: string) {
 export default function AppointmentsPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Appointment | null>(null)
+  const [cancelId, setCancelId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list')
   const today = new Date().toISOString().split('T')[0]
   const [date, setDate] = useState(today)
   const weekStart = getWeekStart(date)
 
-  const { data: appointments, isLoading } = useAppointments(viewMode === 'list' ? date : undefined)
+  const { data: appointments, isLoading, isError, refetch } = useAppointments(viewMode === 'list' ? date : undefined)
   const { data: weekAppts, isLoading: weekLoading } = useWeekAppointments(weekStart)
   const { data: patientsResult } = usePatients()
   const patients = patientsResult?.data
@@ -159,9 +160,10 @@ export default function AppointmentsPage() {
     setEditTarget(null)
   }
 
-  async function cancelAppointment(id: string) {
-    if (!confirm('Annuler ce rendez-vous ?')) return
-    await statusMutation.mutateAsync({ id, status: 'cancelled' })
+  async function confirmCancel() {
+    if (!cancelId) return
+    await statusMutation.mutateAsync({ id: cancelId, status: 'cancelled' })
+    setCancelId(null)
   }
 
   const stats = {
@@ -281,7 +283,19 @@ export default function AppointmentsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {!isLoading && (!appointments || appointments.length === 0) && (
+            {isError && (
+              <div className="flex flex-col items-center gap-3 py-12 text-gray-400">
+                <AlertTriangle className="h-8 w-8 text-red-400" />
+                <p className="text-sm">Impossible de charger les rendez-vous.</p>
+                <button
+                  onClick={() => refetch()}
+                  className="flex items-center gap-1.5 text-xs text-blue-600 hover:underline"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" /> Réessayer
+                </button>
+              </div>
+            )}
+            {!isLoading && !isError && (!appointments || appointments.length === 0) && (
               <div className="text-center py-12 text-gray-400">
                 <CalendarDays className="mx-auto h-10 w-10 mb-3 opacity-30" />
                 <p>Aucun rendez-vous ce jour</p>
@@ -342,7 +356,7 @@ export default function AppointmentsPage() {
                       <Button
                         size="sm" variant="ghost"
                         className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => cancelAppointment(appt.id)}
+                        onClick={() => setCancelId(appt.id)}
                       >
                         <X className="h-3.5 w-3.5" />
                       </Button>
@@ -355,6 +369,31 @@ export default function AppointmentsPage() {
         </Card>
         )}
       </div>
+
+      {/* Cancel confirmation dialog */}
+      <Dialog open={!!cancelId} onOpenChange={open => { if (!open) setCancelId(null) }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" /> Annuler le rendez-vous
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600">
+            Confirmer l&apos;annulation ? Cette action est irréversible et ne peut pas être défaite.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelId(null)}>Retour</Button>
+            <Button
+              variant="destructive"
+              disabled={statusMutation.isPending}
+              onClick={confirmCancel}
+            >
+              {statusMutation.isPending && <Loader2 className="animate-spin" />}
+              Annuler le rendez-vous
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Create dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>

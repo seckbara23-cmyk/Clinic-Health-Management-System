@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
   Plus, Loader2, MapPin, Shield, Copy, CheckCircle2,
-  AlertCircle, Ban, RefreshCw, Archive, Filter,
+  AlertCircle, Ban, RefreshCw, Archive, Filter, AlertTriangle,
 } from 'lucide-react'
 import { Topbar } from '@/components/layout/Topbar'
 import { Button } from '@/components/ui/button'
@@ -59,7 +59,7 @@ export default function AdminClinicsPage() {
   const [copied, setCopied] = useState(false)
   const qc = useQueryClient()
 
-  const { data: clinics, isLoading } = useQuery({
+  const { data: clinics, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-clinics'],
     enabled: profile?.role === 'super_admin',
     queryFn: async () => {
@@ -204,8 +204,36 @@ export default function AdminClinicsPage() {
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {isLoading && (
-            <div className="col-span-3 text-center py-8">
+            <div className="col-span-3 text-center py-12">
               <Loader2 className="mx-auto h-6 w-6 animate-spin text-gray-400" />
+            </div>
+          )}
+          {isError && (
+            <div className="col-span-3 flex flex-col items-center gap-3 py-16 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50">
+                <AlertTriangle className="h-7 w-7 text-red-500" />
+              </div>
+              <p className="font-medium text-gray-900">Impossible de charger les cliniques</p>
+              <p className="text-sm text-gray-500">Vérifiez votre connexion et réessayez.</p>
+              <button
+                onClick={() => refetch()}
+                className="flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <RefreshCw className="h-4 w-4" /> Réessayer
+              </button>
+            </div>
+          )}
+          {!isLoading && !isError && visibleClinics?.length === 0 && (
+            <div className="col-span-3 flex flex-col items-center gap-3 py-16 text-center text-gray-400">
+              <Shield className="h-12 w-12 opacity-20" />
+              <p className="font-medium text-gray-600">
+                {lifecycleFilter === 'archived'
+                  ? 'Aucune clinique archivée'
+                  : 'Aucune clinique enregistrée'}
+              </p>
+              {lifecycleFilter !== 'archived' && (
+                <p className="text-sm">Créez votre première clinique ci-dessus.</p>
+              )}
             </div>
           )}
           {visibleClinics?.map(clinic => {

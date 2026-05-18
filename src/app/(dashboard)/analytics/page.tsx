@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell,
 } from 'recharts'
-import { TrendingUp, Users, CalendarCheck, Stethoscope, FlaskConical, Percent, Loader2 } from 'lucide-react'
+import { TrendingUp, Users, CalendarCheck, Stethoscope, FlaskConical, Percent, Loader2, AlertTriangle, RefreshCw } from 'lucide-react'
 import { Topbar } from '@/components/layout/Topbar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAnalytics } from '@/hooks/useAnalytics'
@@ -40,7 +40,7 @@ const tooltipStyle = { fontSize: 12, borderRadius: 8 }
 
 export default function AnalyticsPage() {
   const { profile } = useClinic()
-  const { data, isLoading } = useAnalytics()
+  const { data, isLoading, isError, refetch } = useAnalytics()
 
   const canView = ['admin', 'super_admin'].includes(profile?.role ?? '')
 
@@ -63,6 +63,26 @@ export default function AnalyticsPage() {
         {isLoading && (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          </div>
+        )}
+
+        {isError && (
+          <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50">
+              <AlertTriangle className="h-7 w-7 text-red-500" />
+            </div>
+            <div>
+              <p className="font-medium text-gray-900">Impossible de charger les statistiques</p>
+              <p className="text-sm text-gray-500 mt-1">
+                Vérifiez votre connexion ou que la migration 021 est appliquée.
+              </p>
+            </div>
+            <button
+              onClick={() => refetch()}
+              className="flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <RefreshCw className="h-4 w-4" /> Réessayer
+            </button>
           </div>
         )}
 
