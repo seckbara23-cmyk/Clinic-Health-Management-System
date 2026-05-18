@@ -16,7 +16,13 @@
       "newClinic": "Nouvelle clinique ?",
       "createAccount": "Créer un compte",
       "trustBadge": "Sécurisé. Fiable. Conçu pour les cliniques au Sénégal.",
-      "trustTagline": "Gérez vos patients, rendez-vous et consultations en toute sécurité."
+      "trustTagline": "Gérez vos patients, rendez-vous et consultations en toute sécurité.",
+      "errorInvalidCredentials": "Identifiants incorrects. Vérifiez votre email et mot de passe.",
+      "errorEmailNotConfirmed": "Email non confirmé. Vérifiez votre boîte mail.",
+      "errorTooManyRequests": "Trop de tentatives. Réessayez dans quelques minutes.",
+      "errorTimeout": "Connexion expirée (15 s). Vérifiez votre réseau et réessayez.",
+      "errorNetwork": "Erreur réseau. Vérifiez votre connexion et réessayez.",
+      "errorGeneric": "Erreur de connexion. Veuillez réessayer."
     },
     "changePassword": {
       "title": "Changer votre mot de passe",

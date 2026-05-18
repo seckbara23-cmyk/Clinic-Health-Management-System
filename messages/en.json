@@ -16,7 +16,13 @@
       "newClinic": "New clinic?",
       "createAccount": "Create an account",
       "trustBadge": "Secure. Reliable. Built for clinics in Senegal.",
-      "trustTagline": "Manage your patients, appointments and consultations securely."
+      "trustTagline": "Manage your patients, appointments and consultations securely.",
+      "errorInvalidCredentials": "Invalid email or password.",
+      "errorEmailNotConfirmed": "Email not confirmed. Please check your inbox.",
+      "errorTooManyRequests": "Too many attempts. Please try again in a few minutes.",
+      "errorTimeout": "Connection timed out (15 s). Check your network and try again.",
+      "errorNetwork": "Network error. Check your connection and try again.",
+      "errorGeneric": "Login error. Please try again."
     },
     "changePassword": {
       "title": "Change your password",

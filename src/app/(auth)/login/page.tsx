@@ -14,6 +14,29 @@ import { LocaleSwitcher } from '@/components/LocaleSwitcher'
 
 type FormData = { email: string; password: string }
 
+// Race a promise against a timeout; rejects with Error('TIMEOUT') if ms elapses first.
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT')), ms)
+    ),
+  ])
+}
+
+// Map Supabase error messages to translated keys.
+function translateAuthError(message: string, t: (k: string) => string): string {
+  const m = message.toLowerCase()
+  if (m.includes('invalid login credentials') || m.includes('invalid email or password')) {
+    return t('errorInvalidCredentials')
+  }
+  if (m.includes('email not confirmed')) return t('errorEmailNotConfirmed')
+  if (m.includes('too many requests') || m.includes('rate limit') || m.includes('over_request_rate_limit')) {
+    return t('errorTooManyRequests')
+  }
+  return t('errorGeneric')
+}
+
 export default function LoginPage() {
   const router = useRouter()
   const [serverError, setServerError] = useState<string | null>(null)
@@ -33,18 +56,28 @@ export default function LoginPage() {
 
   async function onSubmit(data: FormData) {
     setServerError(null)
-    const { error } = await supabase.auth.signInWithPassword(data)
-    if (error) {
-      console.error('[Login] signInWithPassword error:', {
-        message: error.message,
-        status:  error.status,
-        code:    (error as { code?: string }).code,
-      })
-      setServerError(error.message)
-      return
+    try {
+      const { error } = await withTimeout(
+        supabase.auth.signInWithPassword(data),
+        15_000
+      )
+      if (error) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('[Login] signInWithPassword error:', {
+            message: error.message,
+            status:  error.status,
+            code:    (error as { code?: string }).code,
+          })
+        }
+        setServerError(translateAuthError(error.message, t))
+        return
+      }
+      // Navigation only — no router.refresh() to avoid RSC cache race with push
+      router.push('/dashboard')
+    } catch (err) {
+      const isTimeout = err instanceof Error && err.message === 'TIMEOUT'
+      setServerError(isTimeout ? t('errorTimeout') : t('errorNetwork'))
     }
-    router.push('/dashboard')
-    router.refresh()
   }
 
   return (
