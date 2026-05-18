@@ -1,17 +1,18 @@
 'use client'
 
+// Background photo: place a clinic/reception image at public/clinic-bg.jpg
+// (any JPEG ~1920×1080, ≤ 400 KB after compression works well).
+// Without the file the teal gradient fallback is shown automatically.
+
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, Stethoscope } from 'lucide-react'
+import { Loader2, Eye, EyeOff, ShieldCheck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 
 const schema = z.object({
   email: z.string().email('Email invalide'),
@@ -21,7 +22,9 @@ type FormData = z.infer<typeof schema>
 
 export default function LoginPage() {
   const router = useRouter()
-  const [error, setError] = useState<string | null>(null)
+  const [serverError, setServerError] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
+  const [bgError, setBgError] = useState(false)
   const supabase = createClient()
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
@@ -29,16 +32,15 @@ export default function LoginPage() {
   })
 
   async function onSubmit(data: FormData) {
-    setError(null)
+    setServerError(null)
     const { error } = await supabase.auth.signInWithPassword(data)
     if (error) {
-      // Full error logged to browser console / Vercel function logs for diagnosis
       console.error('[Login] signInWithPassword error:', {
         message: error.message,
         status:  error.status,
         code:    (error as { code?: string }).code,
       })
-      setError(error.message)
+      setServerError(error.message)
       return
     }
     router.push('/dashboard')
@@ -46,71 +48,222 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-100 p-4">
-      <div className="w-full max-w-md space-y-6">
-        {/* Brand */}
-        <div className="text-center">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-700 shadow-lg">
-            <Stethoscope className="h-7 w-7 text-white" />
+    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden">
+
+      {/* ── Gradient fallback (always visible, shown when no photo) ── */}
+      <div className="absolute inset-0 bg-gradient-to-br from-teal-900 via-slate-800 to-cyan-900" />
+
+      {/* ── Background photo ── */}
+      {!bgError && (
+        <Image
+          src="/clinic-bg.jpg"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center"
+          onError={() => setBgError(true)}
+        />
+      )}
+
+      {/* ── Dark readability overlay ── */}
+      <div className="absolute inset-0 bg-slate-900/55" />
+
+      {/* ── Login card area ── */}
+      <div className="relative z-10 flex w-full flex-1 items-center justify-center px-4 py-12 pb-24">
+        <div className="w-full max-w-[400px]">
+
+          {/* Card */}
+          <div className="overflow-hidden rounded-2xl bg-white/90 shadow-2xl ring-1 ring-white/30 backdrop-blur-md">
+
+            {/* Top colour strip */}
+            <div className="h-1.5 bg-gradient-to-r from-teal-600 via-teal-500 to-cyan-500" />
+
+            <div className="px-8 pb-6 pt-8">
+
+              {/* ── Brand ── */}
+              <div className="mb-6 flex flex-col items-center">
+                {/* Logo mark */}
+                <div
+                  aria-hidden="true"
+                  className="mb-3 flex h-14 w-14 items-center justify-center rounded-xl bg-teal-600 shadow-lg shadow-teal-900/30"
+                >
+                  {/* Medical cross with heartbeat line */}
+                  <svg viewBox="0 0 40 40" className="h-8 w-8" fill="none">
+                    <rect x="15" y="5"  width="10" height="30" rx="2.5" fill="white" />
+                    <rect x="5"  y="15" width="30" height="10" rx="2.5" fill="white" />
+                    <path
+                      d="M7 20 L12 20 L14.5 14 L18 26 L21 14 L24.5 26 L27 20 L33 20"
+                      stroke="#0d9488"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+
+                <span className="text-lg font-bold tracking-tight text-gray-900">CHMS</span>
+                <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-widest text-teal-600">
+                  Clinic Health Management System
+                </span>
+              </div>
+
+              {/* ── Heading ── */}
+              <div className="mb-6 text-center">
+                <h1 className="text-xl font-semibold text-gray-900">Bienvenue&nbsp;!</h1>
+                <p className="mt-1.5 text-sm leading-relaxed text-gray-500">
+                  Gérez vos patients, rendez-vous et consultations en toute sécurité.
+                </p>
+              </div>
+
+              {/* ── Form ── */}
+              <form
+                onSubmit={handleSubmit(onSubmit)}
+                className="space-y-4"
+                noValidate
+                aria-label="Formulaire de connexion"
+              >
+
+                {/* Email */}
+                <div>
+                  <label
+                    htmlFor="email"
+                    className="mb-1.5 block text-sm font-medium text-gray-700"
+                  >
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="medecin@clinique.sn"
+                    aria-invalid={!!errors.email}
+                    aria-describedby={errors.email ? 'email-error' : undefined}
+                    className="w-full rounded-lg border border-gray-300 bg-white/80 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition-colors focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 disabled:opacity-50"
+                    {...register('email')}
+                  />
+                  {errors.email && (
+                    <p id="email-error" role="alert" className="mt-1 text-xs text-red-600">
+                      {errors.email.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Password */}
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <label
+                      htmlFor="password"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Mot de passe
+                    </label>
+                    <Link
+                      href="/forgot-password"
+                      className="text-xs font-medium text-teal-600 transition-colors hover:text-teal-700 hover:underline"
+                    >
+                      Mot de passe oublié&nbsp;?
+                    </Link>
+                  </div>
+                  <div className="relative">
+                    <input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      aria-invalid={!!errors.password}
+                      aria-describedby={errors.password ? 'password-error' : undefined}
+                      className="w-full rounded-lg border border-gray-300 bg-white/80 px-3.5 py-2.5 pr-10 text-sm text-gray-900 shadow-sm transition-colors focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 disabled:opacity-50"
+                      {...register('password')}
+                    />
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => setShowPassword(v => !v)}
+                      aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                      className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 transition-colors hover:text-gray-600"
+                    >
+                      {showPassword
+                        ? <EyeOff className="h-4 w-4" />
+                        : <Eye    className="h-4 w-4" />
+                      }
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <p id="password-error" role="alert" className="mt-1 text-xs text-red-600">
+                      {errors.password.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Server error */}
+                {serverError && (
+                  <div
+                    role="alert"
+                    className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700"
+                  >
+                    {serverError}
+                  </div>
+                )}
+
+                {/* Submit */}
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="mt-1 flex w-full items-center justify-center gap-2 rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-teal-900/20 transition-colors hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                      Connexion en cours…
+                    </>
+                  ) : (
+                    'Se connecter'
+                  )}
+                </button>
+
+              </form>
+            </div>
+
+            {/* Card footer */}
+            <div className="border-t border-gray-100 bg-gray-50/80 px-8 py-4 text-center">
+              <p className="text-sm text-gray-500">
+                Nouvelle clinique&nbsp;?{' '}
+                <Link
+                  href="/signup"
+                  className="font-medium text-teal-600 transition-colors hover:text-teal-700 hover:underline"
+                >
+                  Créer un compte
+                </Link>
+              </p>
+            </div>
           </div>
-          {/* Senegal flag accent strip */}
-          <div aria-hidden="true" className="mx-auto mb-3 flex h-1 w-20 overflow-hidden rounded-full">
+
+          {/* Senegal flag strip below card */}
+          <div
+            aria-hidden="true"
+            className="mx-auto mt-5 flex h-0.5 w-14 overflow-hidden rounded-full opacity-60"
+          >
             <div className="flex-1 bg-[#009E60]" />
             <div className="flex-1 bg-[#FDEF42]" />
             <div className="flex-1 bg-[#E31B23]" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            CHMS Sénégal{' '}
-            <span className="text-[#009E60] text-xl" aria-hidden="true">★</span>
-          </h1>
-          <p className="text-sm text-gray-500 mt-1.5 max-w-xs mx-auto leading-relaxed">
-            Système de gestion clinique adapté aux structures de santé sénégalaises
+        </div>
+      </div>
+
+      {/* ── Bottom trust bar ── */}
+      <div className="absolute bottom-0 left-0 right-0 border-t border-white/10 bg-slate-900/65 px-6 py-3 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-2xl items-center justify-center gap-3">
+          <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-teal-400" aria-hidden="true" />
+          <p className="text-xs text-white/70">
+            Sécurisé. Fiable. Conçu pour les cliniques au Sénégal.
+          </p>
+          <span className="hidden text-white/25 sm:inline" aria-hidden="true">|</span>
+          <p className="hidden text-xs text-white/45 sm:block">
+            Gérez vos patients, rendez-vous et consultations en toute sécurité.
           </p>
         </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Connexion</CardTitle>
-            <CardDescription>Accédez à votre espace clinique</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="medecin@clinique.sn" {...register('email')} />
-                {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
-              </div>
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Mot de passe</Label>
-                  <Link href="/forgot-password" className="text-xs text-teal-700 hover:underline">
-                    Mot de passe oublié?
-                  </Link>
-                </div>
-                <Input id="password" type="password" {...register('password')} />
-                {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
-              </div>
-              {error && (
-                <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 border border-red-200">
-                  {error}
-                </div>
-              )}
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="animate-spin" />}
-                Se connecter
-              </Button>
-            </form>
-          </CardContent>
-          <CardFooter className="justify-center">
-            <p className="text-sm text-gray-500">
-              Nouvelle clinique?{' '}
-              <Link href="/signup" className="font-medium text-teal-700 hover:underline">
-                Créer un compte
-              </Link>
-            </p>
-          </CardFooter>
-        </Card>
       </div>
-    </div>
+
+    </main>
   )
 }
