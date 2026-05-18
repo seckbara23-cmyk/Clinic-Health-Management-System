@@ -139,6 +139,43 @@ export function useUpdatePatient() {
   })
 }
 
+// ── usePatientDeletionCounts ──────────────────────────────────
+// Fetches counts of all records that will be cascade-deleted when
+// a patient is deleted. Used to show an informed confirmation
+// dialog before proceeding with a destructive delete.
+
+export function usePatientDeletionCounts(patientId: string | null) {
+  const { clinic } = useClinic()
+  const supabase = createClient()
+
+  return useQuery({
+    queryKey: ['patient-deletion-counts', patientId],
+    enabled: !!patientId && !!clinic?.id,
+    staleTime: 0, // always fresh when dialog opens
+    queryFn: async () => {
+      const [appts, consults, rxs, labs, invoices] = await Promise.all([
+        supabase.from('appointments').select('id', { count: 'exact', head: true })
+          .eq('patient_id', patientId!).eq('clinic_id', clinic!.id),
+        supabase.from('consultations').select('id', { count: 'exact', head: true })
+          .eq('patient_id', patientId!).eq('clinic_id', clinic!.id),
+        supabase.from('prescriptions').select('id', { count: 'exact', head: true })
+          .eq('patient_id', patientId!).eq('clinic_id', clinic!.id),
+        supabase.from('lab_requests').select('id', { count: 'exact', head: true })
+          .eq('patient_id', patientId!).eq('clinic_id', clinic!.id),
+        supabase.from('invoices').select('id', { count: 'exact', head: true })
+          .eq('patient_id', patientId!).eq('clinic_id', clinic!.id),
+      ])
+      return {
+        appointments:  appts.count    ?? 0,
+        consultations: consults.count ?? 0,
+        prescriptions: rxs.count      ?? 0,
+        lab_requests:  labs.count     ?? 0,
+        invoices:      invoices.count ?? 0,
+      }
+    },
+  })
+}
+
 export function useDeletePatient() {
   const qc = useQueryClient()
   const { clinic } = useClinic()

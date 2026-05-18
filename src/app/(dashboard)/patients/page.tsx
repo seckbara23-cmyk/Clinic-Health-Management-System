@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Search, Plus, UserRound, Phone, Calendar, Trash2, Pencil, ExternalLink, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { Search, Plus, UserRound, Phone, Calendar, Trash2, Pencil, ExternalLink, ChevronLeft, ChevronRight, Loader2, AlertTriangle } from 'lucide-react'
 import { Topbar } from '@/components/layout/Topbar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,7 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { usePatients, useCreatePatient, useUpdatePatient, useDeletePatient } from '@/hooks/usePatients'
+import { usePatients, useCreatePatient, useUpdatePatient, useDeletePatient, usePatientDeletionCounts } from '@/hooks/usePatients'
 import { formatDate, age } from '@/lib/utils'
 import type { Gender, BloodType } from '@/types/database'
 
@@ -42,6 +42,8 @@ export default function PatientsPage() {
   const [page, setPage] = useState(0)
   const [open, setOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
+  const [deletePatientId, setDeletePatientId] = useState<string | null>(null)
+  const [deletePatientName, setDeletePatientName] = useState<string>('')
 
   // Reset to page 0 when search changes
   useEffect(() => { setPage(0) }, [search])
@@ -60,6 +62,7 @@ export default function PatientsPage() {
   const createMutation = useCreatePatient()
   const updateMutation = useUpdatePatient()
   const deleteMutation = useDeletePatient()
+  const { data: deletionCounts, isLoading: countsLoading } = usePatientDeletionCounts(deletePatientId)
 
   const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
@@ -230,7 +233,7 @@ export default function PatientsPage() {
                           <Button
                             variant="ghost" size="icon"
                             className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => { if (confirm('Supprimer ce patient?')) deleteMutation.mutate(p.id) }}
+                            onClick={() => { setDeletePatientId(p.id); setDeletePatientName(p.full_name) }}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
@@ -272,6 +275,58 @@ export default function PatientsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!deletePatientId} onOpenChange={open => { if (!open) setDeletePatientId(null) }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" /> Supprimer le patient
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm">
+            <p>
+              Vous êtes sur le point de supprimer définitivement <span className="font-semibold">{deletePatientName}</span>.
+              Cette action est irréversible.
+            </p>
+            {countsLoading ? (
+              <div className="flex items-center gap-2 text-gray-500">
+                <Loader2 className="h-4 w-4 animate-spin" /> Calcul des données associées…
+              </div>
+            ) : deletionCounts && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3 space-y-1">
+                <p className="font-medium text-red-700 mb-2">Données qui seront supprimées :</p>
+                {[
+                  { label: 'Rendez-vous',    count: deletionCounts.appointments },
+                  { label: 'Consultations',  count: deletionCounts.consultations },
+                  { label: 'Ordonnances',    count: deletionCounts.prescriptions },
+                  { label: 'Analyses',       count: deletionCounts.lab_requests },
+                  { label: 'Factures',       count: deletionCounts.invoices },
+                ].map(({ label, count }) => (
+                  <div key={label} className="flex justify-between text-red-800">
+                    <span>{label}</span>
+                    <span className="font-semibold">{count}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeletePatientId(null)}>Annuler</Button>
+            <Button
+              variant="destructive"
+              disabled={deleteMutation.isPending || countsLoading}
+              onClick={() => {
+                if (!deletePatientId) return
+                deleteMutation.mutate(deletePatientId, { onSuccess: () => setDeletePatientId(null) })
+              }}
+            >
+              {deleteMutation.isPending && <Loader2 className="animate-spin" />}
+              Supprimer définitivement
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Create / Edit dialog */}
       <Dialog open={open} onOpenChange={setOpen}>

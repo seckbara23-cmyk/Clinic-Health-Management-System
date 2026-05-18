@@ -169,6 +169,7 @@ export function useEndConsultation() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // Step 1: mark consultation ended
       const { data, error } = await supabase
         .from('consultations')
         .update({ ended_at: new Date().toISOString() })
@@ -177,19 +178,28 @@ export function useEndConsultation() {
         .select('id, appointment_id')
         .single()
       if (error) throw error
-      return data as { id: string; appointment_id: string | null }
-    },
-    onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ['consultations'] })
-      // If linked to an appointment, mark it completed
-      if (data.appointment_id) {
-        const supabase2 = createClient()
-        supabase2
+      const consultation = data as { id: string; appointment_id: string | null }
+
+      // Step 2: if linked to an appointment, mark it completed.
+      // This is awaited inside mutationFn so any failure surfaces as
+      // an error toast rather than being silently swallowed in onSuccess.
+      // The status-transition trigger will reject the update if the
+      // appointment is already in a terminal state — that error is shown
+      // to the user but does NOT roll back the consultation end.
+      if (consultation.appointment_id) {
+        const { error: apptError } = await supabase
           .from('appointments')
           .update({ status: 'completed' })
-          .eq('id', data.appointment_id)
-          .then(() => qc.invalidateQueries({ queryKey: ['appointments'] }))
+          .eq('id', consultation.appointment_id)
+          .eq('clinic_id', clinic!.id)
+        if (apptError) throw apptError
       }
+
+      return consultation
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['consultations'] })
+      qc.invalidateQueries({ queryKey: ['appointments'] })
       toast.success('Consultation terminée')
     },
     onError: (e: Error) => toast.error(e.message),

@@ -86,6 +86,44 @@ export function useCreateInvoice() {
   })
 }
 
+// ── useRecordPayment ──────────────────────────────────────────
+// Calls the record_manual_payment RPC which atomically:
+//   1. Validates the payment amount and method server-side
+//   2. Locks the invoice row (prevents concurrent double-payment)
+//   3. Updates amount_paid / status / paid_at on the invoice
+//   4. Appends an immutable payment_events audit row
+// This replaces direct .update() on invoices for all payment flows.
+
+interface RecordPaymentInput {
+  invoiceId:     string
+  amount:        number
+  paymentMethod: string
+}
+
+export function useRecordPayment() {
+  const qc = useQueryClient()
+  const { clinic } = useClinic()
+  const supabase = createClient()
+
+  return useMutation({
+    mutationFn: async ({ invoiceId, amount, paymentMethod }: RecordPaymentInput) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc('record_manual_payment', {
+        p_invoice_id:     invoiceId,
+        p_amount:         amount,
+        p_payment_method: paymentMethod,
+      })
+      if (error) throw error
+      return data as { ok: boolean; invoice_id: string; amount_paid: number; status: string }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['invoices', clinic?.id] })
+      toast.success('Paiement enregistré')
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+}
+
 interface InvoiceUpdate {
   id: string
   status?: string

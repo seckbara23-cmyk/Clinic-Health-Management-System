@@ -15,13 +15,13 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { useInvoices, useCreateInvoice, useUpdateInvoice } from '@/hooks/useInvoices'
+import { useInvoices, useCreateInvoice, useRecordPayment } from '@/hooks/useInvoices'
 import { usePatients } from '@/hooks/usePatients'
 import { useClinic } from '@/context/ClinicContext'
 import { openInvoicePDF } from '@/lib/pdf'
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import { PAYMENT_PROVIDERS } from '@/lib/payments/config'
-import type { Invoice, InvoiceStatus, PaymentMethod } from '@/types/database'
+import type { Invoice, PaymentMethod } from '@/types/database'
 
 const lineItemSchema = z.object({
   description: z.string().min(1),
@@ -78,7 +78,7 @@ export default function BillingPage() {
   const { data: patientsResult } = usePatients()
   const patients = patientsResult?.data
   const createMutation = useCreateInvoice()
-  const updateMutation = useUpdateInvoice()
+  const recordPayment = useRecordPayment()
 
   const { register, handleSubmit, reset, setValue, watch, control, formState: { errors, isSubmitting } } = useForm<InvoiceFormData>({
     resolver: zodResolver(invoiceSchema),
@@ -125,25 +125,20 @@ export default function BillingPage() {
   }
 
   async function markPaid(inv: Invoice) {
-    await updateMutation.mutateAsync({
-      id: inv.id,
-      status: 'paid',
-      amount_paid: Number(inv.total_amount),
-      paid_at: new Date().toISOString(),
+    const remaining = Number(inv.total_amount) - Number(inv.amount_paid)
+    await recordPayment.mutateAsync({
+      invoiceId: inv.id,
+      amount: remaining,
+      paymentMethod: (inv.payment_method as string) ?? 'cash',
     })
   }
 
   async function onPartialPayment(data: PartialForm) {
     if (!partialInvoice) return
-    const newPaid = Number(partialInvoice.amount_paid) + data.amount
-    const remaining = Number(partialInvoice.total_amount) - newPaid
-    const newStatus: InvoiceStatus = remaining <= 0 ? 'paid' : 'partial'
-    await updateMutation.mutateAsync({
-      id: partialInvoice.id,
-      status: newStatus,
-      amount_paid: Math.min(newPaid, Number(partialInvoice.total_amount)),
-      paid_at: newStatus === 'paid' ? new Date().toISOString() : null,
-      payment_method: data.payment_method as PaymentMethod,
+    await recordPayment.mutateAsync({
+      invoiceId: partialInvoice.id,
+      amount: data.amount,
+      paymentMethod: data.payment_method,
     })
     setPartialInvoice(null)
     partialForm.reset()
@@ -577,8 +572,8 @@ export default function BillingPage() {
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setPartialInvoice(null)}>Annuler</Button>
-                <Button type="submit" disabled={partialForm.formState.isSubmitting || updateMutation.isPending}>
-                  {(partialForm.formState.isSubmitting || updateMutation.isPending) && <Loader2 className="animate-spin" />}
+                <Button type="submit" disabled={partialForm.formState.isSubmitting || recordPayment.isPending}>
+                  {(partialForm.formState.isSubmitting || recordPayment.isPending) && <Loader2 className="animate-spin" />}
                   Enregistrer
                 </Button>
               </DialogFooter>
