@@ -36,25 +36,12 @@ const schema = z.object({
 })
 type FormData = z.infer<typeof schema>
 
-function translateAuthError(message: string, code?: string): string {
-  const msg = message.toLowerCase()
-  if (msg.includes('password') && (msg.includes('weak') || msg.includes('strength') || msg.includes('policy') || msg.includes('character'))) {
-    return 'Le mot de passe ne respecte pas la politique de sécurité. Vérifiez les exigences ci-dessous.'
-  }
-  if (msg.includes('same password') || msg.includes('different from')) {
-    return 'Le nouveau mot de passe doit être différent du mot de passe actuel.'
-  }
-  if (msg.includes('invalid') || code === 'validation_failed') {
-    return `Mot de passe invalide : ${message}`
-  }
-  return message
-}
 
 export default function ChangePasswordPage() {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [checking, setChecking] = useState(true)
-  const [step, setStep] = useState<'password' | 'finalizing' | 'redirecting' | null>(null)
+  const [step, setStep] = useState<'finalizing' | 'redirecting' | null>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -74,57 +61,44 @@ export default function ChangePasswordPage() {
 
   async function onSubmit(data: FormData) {
     setError(null)
-    setStep('password')
-    const t0 = Date.now()
-    console.log('[change-pw] step 1: updateUser start')
-
-    const { error: authError } = await supabase.auth.updateUser({ password: data.password })
-    console.log(`[change-pw] step 1: updateUser ${Date.now() - t0}ms`)
-
-    if (authError) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('[change-pw] updateUser error (full):', authError)
-      }
-      setError(translateAuthError(authError.message, authError.code))
-      setStep(null)
-      return
-    }
-
     setStep('finalizing')
-    const t1 = Date.now()
-    console.log('[change-pw] step 2: API call start')
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 8000)
-    let redirectTo = '/dashboard'
+    const tid = setTimeout(() => controller.abort(), 15_000)
     try {
       const res = await fetch('/api/auth/change-password', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: data.password }),
         signal: controller.signal,
       })
-      clearTimeout(timeout)
-      console.log(`[change-pw] step 2: API ${Date.now() - t1}ms status=${res.status}`)
-      if (res.ok) {
-        const json = await res.json() as { ok: boolean; redirect_to: string }
-        redirectTo = json.redirect_to ?? '/dashboard'
-      } else {
-        const body = await res.json().catch(() => ({})) as { error?: string }
-        setError(body.error ?? 'Erreur lors de la mise à jour du profil')
-        setStep(null)
+      const json = await res.json().catch(() => ({})) as { ok?: boolean; redirect_to?: string; error?: string }
+      if (!res.ok) {
+        setError(
+          res.status === 401
+            ? 'Session expirée — veuillez vous reconnecter.'
+            : res.status === 429
+            ? 'Trop de tentatives. Réessayez dans quelques minutes.'
+            : (json.error ?? 'Erreur lors du changement de mot de passe. Veuillez réessayer.')
+        )
         return
       }
-    } catch {
-      clearTimeout(timeout)
-      console.warn(`[change-pw] step 2: timeout/error after ${Date.now() - t1}ms — falling back to /dashboard`)
+      setStep('redirecting')
+      router.replace(json.redirect_to ?? '/dashboard')
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error && err.name === 'AbortError'
+          ? 'La requête a expiré (15 s). Vérifiez votre connexion et réessayez.'
+          : 'Erreur réseau. Vérifiez votre connexion et réessayez.'
+      )
+    } finally {
+      clearTimeout(tid)
+      // Keep spinner showing only while redirect is in progress; clear on any error.
+      setStep(prev => prev === 'redirecting' ? prev : null)
     }
-
-    setStep('redirecting')
-    console.log(`[change-pw] redirecting to ${redirectTo} total=${Date.now() - t0}ms`)
-    router.replace(redirectTo)
   }
 
   const stepLabel =
-    step === 'password'    ? 'Mise à jour du mot de passe…' :
-    step === 'finalizing'  ? 'Finalisation…' :
+    step === 'finalizing'  ? 'Mise à jour en cours…' :
     step === 'redirecting' ? 'Redirection…' :
     'Enregistrer et continuer'
 
