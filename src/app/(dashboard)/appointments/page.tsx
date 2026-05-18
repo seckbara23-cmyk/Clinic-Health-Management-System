@@ -22,26 +22,8 @@ import {
 import { usePatients } from '@/hooks/usePatients'
 import { useDoctors } from '@/hooks/useDoctors'
 import { formatTime, formatDate, cn } from '@/lib/utils'
+import { useTranslations } from 'next-intl'
 import type { Appointment, AppointmentPriority } from '@/types/database'
-
-const createSchema = z.object({
-  patient_id: z.string().min(1, 'Patient requis'),
-  scheduled_at: z.string().min(1, 'Date/heure requise'),
-  duration_min: z.number().min(5).optional(),
-  priority: z.enum(['normal', 'urgent', 'emergency']).optional(),
-  doctor_id: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
-})
-type CreateForm = z.infer<typeof createSchema>
-
-const editSchema = z.object({
-  scheduled_at: z.string().min(1, 'Date/heure requise'),
-  duration_min: z.number().min(5).optional(),
-  priority: z.enum(['normal', 'urgent', 'emergency']).optional(),
-  doctor_id: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
-})
-type EditForm = z.infer<typeof editSchema>
 
 const statusColors: Record<string, string> = {
   scheduled: 'bg-blue-100 text-blue-800',
@@ -51,10 +33,7 @@ const statusColors: Record<string, string> = {
   cancelled: 'bg-gray-100 text-gray-600',
   no_show: 'bg-red-100 text-red-800',
 }
-const statusLabels: Record<string, string> = {
-  scheduled: 'Planifié', in_queue: 'En attente', in_progress: 'En cours',
-  completed: 'Terminé', cancelled: 'Annulé', no_show: 'Absent',
-}
+
 const priorityColors: Record<string, string> = {
   normal: 'bg-gray-100 text-gray-600',
   urgent: 'bg-orange-100 text-orange-700',
@@ -78,6 +57,36 @@ function getWeekDays(weekStart: string) {
 }
 
 export default function AppointmentsPage() {
+  const t = useTranslations('appointments')
+
+  const createSchema = z.object({
+    patient_id: z.string().min(1, t('zodPatientRequired')),
+    scheduled_at: z.string().min(1),
+    duration_min: z.number().min(5).optional(),
+    priority: z.enum(['normal', 'urgent', 'emergency']).optional(),
+    doctor_id: z.string().optional().nullable(),
+    notes: z.string().optional().nullable(),
+  })
+  type CreateForm = z.infer<typeof createSchema>
+
+  const editSchema = z.object({
+    scheduled_at: z.string().min(1),
+    duration_min: z.number().min(5).optional(),
+    priority: z.enum(['normal', 'urgent', 'emergency']).optional(),
+    doctor_id: z.string().optional().nullable(),
+    notes: z.string().optional().nullable(),
+  })
+  type EditForm = z.infer<typeof editSchema>
+
+  const statusLabels: Record<string, string> = {
+    scheduled:   t('statusScheduled'),
+    in_queue:    t('statusInQueue'),
+    in_progress: t('statusInProgress'),
+    completed:   t('statusCompleted'),
+    cancelled:   t('statusCancelled'),
+    no_show:     t('statusNoShow'),
+  }
+
   const [createOpen, setCreateOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Appointment | null>(null)
   const [cancelId, setCancelId] = useState<string | null>(null)
@@ -95,7 +104,6 @@ export default function AppointmentsPage() {
   const statusMutation = useUpdateAppointmentStatus()
   const updateMutation = useUpdateAppointment()
 
-  // FAB listener
   const openNewAppt = useCallback(() => { createForm.reset({ duration_min: 30, priority: 'normal' }); setCreateOpen(true) }, []) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     window.addEventListener('fab:create-appointment', openNewAppt)
@@ -175,7 +183,7 @@ export default function AppointmentsPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Topbar title="Rendez-vous & File d'attente" />
+      <Topbar title={t('title')} />
 
       <div className="flex-1 p-4 md:p-6 space-y-4">
         {/* Date nav + view toggle */}
@@ -183,7 +191,7 @@ export default function AppointmentsPage() {
           <Button variant="outline" size="icon" onClick={prevDay}><ChevronLeft className="h-4 w-4" /></Button>
           <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-40" />
           <Button variant="outline" size="icon" onClick={nextDay}><ChevronRight className="h-4 w-4" /></Button>
-          <Button variant="outline" size="sm" onClick={() => setDate(today)}>Aujourd&apos;hui</Button>
+          <Button variant="outline" size="sm" onClick={() => setDate(today)}>{t('today')}</Button>
           <span className="hidden text-sm text-gray-500 lg:block">{formatDate(date + 'T12:00:00', { dateStyle: 'full' })}</span>
           <div className="ml-auto flex items-center gap-2">
             <div className="flex rounded-lg border overflow-hidden">
@@ -204,7 +212,7 @@ export default function AppointmentsPage() {
             </div>
             <Button className="shrink-0" onClick={() => { createForm.reset({ duration_min: 30, priority: 'normal' }); setCreateOpen(true) }}>
               <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Nouveau rendez-vous</span>
+              <span className="hidden sm:inline">{t('newAppt')}</span>
             </Button>
           </div>
         </div>
@@ -212,10 +220,10 @@ export default function AppointmentsPage() {
         {/* Mini stats */}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {[
-            { label: 'Total', value: stats.total, cls: 'bg-blue-50 text-blue-700' },
-            { label: 'En attente', value: stats.waiting, cls: 'bg-amber-50 text-amber-700' },
-            { label: 'En cours', value: stats.inProgress, cls: 'bg-violet-50 text-violet-700' },
-            { label: 'Terminés', value: stats.done, cls: 'bg-emerald-50 text-emerald-700' },
+            { label: t('statTotal'),      value: stats.total,      cls: 'bg-blue-50 text-blue-700' },
+            { label: t('statWaiting'),    value: stats.waiting,    cls: 'bg-amber-50 text-amber-700' },
+            { label: t('statInProgress'), value: stats.inProgress, cls: 'bg-violet-50 text-violet-700' },
+            { label: t('statDone'),       value: stats.done,       cls: 'bg-emerald-50 text-emerald-700' },
           ].map(s => (
             <div key={s.label} className={cn('rounded-xl p-4 text-center', s.cls)}>
               <div className="text-2xl font-bold">{s.value}</div>
@@ -279,26 +287,26 @@ export default function AppointmentsPage() {
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <CalendarDays className="h-4 w-4" />
-              {isLoading ? 'Chargement...' : `${appointments?.length ?? 0} rendez-vous`}
+              {isLoading ? t('loading') : t('count', { count: appointments?.length ?? 0 })}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {isError && (
               <div className="flex flex-col items-center gap-3 py-12 text-gray-400">
                 <AlertTriangle className="h-8 w-8 text-red-400" />
-                <p className="text-sm">Impossible de charger les rendez-vous.</p>
+                <p className="text-sm">{t('errorTitle')}</p>
                 <button
                   onClick={() => refetch()}
                   className="flex items-center gap-1.5 text-xs text-blue-600 hover:underline"
                 >
-                  <RefreshCw className="h-3.5 w-3.5" /> Réessayer
+                  <RefreshCw className="h-3.5 w-3.5" /> {t('retry')}
                 </button>
               </div>
             )}
             {!isLoading && !isError && (!appointments || appointments.length === 0) && (
               <div className="text-center py-12 text-gray-400">
                 <CalendarDays className="mx-auto h-10 w-10 mb-3 opacity-30" />
-                <p>Aucun rendez-vous ce jour</p>
+                <p>{t('emptyDay')}</p>
               </div>
             )}
             {appointments?.map((appt) => {
@@ -332,19 +340,19 @@ export default function AppointmentsPage() {
                     {appt.status === 'scheduled' && (
                       <Button size="sm" variant="outline" className="h-7 text-xs"
                         onClick={() => statusMutation.mutate({ id: appt.id, status: 'in_queue' })}>
-                        Mettre en file
+                        {t('btnAddToQueue')}
                       </Button>
                     )}
                     {appt.status === 'in_queue' && (
                       <Button size="sm" variant="outline" className="h-7 text-xs"
                         onClick={() => statusMutation.mutate({ id: appt.id, status: 'in_progress' })}>
-                        Démarrer
+                        {t('btnStart')}
                       </Button>
                     )}
                     {appt.status === 'in_progress' && (
                       <Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700"
                         onClick={() => statusMutation.mutate({ id: appt.id, status: 'completed' })}>
-                        Terminer
+                        {t('btnComplete')}
                       </Button>
                     )}
                     {canEdit && (
@@ -375,21 +383,19 @@ export default function AppointmentsPage() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" /> Annuler le rendez-vous
+              <AlertTriangle className="h-5 w-5 text-amber-500" /> {t('cancelTitle')}
             </DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-gray-600">
-            Confirmer l&apos;annulation ? Cette action est irréversible et ne peut pas être défaite.
-          </p>
+          <p className="text-sm text-gray-600">{t('cancelConfirm')}</p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCancelId(null)}>Retour</Button>
+            <Button variant="outline" onClick={() => setCancelId(null)}>{t('cancelBack')}</Button>
             <Button
               variant="destructive"
               disabled={statusMutation.isPending}
               onClick={confirmCancel}
             >
               {statusMutation.isPending && <Loader2 className="animate-spin" />}
-              Annuler le rendez-vous
+              {t('cancelConfirmBtn')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -398,12 +404,12 @@ export default function AppointmentsPage() {
       {/* Create dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Nouveau rendez-vous</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('createTitle')}</DialogTitle></DialogHeader>
           <form onSubmit={createForm.handleSubmit(onCreate)} className="space-y-4">
             <div className="space-y-1.5">
-              <Label>Patient *</Label>
+              <Label>{t('labelPatient')}</Label>
               <Select onValueChange={v => createForm.setValue('patient_id', v)}>
-                <SelectTrigger><SelectValue placeholder="Sélectionner un patient" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('selectPatient')} /></SelectTrigger>
                 <SelectContent>
                   {patients?.map(p => (
                     <SelectItem key={p.id} value={p.id}>{p.full_name} — {p.patient_number}</SelectItem>
@@ -415,16 +421,16 @@ export default function AppointmentsPage() {
               )}
             </div>
             <div className="space-y-1.5">
-              <Label>Médecin</Label>
+              <Label>{t('labelDoctor')}</Label>
               <Select onValueChange={v => createForm.setValue('doctor_id', v)}>
-                <SelectTrigger><SelectValue placeholder="Sélectionner (optionnel)" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('selectDoctor')} /></SelectTrigger>
                 <SelectContent>
                   {doctors?.map(d => <SelectItem key={d.id} value={d.id}>Dr. {d.full_name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Date et heure *</Label>
+              <Label>{t('labelDateTime')}</Label>
               <Input type="datetime-local" {...createForm.register('scheduled_at')} />
               {createForm.formState.errors.scheduled_at && (
                 <p className="text-xs text-red-500">{createForm.formState.errors.scheduled_at.message}</p>
@@ -432,30 +438,30 @@ export default function AppointmentsPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>Durée (min)</Label>
+                <Label>{t('labelDuration')}</Label>
                 <Input type="number" {...createForm.register('duration_min', { valueAsNumber: true })} />
               </div>
               <div className="space-y-1.5">
-                <Label>Priorité</Label>
+                <Label>{t('labelPriority')}</Label>
                 <Select defaultValue="normal" onValueChange={v => createForm.setValue('priority', v as AppointmentPriority)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="normal">Normal</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
-                    <SelectItem value="emergency">Urgence</SelectItem>
+                    <SelectItem value="normal">{t('priorityNormal')}</SelectItem>
+                    <SelectItem value="urgent">{t('priorityUrgent')}</SelectItem>
+                    <SelectItem value="emergency">{t('priorityEmergency')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>Notes</Label>
-              <Input {...createForm.register('notes')} placeholder="Motif de consultation..." />
+              <Label>{t('labelNotes')}</Label>
+              <Input {...createForm.register('notes')} placeholder={t('notesPlaceholder')} />
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Annuler</Button>
+              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>{t('cancel')}</Button>
               <Button type="submit" disabled={createForm.formState.isSubmitting}>
                 {createForm.formState.isSubmitting && <Loader2 className="animate-spin" />}
-                Créer
+                {t('create')}
               </Button>
             </DialogFooter>
           </form>
@@ -465,53 +471,53 @@ export default function AppointmentsPage() {
       {/* Edit dialog */}
       <Dialog open={!!editTarget} onOpenChange={open => { if (!open) setEditTarget(null) }}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Modifier le rendez-vous</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('editTitle')}</DialogTitle></DialogHeader>
           <form onSubmit={editForm.handleSubmit(onEdit)} className="space-y-4">
             <div className="space-y-1.5">
-              <Label>Médecin</Label>
+              <Label>{t('labelDoctor')}</Label>
               <Select
                 defaultValue={editTarget?.doctor_id ?? ''}
                 onValueChange={v => editForm.setValue('doctor_id', v)}
               >
-                <SelectTrigger><SelectValue placeholder="Sélectionner (optionnel)" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('selectDoctor')} /></SelectTrigger>
                 <SelectContent>
                   {doctors?.map(d => <SelectItem key={d.id} value={d.id}>Dr. {d.full_name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Date et heure *</Label>
+              <Label>{t('labelDateTime')}</Label>
               <Input type="datetime-local" {...editForm.register('scheduled_at')} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>Durée (min)</Label>
+                <Label>{t('labelDuration')}</Label>
                 <Input type="number" {...editForm.register('duration_min', { valueAsNumber: true })} />
               </div>
               <div className="space-y-1.5">
-                <Label>Priorité</Label>
+                <Label>{t('labelPriority')}</Label>
                 <Select
                   defaultValue={editTarget?.priority ?? 'normal'}
                   onValueChange={v => editForm.setValue('priority', v as AppointmentPriority)}
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="normal">Normal</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
-                    <SelectItem value="emergency">Urgence</SelectItem>
+                    <SelectItem value="normal">{t('priorityNormal')}</SelectItem>
+                    <SelectItem value="urgent">{t('priorityUrgent')}</SelectItem>
+                    <SelectItem value="emergency">{t('priorityEmergency')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>Notes</Label>
+              <Label>{t('labelNotes')}</Label>
               <Input {...editForm.register('notes')} />
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setEditTarget(null)}>Annuler</Button>
+              <Button type="button" variant="outline" onClick={() => setEditTarget(null)}>{t('cancel')}</Button>
               <Button type="submit" disabled={editForm.formState.isSubmitting}>
                 {editForm.formState.isSubmitting && <Loader2 className="animate-spin" />}
-                Enregistrer
+                {t('save')}
               </Button>
             </DialogFooter>
           </form>

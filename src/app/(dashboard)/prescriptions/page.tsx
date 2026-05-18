@@ -19,35 +19,14 @@ import { useConsultations } from '@/hooks/useConsultations'
 import { useClinic } from '@/context/ClinicContext'
 import { formatDate, cn } from '@/lib/utils'
 import { openPrescriptionPDF } from '@/lib/pdf'
+import { useTranslations } from 'next-intl'
 import type { Prescription, Medication, PrescriptionStatus } from '@/types/database'
-
-const medicationSchema = z.object({
-  name:         z.string().min(1, 'Requis'),
-  dosage:       z.string().min(1, 'Requis'),
-  frequency:    z.string().min(1, 'Requis'),
-  duration:     z.string().min(1, 'Requis'),
-  instructions: z.string().optional(),
-})
-
-const createSchema = z.object({
-  consultation_id: z.string().min(1, 'Consultation requise'),
-  medications: z.array(medicationSchema).min(1, 'Au moins un médicament'),
-  instructions: z.string().optional().nullable(),
-  valid_until:  z.string().optional().nullable(),
-})
-type CreateForm = z.infer<typeof createSchema>
 
 const statusColors: Record<PrescriptionStatus, string> = {
   active:    'bg-emerald-100 text-emerald-700',
   dispensed: 'bg-blue-100 text-blue-700',
   expired:   'bg-gray-100 text-gray-500',
   cancelled: 'bg-red-100 text-red-500',
-}
-const statusLabels: Record<PrescriptionStatus, string> = {
-  active:    'Active',
-  dispensed: 'Délivrée',
-  expired:   'Expirée',
-  cancelled: 'Annulée',
 }
 
 type PrescriptionRow = Prescription & {
@@ -56,10 +35,34 @@ type PrescriptionRow = Prescription & {
 }
 
 export default function PrescriptionsPage() {
+  const t = useTranslations('prescriptions')
   const { profile, clinic } = useClinic()
   const [createOpen, setCreateOpen] = useState(false)
   const [printTarget, setPrintTarget] = useState<PrescriptionRow | null>(null)
   const [editTarget, setEditTarget] = useState<PrescriptionRow | null>(null)
+
+  const statusLabels: Record<PrescriptionStatus, string> = {
+    active:    t('statusActive'),
+    dispensed: t('statusDispensed'),
+    expired:   t('statusExpired'),
+    cancelled: t('statusCancelled'),
+  }
+
+  const medicationSchema = z.object({
+    name:         z.string().min(1, t('labelMedName')),
+    dosage:       z.string().min(1, t('labelMedDosage')),
+    frequency:    z.string().min(1, t('labelMedFrequency')),
+    duration:     z.string().min(1, t('labelMedDuration')),
+    instructions: z.string().optional(),
+  })
+
+  const createSchema = z.object({
+    consultation_id: z.string().min(1, t('zodConsultRequired')),
+    medications: z.array(medicationSchema).min(1, t('zodMinOneMed')),
+    instructions: z.string().optional().nullable(),
+    valid_until:  z.string().optional().nullable(),
+  })
+  type CreateForm = z.infer<typeof createSchema>
 
   const { data: prescriptions, isLoading } = usePrescriptions()
   const { data: consultations } = useConsultations()
@@ -94,13 +97,13 @@ export default function PrescriptionsPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Topbar title="Ordonnances" description="Gestion des prescriptions médicales" />
+      <Topbar title={t('title')} description={t('subtitle')} />
 
       <div className="flex-1 p-6 space-y-4">
         <div className="flex justify-end">
           {canCreate && (
             <Button onClick={() => { form.reset({ medications: [{ name: '', dosage: '', frequency: '', duration: '' }] }); setCreateOpen(true) }}>
-              <Plus className="h-4 w-4" /> Nouvelle ordonnance
+              <Plus className="h-4 w-4" /> {t('newPrescription')}
             </Button>
           )}
         </div>
@@ -110,13 +113,13 @@ export default function PrescriptionsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Patient</TableHead>
-                  <TableHead>Médecin</TableHead>
-                  <TableHead>Médicaments</TableHead>
-                  <TableHead>Valide jusqu&apos;au</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t('colPatient')}</TableHead>
+                  <TableHead>{t('colDoctor')}</TableHead>
+                  <TableHead>{t('colMedications')}</TableHead>
+                  <TableHead>{t('colValidUntil')}</TableHead>
+                  <TableHead>{t('colStatus')}</TableHead>
+                  <TableHead>{t('colDate')}</TableHead>
+                  <TableHead className="text-right">{t('colActions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -131,7 +134,7 @@ export default function PrescriptionsPage() {
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-12 text-gray-400">
                       <Pill className="mx-auto h-10 w-10 mb-3 opacity-30" />
-                      <p>Aucune ordonnance</p>
+                      <p>{t('emptyTitle')}</p>
                     </TableCell>
                   </TableRow>
                 )}
@@ -160,14 +163,13 @@ export default function PrescriptionsPage() {
                     <TableCell className="text-sm text-gray-400">{formatDate(rx.created_at)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPrintTarget(rx)} title="Aperçu impression">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPrintTarget(rx)}>
                           <Printer className="h-3.5 w-3.5" />
                         </Button>
                         {clinic && (
                           <Button
                             variant="ghost" size="icon" className="h-8 w-8"
                             onClick={() => openPrescriptionPDF(rx, clinic, rx.patient?.full_name ?? '—', rx.doctor?.full_name ?? '—')}
-                            title="Télécharger PDF"
                           >
                             <Download className="h-3.5 w-3.5" />
                           </Button>
@@ -176,14 +178,14 @@ export default function PrescriptionsPage() {
                           <>
                             <Button
                               variant="ghost" size="icon" className="h-8 w-8"
-                              onClick={() => setEditTarget(rx)} title="Modifier"
+                              onClick={() => setEditTarget(rx)}
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
                             <Button
                               variant="ghost" size="icon"
                               className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                              onClick={() => markDispensed(rx)} title="Marquer délivrée"
+                              onClick={() => markDispensed(rx)}
                               disabled={updateMutation.isPending}
                             >
                               <CheckCircle className="h-3.5 w-3.5" />
@@ -203,12 +205,12 @@ export default function PrescriptionsPage() {
       {/* Create dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Nouvelle ordonnance</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('createTitle')}</DialogTitle></DialogHeader>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-1.5">
-              <Label>Consultation *</Label>
+              <Label>{t('labelConsultation')}</Label>
               <Select onValueChange={v => form.setValue('consultation_id', v)}>
-                <SelectTrigger><SelectValue placeholder="Sélectionner une consultation" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('selectConsultation')} /></SelectTrigger>
                 <SelectContent>
                   {consultations?.map(c => (
                     <SelectItem key={c.id} value={c.id}>
@@ -226,12 +228,12 @@ export default function PrescriptionsPage() {
             {/* Medications */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label>Médicaments *</Label>
+                <Label>{t('labelMedications')}</Label>
                 <Button
                   type="button" variant="outline" size="sm"
                   onClick={() => append({ name: '', dosage: '', frequency: '', duration: '', instructions: '' })}
                 >
-                  <Plus className="h-3.5 w-3.5" /> Ajouter
+                  <Plus className="h-3.5 w-3.5" /> {t('addMedication')}
                 </Button>
               </div>
               {form.formState.errors.medications && (
@@ -240,7 +242,7 @@ export default function PrescriptionsPage() {
               {fields.map((field, idx) => (
                 <div key={field.id} className="rounded-lg border p-3 space-y-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-medium text-gray-500">Médicament {idx + 1}</p>
+                    <p className="text-xs font-medium text-gray-500">{t('medicationNumber', { number: idx + 1 })}</p>
                     {fields.length > 1 && (
                       <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-red-500" onClick={() => remove(idx)}>
                         <Trash2 className="h-3 w-3" />
@@ -249,24 +251,24 @@ export default function PrescriptionsPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
-                      <Label className="text-xs">Nom *</Label>
-                      <Input {...form.register(`medications.${idx}.name`)} placeholder="Paracétamol" className="h-8 text-sm" />
+                      <Label className="text-xs">{t('labelMedName')}</Label>
+                      <Input {...form.register(`medications.${idx}.name`)} placeholder={t('medNamePlaceholder')} className="h-8 text-sm" />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Dosage *</Label>
-                      <Input {...form.register(`medications.${idx}.dosage`)} placeholder="500mg" className="h-8 text-sm" />
+                      <Label className="text-xs">{t('labelMedDosage')}</Label>
+                      <Input {...form.register(`medications.${idx}.dosage`)} placeholder={t('medDosagePlaceholder')} className="h-8 text-sm" />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Fréquence *</Label>
-                      <Input {...form.register(`medications.${idx}.frequency`)} placeholder="3x/jour" className="h-8 text-sm" />
+                      <Label className="text-xs">{t('labelMedFrequency')}</Label>
+                      <Input {...form.register(`medications.${idx}.frequency`)} placeholder={t('medFrequencyPlaceholder')} className="h-8 text-sm" />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Durée *</Label>
-                      <Input {...form.register(`medications.${idx}.duration`)} placeholder="7 jours" className="h-8 text-sm" />
+                      <Label className="text-xs">{t('labelMedDuration')}</Label>
+                      <Input {...form.register(`medications.${idx}.duration`)} placeholder={t('medDurationPlaceholder')} className="h-8 text-sm" />
                     </div>
                     <div className="col-span-2 space-y-1">
-                      <Label className="text-xs">Instructions</Label>
-                      <Input {...form.register(`medications.${idx}.instructions`)} placeholder="Prendre après les repas" className="h-8 text-sm" />
+                      <Label className="text-xs">{t('labelMedInstructions')}</Label>
+                      <Input {...form.register(`medications.${idx}.instructions`)} placeholder={t('medInstructionsPlaceholder')} className="h-8 text-sm" />
                     </div>
                   </div>
                 </div>
@@ -275,20 +277,20 @@ export default function PrescriptionsPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>Instructions générales</Label>
+                <Label>{t('labelGeneralInstructions')}</Label>
                 <Input {...form.register('instructions')} />
               </div>
               <div className="space-y-1.5">
-                <Label>Valide jusqu&apos;au</Label>
+                <Label>{t('labelValidUntil')}</Label>
                 <Input type="date" {...form.register('valid_until')} />
               </div>
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Annuler</Button>
+              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>{t('cancel')}</Button>
               <Button type="submit" disabled={form.formState.isSubmitting || createMutation.isPending}>
                 {(form.formState.isSubmitting || createMutation.isPending) && <Loader2 className="animate-spin" />}
-                Créer l&apos;ordonnance
+                {t('createBtn')}
               </Button>
             </DialogFooter>
           </form>
@@ -298,7 +300,7 @@ export default function PrescriptionsPage() {
       {/* Status edit dialog */}
       <Dialog open={!!editTarget} onOpenChange={open => { if (!open) setEditTarget(null) }}>
         <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>Modifier le statut</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('editStatusTitle')}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             {(['active', 'dispensed', 'cancelled'] as PrescriptionStatus[]).map(s => (
               <Button
@@ -329,40 +331,41 @@ export default function PrescriptionsPage() {
 }
 
 function PrescriptionPrintDialog({ rx, onClose }: { rx: PrescriptionRow; onClose: () => void }) {
+  const t = useTranslations('prescriptions')
   return (
     <Dialog open onOpenChange={open => { if (!open) onClose() }}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Ordonnance — {rx.patient?.full_name}</DialogTitle>
+          <DialogTitle>{rx.patient?.full_name}</DialogTitle>
         </DialogHeader>
         <div id="rx-print" className="space-y-4 text-sm">
           <div className="flex justify-between text-xs text-gray-500">
-            <span>Médecin: <strong>{rx.doctor?.full_name}</strong></span>
-            <span>Date: <strong>{formatDate(rx.created_at)}</strong></span>
+            <span>{t('printDoctorLabel')}: <strong>{rx.doctor?.full_name}</strong></span>
+            <span>{t('printDateLabel')}: <strong>{formatDate(rx.created_at)}</strong></span>
           </div>
           {rx.valid_until && (
-            <p className="text-xs text-amber-600">Valable jusqu&apos;au {formatDate(rx.valid_until)}</p>
+            <p className="text-xs text-amber-600">{t('printValidUntil', { date: formatDate(rx.valid_until) })}</p>
           )}
           <div className="space-y-3 border-t pt-3">
             {rx.medications.map((m, i) => (
               <div key={i} className="rounded-md bg-gray-50 p-3">
                 <p className="font-semibold">{i + 1}. {m.name} — {m.dosage}</p>
-                <p className="text-gray-600">{m.frequency} pendant {m.duration}</p>
+                <p className="text-gray-600">{m.frequency} {m.duration}</p>
                 {m.instructions && <p className="text-xs text-gray-400 italic">{m.instructions}</p>}
               </div>
             ))}
           </div>
           {rx.instructions && (
             <div className="border-t pt-3">
-              <p className="text-xs text-gray-500">Instructions générales:</p>
+              <p className="text-xs text-gray-500">{t('printGeneralInstructions')}</p>
               <p>{rx.instructions}</p>
             </div>
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Fermer</Button>
+          <Button variant="outline" onClick={onClose}>{t('close')}</Button>
           <Button onClick={() => window.print()}>
-            <Printer className="h-4 w-4" /> Imprimer
+            <Printer className="h-4 w-4" /> {t('print')}
           </Button>
         </DialogFooter>
       </DialogContent>

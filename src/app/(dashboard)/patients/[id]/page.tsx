@@ -27,6 +27,7 @@ import { useLatestPatientVitals } from '@/hooks/useVitals'
 import { useClinic } from '@/context/ClinicContext'
 import { formatDate, formatTime, formatCurrency, age, cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 import type { Prescription, LabRequest } from '@/types/database'
 
 const apptStatusColors: Record<string, string> = {
@@ -34,41 +35,26 @@ const apptStatusColors: Record<string, string> = {
   in_progress: 'bg-violet-100 text-violet-800', completed: 'bg-emerald-100 text-emerald-800',
   cancelled: 'bg-gray-100 text-gray-600', no_show: 'bg-red-100 text-red-800',
 }
-const apptStatusLabels: Record<string, string> = {
-  scheduled: 'Planifié', in_queue: 'En attente', in_progress: 'En cours',
-  completed: 'Terminé', cancelled: 'Annulé', no_show: 'Absent',
-}
 const invStatusColors: Record<string, string> = {
   draft: 'bg-gray-100 text-gray-700', sent: 'bg-blue-100 text-blue-700',
   paid: 'bg-emerald-100 text-emerald-700', partial: 'bg-amber-100 text-amber-700',
   overdue: 'bg-red-100 text-red-700', cancelled: 'bg-gray-100 text-gray-400',
 }
-const invStatusLabels: Record<string, string> = {
-  draft: 'Brouillon', sent: 'Envoyée', paid: 'Payée',
-  partial: 'Partiel', overdue: 'En retard', cancelled: 'Annulée',
-}
 const rxStatusColors: Record<string, string> = {
   active: 'bg-emerald-100 text-emerald-700', dispensed: 'bg-blue-100 text-blue-700',
   expired: 'bg-gray-100 text-gray-500', cancelled: 'bg-red-100 text-red-500',
-}
-const rxStatusLabels: Record<string, string> = {
-  active: 'Active', dispensed: 'Délivrée', expired: 'Expirée', cancelled: 'Annulée',
 }
 const labStatusColors: Record<string, string> = {
   ordered: 'bg-blue-100 text-blue-700', collected: 'bg-purple-100 text-purple-700',
   processing: 'bg-amber-100 text-amber-700', resulted: 'bg-emerald-100 text-emerald-700',
   cancelled: 'bg-red-100 text-red-500',
 }
-const labStatusLabels: Record<string, string> = {
-  ordered: 'Demandé', collected: 'Prélevé', processing: 'En cours',
-  resulted: 'Résultat disponible', cancelled: 'Annulé',
-}
-const genderLabel: Record<string, string> = { male: 'Homme', female: 'Femme', other: 'Autre' }
 
 type Tab = 'history' | 'prescriptions' | 'labs' | 'timeline'
 
 export default function PatientProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
+  const t = useTranslations('patientProfile')
   const router = useRouter()
   const { profile } = useClinic()
   const [activeTab, setActiveTab] = useState<Tab>('history')
@@ -77,6 +63,41 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
   const [apptTime, setApptTime] = useState('')
   const [apptDoctorId, setApptDoctorId] = useState('')
   const [apptNotes, setApptNotes] = useState('')
+
+  const apptStatusLabels: Record<string, string> = {
+    scheduled:   t('apptStatusScheduled'),
+    in_queue:    t('apptStatusInQueue'),
+    in_progress: t('apptStatusInProgress'),
+    completed:   t('apptStatusCompleted'),
+    cancelled:   t('apptStatusCancelled'),
+    no_show:     t('apptStatusNoShow'),
+  }
+  const invStatusLabels: Record<string, string> = {
+    draft:     t('invStatusDraft'),
+    sent:      t('invStatusSent'),
+    paid:      t('invStatusPaid'),
+    partial:   t('invStatusPartial'),
+    overdue:   t('invStatusOverdue'),
+    cancelled: t('invStatusCancelled'),
+  }
+  const rxStatusLabels: Record<string, string> = {
+    active:    t('rxStatusActive'),
+    dispensed: t('rxStatusDispensed'),
+    expired:   t('rxStatusExpired'),
+    cancelled: t('rxStatusCancelled'),
+  }
+  const labStatusLabels: Record<string, string> = {
+    ordered:    t('labStatusOrdered'),
+    collected:  t('labStatusCollected'),
+    processing: t('labStatusProcessing'),
+    resulted:   t('labStatusResulted'),
+    cancelled:  t('labStatusCancelled'),
+  }
+  const genderLabel: Record<string, string> = {
+    male:   t('genderMale'),
+    female: t('genderFemale'),
+    other:  t('genderOther'),
+  }
 
   const { data: patient, isLoading } = usePatient(id)
   const { data: latestVitals } = useLatestPatientVitals(id)
@@ -106,7 +127,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
   }
 
   async function handleQuickAppt() {
-    if (!apptDate || !apptTime) { toast.error('Date et heure requises'); return }
+    if (!apptDate || !apptTime) { toast.error(t('quickApptDateRequired')); return }
     await createAppt.mutateAsync({
       patient_id: id,
       doctor_id: apptDoctorId || null,
@@ -124,8 +145,8 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
   if (isLoading) {
     return (
       <div className="flex flex-col h-full">
-        <Topbar title="Profil patient" />
-        <div className="flex-1 flex items-center justify-center text-gray-400">Chargement...</div>
+        <Topbar title={t('title')} />
+        <div className="flex-1 flex items-center justify-center text-gray-400">{t('loading')}</div>
       </div>
     )
   }
@@ -133,11 +154,11 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
   if (!patient) {
     return (
       <div className="flex flex-col h-full">
-        <Topbar title="Profil patient" />
+        <Topbar title={t('title')} />
         <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-3">
           <UserRound className="h-12 w-12 opacity-30" />
-          <p>Patient introuvable</p>
-          <Link href="/patients"><Button variant="outline" size="sm">Retour aux patients</Button></Link>
+          <p>{t('notFound')}</p>
+          <Link href="/patients"><Button variant="outline" size="sm">{t('backLink')}</Button></Link>
         </div>
       </div>
     )
@@ -157,14 +178,14 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
     ...(consultations ?? []).map(c => ({
       date: c.created_at, type: 'consultation' as const,
       title: c.chief_complaint ?? 'Consultation',
-      subtitle: c.diagnosis ? `Diag: ${c.diagnosis}` : undefined,
+      subtitle: c.diagnosis ? `${t('diagnosisLabel')} ${c.diagnosis}` : undefined,
       badge: `Dr. ${(c as { doctor?: { full_name?: string } }).doctor?.full_name ?? ''}`,
       badgeColor: 'bg-violet-100 text-violet-700',
       icon: Stethoscope,
     })),
     ...(patientAppointments ?? []).map(a => ({
       date: a.scheduled_at, type: 'appointment' as const,
-      title: `RDV — ${formatTime(a.scheduled_at)}`,
+      title: t('appointmentEntry', { time: formatTime(a.scheduled_at) }),
       subtitle: a.notes ?? undefined,
       badge: apptStatusLabels[a.status] ?? a.status,
       badgeColor: apptStatusColors[a.status] ?? '',
@@ -180,7 +201,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
     })),
     ...(patientPrescriptions as unknown as Prescription[]).map(rx => ({
       date: rx.created_at, type: 'prescription' as const,
-      title: `Ordonnance (${rx.medications.length} méd.)`,
+      title: t('prescriptionTitle', { count: rx.medications.length }),
       subtitle: rx.medications.map(m => m.name).join(', '),
       badge: rxStatusLabels[rx.status] ?? rx.status,
       badgeColor: rxStatusColors[rx.status] ?? '',
@@ -197,19 +218,19 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   const tabs = [
-    { id: 'history' as Tab, label: 'Dossier', icon: Stethoscope },
-    { id: 'prescriptions' as Tab, label: 'Ordonnances', icon: Pill },
-    { id: 'labs' as Tab, label: 'Analyses', icon: FlaskConical },
-    { id: 'timeline' as Tab, label: 'Chronologie', icon: History },
+    { id: 'history' as Tab,       label: t('tabHistory'),       icon: Stethoscope },
+    { id: 'prescriptions' as Tab, label: t('tabPrescriptions'), icon: Pill },
+    { id: 'labs' as Tab,          label: t('tabLabs'),          icon: FlaskConical },
+    { id: 'timeline' as Tab,      label: t('tabTimeline'),      icon: History },
   ]
 
   return (
     <div className="flex flex-col h-full">
-      <Topbar title={patient.full_name} description={`Dossier ${patient.patient_number}`} />
+      <Topbar title={patient.full_name} description={t('dossierDesc', { number: patient.patient_number })} />
 
       <div className="flex-1 overflow-y-auto p-4 pb-20 md:pb-6 md:p-6 space-y-4 md:space-y-6">
         <Link href="/patients" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800">
-          <ArrowLeft className="h-4 w-4" /> Retour aux patients
+          <ArrowLeft className="h-4 w-4" /> {t('backLink')}
         </Link>
 
         <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
@@ -219,7 +240,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <UserRound className="h-4 w-4" /> Identité
+                    <UserRound className="h-4 w-4" /> {t('cardIdentity')}
                   </CardTitle>
                   <Link href={`/patients?edit=${id}`}>
                     <Button variant="ghost" size="icon" className="h-8 w-8"><Pencil className="h-3.5 w-3.5" /></Button>
@@ -271,13 +292,13 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Droplets className="h-4 w-4" /> Informations médicales
+                  <Droplets className="h-4 w-4" /> {t('cardMedical')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 {patient.blood_type && (
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-500">Groupe sanguin</span>
+                    <span className="text-gray-500">{t('bloodGroupLabel')}</span>
                     <Badge variant="secondary" className="font-mono">{patient.blood_type}</Badge>
                   </div>
                 )}
@@ -285,7 +306,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                   <div>
                     <div className="flex items-center gap-1.5 text-red-600 mb-1.5">
                       <AlertCircle className="h-3.5 w-3.5" />
-                      <span className="font-medium text-xs">Allergies</span>
+                      <span className="font-medium text-xs">{t('allergiesLabel')}</span>
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {patient.allergies.map(a => (
@@ -296,12 +317,12 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                 )}
                 {patient.notes && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Notes</p>
+                    <p className="text-xs text-gray-500 mb-1">{t('notesLabel')}</p>
                     <p className="text-gray-700 text-xs">{patient.notes}</p>
                   </div>
                 )}
                 {!patient.blood_type && (!patient.allergies || patient.allergies.length === 0) && !patient.notes && (
-                  <p className="text-gray-400 text-xs">Aucune information médicale renseignée</p>
+                  <p className="text-gray-400 text-xs">{t('noMedicalInfo')}</p>
                 )}
               </CardContent>
             </Card>
@@ -310,7 +331,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4" /> Contact d&apos;urgence
+                    <AlertCircle className="h-4 w-4" /> {t('cardEmergency')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm space-y-1.5">
@@ -329,7 +350,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-rose-500" /> Derniers signes vitaux
+                    <Activity className="h-4 w-4 text-rose-500" /> {t('cardVitals')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm space-y-3">
@@ -413,11 +434,11 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
             {/* Summary chips */}
             <div className="grid grid-cols-5 gap-2">
               {[
-                { label: 'Consult.', value: consultations?.length ?? 0, color: 'bg-violet-50 text-violet-700' },
-                { label: 'RDV', value: patientAppointments?.length ?? 0, color: 'bg-blue-50 text-blue-700' },
-                { label: 'Factures', value: patientInvoices?.length ?? 0, color: 'bg-emerald-50 text-emerald-700' },
-                { label: 'Ordonn.', value: patientPrescriptions.length, color: 'bg-amber-50 text-amber-700' },
-                { label: 'Analyses', value: labRequests?.length ?? 0, color: 'bg-pink-50 text-pink-700' },
+                { label: t('chipConsult'),       value: consultations?.length ?? 0,       color: 'bg-violet-50 text-violet-700' },
+                { label: t('chipAppt'),          value: patientAppointments?.length ?? 0, color: 'bg-blue-50 text-blue-700' },
+                { label: t('chipInvoices'),      value: patientInvoices?.length ?? 0,     color: 'bg-emerald-50 text-emerald-700' },
+                { label: t('chipPrescriptions'), value: patientPrescriptions.length,      color: 'bg-amber-50 text-amber-700' },
+                { label: t('chipLabs'),          value: labRequests?.length ?? 0,         color: 'bg-pink-50 text-pink-700' },
               ].map(s => (
                 <div key={s.label} className={cn('rounded-xl p-2 md:p-3 text-center', s.color)}>
                   <div className="text-lg font-bold md:text-xl">{s.value}</div>
@@ -448,37 +469,37 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
               })}
             </div>
 
-            {/* Tab: Dossier */}
+            {/* Tab: History */}
             {activeTab === 'history' && (
               <div className="space-y-4">
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
-                      <Stethoscope className="h-4 w-4" /> Consultations
+                      <Stethoscope className="h-4 w-4" /> {t('cardConsultations')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     {!consultations || consultations.length === 0 ? (
-                      <p className="text-sm text-gray-400 py-4 text-center">Aucune consultation</p>
+                      <p className="text-sm text-gray-400 py-4 text-center">{t('noConsultation')}</p>
                     ) : consultations.slice(0, 5).map(c => (
                       <div key={c.id} className="rounded-lg border p-3 space-y-1.5 hover:bg-gray-50">
                         <div className="flex items-center justify-between">
                           <p className="text-xs text-gray-400">{formatDate(c.created_at)}</p>
                           {c.follow_up_date && (
                             <span className="flex items-center gap-1 text-xs text-amber-600">
-                              <Clock className="h-3 w-3" /> Suivi: {formatDate(c.follow_up_date)}
+                              <Clock className="h-3 w-3" /> {t('followUpLabel', { date: formatDate(c.follow_up_date) })}
                             </span>
                           )}
                         </div>
                         {c.chief_complaint && <p className="text-sm font-medium text-gray-800">{c.chief_complaint}</p>}
                         {c.diagnosis && (
                           <p className="text-sm text-gray-600">
-                            <span className="font-medium text-gray-700">Diagnostic:</span> {c.diagnosis}
+                            <span className="font-medium text-gray-700">{t('diagnosisLabel')}</span> {c.diagnosis}
                           </p>
                         )}
                         {c.treatment_plan && (
                           <p className="text-sm text-gray-600">
-                            <span className="font-medium text-gray-700">Traitement:</span> {c.treatment_plan}
+                            <span className="font-medium text-gray-700">{t('treatmentLabel')}</span> {c.treatment_plan}
                           </p>
                         )}
                         <p className="text-xs text-gray-400">Dr. {(c as { doctor?: { full_name?: string } }).doctor?.full_name ?? '—'}</p>
@@ -490,12 +511,12 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
-                      <Calendar className="h-4 w-4" /> Rendez-vous récents
+                      <Calendar className="h-4 w-4" /> {t('cardAppointments')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     {!patientAppointments || patientAppointments.length === 0 ? (
-                      <p className="text-sm text-gray-400 py-4 text-center">Aucun rendez-vous</p>
+                      <p className="text-sm text-gray-400 py-4 text-center">{t('noAppointment')}</p>
                     ) : patientAppointments.slice(0, 5).map(a => (
                       <div key={a.id} className="flex items-center justify-between rounded-lg border p-3">
                         <div>
@@ -515,12 +536,12 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
-                      <Receipt className="h-4 w-4" /> Factures
+                      <Receipt className="h-4 w-4" /> {t('cardInvoicesTitle')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     {!patientInvoices || patientInvoices.length === 0 ? (
-                      <p className="text-sm text-gray-400 py-4 text-center">Aucune facture</p>
+                      <p className="text-sm text-gray-400 py-4 text-center">{t('noInvoice')}</p>
                     ) : patientInvoices.slice(0, 5).map(inv => (
                       <div key={inv.id} className="flex items-center justify-between rounded-lg border p-3">
                         <div>
@@ -540,14 +561,14 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
               </div>
             )}
 
-            {/* Tab: Ordonnances */}
+            {/* Tab: Prescriptions */}
             {activeTab === 'prescriptions' && (
               <Card>
                 <CardContent className="p-0">
                   {patientPrescriptions.length === 0 ? (
                     <div className="text-center py-12 text-gray-400">
                       <Pill className="mx-auto h-10 w-10 mb-3 opacity-30" />
-                      <p>Aucune ordonnance</p>
+                      <p>{t('noPrescription')}</p>
                     </div>
                   ) : (
                     <div className="divide-y">
@@ -568,7 +589,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                             ))}
                           </div>
                           {rx.valid_until && (
-                            <p className="text-xs text-amber-600">Valable jusqu&apos;au {formatDate(rx.valid_until)}</p>
+                            <p className="text-xs text-amber-600">{t('validUntil', { date: formatDate(rx.valid_until) })}</p>
                           )}
                         </div>
                       ))}
@@ -578,14 +599,14 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
               </Card>
             )}
 
-            {/* Tab: Analyses */}
+            {/* Tab: Labs */}
             {activeTab === 'labs' && (
               <Card>
                 <CardContent className="p-0">
                   {!labRequests || labRequests.length === 0 ? (
                     <div className="text-center py-12 text-gray-400">
                       <FlaskConical className="mx-auto h-10 w-10 mb-3 opacity-30" />
-                      <p>Aucune analyse demandée</p>
+                      <p>{t('noLab')}</p>
                     </div>
                   ) : (
                     <div className="divide-y">
@@ -607,7 +628,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                           {lab.clinical_notes && <p className="text-xs text-gray-500 italic">{lab.clinical_notes}</p>}
                           {lab.result_notes && (
                             <div className="rounded-md bg-emerald-50 border border-emerald-200 p-2">
-                              <p className="text-xs font-medium text-emerald-700 mb-0.5">Résultat:</p>
+                              <p className="text-xs font-medium text-emerald-700 mb-0.5">{t('labResultLabel')}</p>
                               <p className="text-xs text-emerald-800">{lab.result_notes}</p>
                             </div>
                           )}
@@ -619,13 +640,13 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
               </Card>
             )}
 
-            {/* Tab: Chronologie */}
+            {/* Tab: Timeline */}
             {activeTab === 'timeline' && (
               <div className="space-y-2">
                 {timelineEvents.length === 0 ? (
                   <div className="text-center py-12 text-gray-400">
                     <History className="mx-auto h-10 w-10 mb-3 opacity-30" />
-                    <p>Aucun événement enregistré</p>
+                    <p>{t('noTimeline')}</p>
                   </div>
                 ) : timelineEvents.map((event, idx) => {
                   const Icon = event.icon
@@ -669,12 +690,12 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
               className="flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-xl bg-blue-50 text-blue-700 text-xs font-medium"
             >
               <Phone className="h-5 w-5" />
-              Appeler
+              {t('actionCall')}
             </a>
           ) : (
             <div className="flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-xl bg-gray-50 text-gray-300 text-xs font-medium cursor-not-allowed">
               <Phone className="h-5 w-5" />
-              Appeler
+              {t('actionCall')}
             </div>
           )}
           {patient.phone ? (
@@ -698,7 +719,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
             className="flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-xl bg-violet-50 text-violet-700 text-xs font-medium"
           >
             <Calendar className="h-5 w-5" />
-            RDV
+            {t('chipAppt')}
           </button>
           <button
             onClick={handleStartConsultation}
@@ -706,7 +727,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
             className="flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-xl bg-teal-50 text-teal-700 text-xs font-medium disabled:opacity-50"
           >
             <Stethoscope className="h-5 w-5" />
-            {createConsultation.isPending ? '...' : 'Consulter'}
+            {createConsultation.isPending ? '...' : t('actionConsult')}
           </button>
         </div>
       </div>
@@ -715,25 +736,25 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
       <Dialog open={quickApptOpen} onOpenChange={setQuickApptOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Nouveau rendez-vous</DialogTitle>
+            <DialogTitle>{t('quickApptTitle')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <p className="text-sm text-gray-500">Patient : <span className="font-medium text-gray-900">{patient.full_name}</span></p>
+            <p className="text-sm text-gray-500">{t('quickApptPatient')} <span className="font-medium text-gray-900">{patient.full_name}</span></p>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Date *</Label>
+                <Label>{t('quickApptDateLabel')}</Label>
                 <Input type="date" value={apptDate} onChange={e => setApptDate(e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label>Heure *</Label>
+                <Label>{t('quickApptTimeLabel')}</Label>
                 <Input type="time" value={apptTime} onChange={e => setApptTime(e.target.value)} />
               </div>
             </div>
             {doctors && doctors.length > 0 && (
               <div className="space-y-1.5">
-                <Label>Médecin</Label>
+                <Label>{t('quickApptDoctorLabel')}</Label>
                 <Select value={apptDoctorId} onValueChange={setApptDoctorId}>
-                  <SelectTrigger><SelectValue placeholder="Choisir un médecin" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t('quickApptDoctorPlaceholder')} /></SelectTrigger>
                   <SelectContent>
                     {doctors.map(d => (
                       <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>
@@ -743,14 +764,14 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
               </div>
             )}
             <div className="space-y-1.5">
-              <Label>Notes</Label>
-              <Input value={apptNotes} onChange={e => setApptNotes(e.target.value)} placeholder="Motif de visite..." />
+              <Label>{t('quickApptNotesLabel')}</Label>
+              <Input value={apptNotes} onChange={e => setApptNotes(e.target.value)} placeholder={t('quickApptNotesPlaceholder')} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setQuickApptOpen(false)}>Annuler</Button>
+            <Button variant="outline" onClick={() => setQuickApptOpen(false)}>{t('quickApptCancel')}</Button>
             <Button onClick={handleQuickAppt} disabled={createAppt.isPending}>
-              {createAppt.isPending ? 'Création...' : 'Créer le RDV'}
+              {createAppt.isPending ? t('quickApptCreating') : t('quickApptCreate')}
             </Button>
           </DialogFooter>
         </DialogContent>

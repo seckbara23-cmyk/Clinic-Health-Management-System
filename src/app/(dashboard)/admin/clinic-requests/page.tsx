@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { useClinic } from '@/context/ClinicContext'
 import { formatDate, cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 import type { ClinicRequest } from '@/types/database'
 
 type Filter = 'all' | 'pending' | 'approved' | 'rejected'
@@ -26,13 +27,8 @@ interface ApprovalResult {
   clinic: { name: string }
 }
 
-const statusConfig: Record<string, { label: string; variant: string; dot: string; icon: React.ElementType }> = {
-  pending:  { label: 'En attente', variant: 'bg-amber-100 text-amber-700',     dot: 'bg-amber-400',   icon: Clock },
-  approved: { label: 'Approuvée',  variant: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500', icon: CheckCircle2 },
-  rejected: { label: 'Rejetée',   variant: 'bg-red-100 text-red-700',         dot: 'bg-red-400',     icon: XCircle },
-}
-
 export default function ClinicRequestsPage() {
+  const t = useTranslations('adminRequests')
   const { profile } = useClinic()
   const [filter, setFilter] = useState<Filter>('pending')
   const [rejectTarget, setRejectTarget] = useState<ClinicRequest | null>(null)
@@ -41,6 +37,12 @@ export default function ClinicRequestsPage() {
   const [copied, setCopied] = useState(false)
   const qc = useQueryClient()
   const supabase = createClient()
+
+  const statusConfig: Record<string, { label: string; variant: string; dot: string; icon: React.ElementType }> = {
+    pending:  { label: t('statusPending'),  variant: 'bg-amber-100 text-amber-700',     dot: 'bg-amber-400',   icon: Clock },
+    approved: { label: t('statusApproved'), variant: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500', icon: CheckCircle2 },
+    rejected: { label: t('statusRejected'), variant: 'bg-red-100 text-red-700',         dot: 'bg-red-400',     icon: XCircle },
+  }
 
   const { data: requests, isLoading } = useQuery({
     queryKey: ['clinic-requests'],
@@ -69,7 +71,7 @@ export default function ClinicRequestsPage() {
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['clinic-requests'] })
-      toast.success('Demande approuvée')
+      toast.success(t('toastApproved'))
       setApprovalResult(data)
     },
     onError: (e: Error) => toast.error(e.message),
@@ -87,7 +89,7 @@ export default function ClinicRequestsPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['clinic-requests'] })
-      toast.success('Demande rejetée')
+      toast.success(t('toastRejected'))
       setRejectTarget(null)
       setRejectionReason('')
     },
@@ -104,10 +106,10 @@ export default function ClinicRequestsPage() {
   if (profile?.role !== 'super_admin') {
     return (
       <div className="flex flex-col h-full">
-        <Topbar title="Demandes cliniques" />
+        <Topbar title={t('noAccess')} />
         <div className="flex-1 flex flex-col items-center justify-center gap-3 text-gray-400">
           <Shield className="h-12 w-12 opacity-30" />
-          <p>Accès réservé aux super administrateurs</p>
+          <p>{t('noAccessMessage')}</p>
         </div>
       </div>
     )
@@ -121,9 +123,16 @@ export default function ClinicRequestsPage() {
     rejected: requests?.filter(r => r.status === 'rejected').length ?? 0,
   }
 
+  const filterLabels: Record<Filter, string> = {
+    all:      t('filterAll'),
+    pending:  t('filterPending'),
+    approved: t('filterApproved'),
+    rejected: t('filterRejected'),
+  }
+
   return (
     <div className="flex flex-col h-full">
-      <Topbar title="Demandes d'inscription" description="Cliniques en attente d'approbation" />
+      <Topbar title={t('title')} description={t('subtitle')} />
 
       <div className="flex-1 p-4 md:p-6 space-y-4 overflow-y-auto">
         {/* Filter tabs */}
@@ -139,7 +148,7 @@ export default function ClinicRequestsPage() {
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               )}
             >
-              {f === 'all' ? 'Toutes' : statusConfig[f].label}
+              {filterLabels[f]}
               <span className={cn(
                 'rounded-full px-1.5 py-0.5 text-xs font-semibold',
                 filter === f ? 'bg-white/20 text-white' : 'bg-white text-gray-700'
@@ -159,9 +168,7 @@ export default function ClinicRequestsPage() {
         {!isLoading && filtered?.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400">
             <Inbox className="h-10 w-10 opacity-30" />
-            <p className="text-sm">
-              Aucune demande {filter !== 'all' ? `"${statusConfig[filter]?.label.toLowerCase()}"` : ''}
-            </p>
+            <p className="text-sm">{t('emptyMessage')}</p>
           </div>
         )}
 
@@ -194,7 +201,7 @@ export default function ClinicRequestsPage() {
 
                   {/* Admin info */}
                   <div className="border-t pt-3 space-y-1.5">
-                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Responsable</p>
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">{t('contactLabel')}</p>
                     <p className="text-sm font-medium text-gray-800">{req.admin_full_name}</p>
                     <div className="flex items-center gap-1 text-xs text-gray-500">
                       <Mail className="h-3 w-3 shrink-0" />
@@ -218,7 +225,7 @@ export default function ClinicRequestsPage() {
                   {/* Rejection reason */}
                   {req.status === 'rejected' && req.rejection_reason && (
                     <p className="text-xs text-red-600 bg-red-50 rounded-lg p-2.5">
-                      <span className="font-medium">Motif :</span> {req.rejection_reason}
+                      <span className="font-medium">{t('rejectionReason')}</span> {req.rejection_reason}
                     </p>
                   )}
 
@@ -235,7 +242,7 @@ export default function ClinicRequestsPage() {
                           onClick={() => { setRejectTarget(req); setRejectionReason('') }}
                         >
                           <XCircle className="h-3.5 w-3.5" />
-                          <span className="hidden sm:inline">Rejeter</span>
+                          <span className="hidden sm:inline">{t('rejectBtnLabel')}</span>
                         </Button>
                         <Button
                           size="sm"
@@ -247,7 +254,7 @@ export default function ClinicRequestsPage() {
                             ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
                             : <CheckCircle2 className="h-3.5 w-3.5" />
                           }
-                          Approuver
+                          {t('approveBtn')}
                         </Button>
                       </div>
                     )}
@@ -263,30 +270,30 @@ export default function ClinicRequestsPage() {
       <Dialog open={!!rejectTarget} onOpenChange={(o) => { if (!o) setRejectTarget(null) }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Rejeter la demande</DialogTitle>
+            <DialogTitle>{t('rejectTitle')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-gray-600">
-              Vous allez rejeter la demande de <strong>{rejectTarget?.clinic_name}</strong>.
+              {t('rejectConfirm', { name: rejectTarget?.clinic_name ?? '' })}
             </p>
             <div className="space-y-1.5">
-              <Label>Motif du rejet (optionnel)</Label>
+              <Label>{t('rejectReasonLabel')}</Label>
               <Input
                 value={rejectionReason}
                 onChange={e => setRejectionReason(e.target.value)}
-                placeholder="Ex: Informations incomplètes, email invalide..."
+                placeholder={t('rejectReasonPlaceholder')}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectTarget(null)}>Annuler</Button>
+            <Button variant="outline" onClick={() => setRejectTarget(null)}>{t('cancel')}</Button>
             <Button
               variant="destructive"
               onClick={() => rejectTarget && rejectMutation.mutate({ id: rejectTarget.id, reason: rejectionReason })}
               disabled={rejectMutation.isPending}
             >
               {rejectMutation.isPending && <Loader2 className="animate-spin" />}
-              Confirmer le rejet
+              {t('rejectBtn')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -298,20 +305,20 @@ export default function ClinicRequestsPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <KeyRound className="h-5 w-5 text-teal-700" />
-              Demande approuvée
+              {t('approvedTitle')}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 text-sm">
             <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 p-3">
               <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
               <p className="text-emerald-800 font-medium">
-                Clinique <strong>{approvalResult?.clinic?.name}</strong> et compte admin créés.
+                {t('approvedClinicCreated', { name: approvalResult?.clinic?.name ?? '' })}
               </p>
             </div>
             <div className="space-y-2">
-              <p className="font-medium text-gray-700">Mot de passe temporaire</p>
+              <p className="font-medium text-gray-700">{t('tempPasswordLabel')}</p>
               <p className="text-xs text-gray-500">
-                À communiquer à <strong>{approvalResult?.admin_email}</strong> par un canal sécurisé (appel, SMS, WhatsApp).
+                {t('tempPasswordNote', { email: approvalResult?.admin_email ?? '' })}
               </p>
               <div className="flex items-center gap-2 rounded-lg border bg-gray-50 px-3 py-2">
                 <code className="flex-1 font-mono text-base tracking-widest text-gray-900 select-all">
@@ -321,19 +328,19 @@ export default function ClinicRequestsPage() {
                   type="button"
                   onClick={copyPassword}
                   className="shrink-0 rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-700 transition-colors"
-                  aria-label="Copier le mot de passe"
+                  aria-label={t('copyAriaLabel')}
                 >
                   {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
                 </button>
               </div>
               <div className="flex items-start gap-1.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700">
                 <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                Ce mot de passe ne s&apos;affichera plus après la fermeture. L&apos;admin devra le changer à la première connexion.
+                {t('tempPasswordWarning')}
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={() => setApprovalResult(null)}>Fermer</Button>
+            <Button onClick={() => setApprovalResult(null)}>{t('close')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

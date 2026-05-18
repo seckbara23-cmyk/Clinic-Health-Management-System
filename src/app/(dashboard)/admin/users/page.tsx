@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge'
 import { useClinic } from '@/context/ClinicContext'
 import { formatDate, cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 import type { UserProfile, Clinic, Role } from '@/types/database'
 
 interface ResetResult {
@@ -26,32 +27,38 @@ interface ResetResult {
   user: { email: string; full_name: string }
 }
 
-const inviteSchema = z.object({
-  email: z.string().email('Email invalide'),
-  role: z.enum(['admin', 'doctor', 'receptionist', 'nurse', 'cashier']),
-  clinic_id: z.string().min(1, 'Clinique requise'),
-})
-type InviteFormData = z.infer<typeof inviteSchema>
-
 const roleColors: Record<string, string> = {
-  super_admin: 'bg-purple-100 text-purple-700',
-  admin: 'bg-blue-100 text-blue-700',
-  doctor: 'bg-emerald-100 text-emerald-700',
-  receptionist: 'bg-amber-100 text-amber-700',
-  nurse: 'bg-pink-100 text-pink-700',
-  cashier: 'bg-orange-100 text-orange-700',
-}
-const roleLabels: Record<string, string> = {
-  super_admin: 'Super Admin', admin: 'Admin', doctor: 'Médecin',
-  receptionist: 'Réceptionniste', nurse: 'Infirmier(e)', cashier: 'Caissier(e)',
+  super_admin:   'bg-purple-100 text-purple-700',
+  admin:         'bg-blue-100 text-blue-700',
+  doctor:        'bg-emerald-100 text-emerald-700',
+  receptionist:  'bg-amber-100 text-amber-700',
+  nurse:         'bg-pink-100 text-pink-700',
+  cashier:       'bg-orange-100 text-orange-700',
 }
 
 export default function AdminUsersPage() {
+  const t = useTranslations('adminUsers')
   const { profile } = useClinic()
   const [open, setOpen] = useState(false)
   const [resetResult, setResetResult] = useState<ResetResult | null>(null)
   const [copied, setCopied] = useState(false)
   const supabase = createClient()
+
+  const roleLabels: Record<string, string> = {
+    super_admin:  t('roleSuperAdmin'),
+    admin:        t('roleAdmin'),
+    doctor:       t('roleDoctor'),
+    receptionist: t('roleReceptionist'),
+    nurse:        t('roleNurse'),
+    cashier:      t('roleCashier'),
+  }
+
+  const inviteSchema = z.object({
+    email:      z.string().email(t('zodEmailInvalid')),
+    role:       z.enum(['admin', 'doctor', 'receptionist', 'nurse', 'cashier']),
+    clinic_id:  z.string().min(1, t('zodClinicRequired')),
+  })
+  type InviteFormData = z.infer<typeof inviteSchema>
 
   const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
 
@@ -112,7 +119,7 @@ export default function AdminUsersPage() {
       return data
     },
     onSuccess: () => {
-      toast.success('Invitation envoyée')
+      toast.success(t('toastInviteSent'))
       setOpen(false)
       reset()
     },
@@ -127,10 +134,10 @@ export default function AdminUsersPage() {
   if (!isAdmin) {
     return (
       <div className="flex flex-col h-full">
-        <Topbar title="Gestion des Utilisateurs" />
+        <Topbar title={t('title')} />
         <div className="flex-1 flex flex-col items-center justify-center gap-3 text-gray-400">
           <Users className="h-12 w-12 opacity-30" />
-          <p>Accès réservé aux administrateurs</p>
+          <p>{t('noAccess')}</p>
         </div>
       </div>
     )
@@ -138,13 +145,13 @@ export default function AdminUsersPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Topbar title="Gestion des Utilisateurs" />
+      <Topbar title={t('title')} />
 
       <div className="flex-1 p-6 space-y-4">
         <div className="flex justify-between items-center">
-          <p className="text-sm text-gray-500">{users?.length ?? 0} utilisateur(s)</p>
+          <p className="text-sm text-gray-500">{t('userCount', { count: users?.length ?? 0 })}</p>
           <Button onClick={() => { reset({ clinic_id: profile?.clinic_id ?? '' }); setOpen(true) }}>
-            <Mail className="h-4 w-4" /> Inviter un utilisateur
+            <Mail className="h-4 w-4" /> {t('inviteBtn')}
           </Button>
         </div>
 
@@ -153,13 +160,13 @@ export default function AdminUsersPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nom</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Rôle</TableHead>
-                  <TableHead>Clinique</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead>Inscrit le</TableHead>
-                  {isSuperAdmin && <TableHead className="text-right">Actions</TableHead>}
+                  <TableHead>{t('colName')}</TableHead>
+                  <TableHead>{t('colEmail')}</TableHead>
+                  <TableHead>{t('colRole')}</TableHead>
+                  <TableHead>{t('colClinic')}</TableHead>
+                  <TableHead>{t('colStatus')}</TableHead>
+                  <TableHead>{t('colRegistered')}</TableHead>
+                  {isSuperAdmin && <TableHead className="text-right">{t('colActions')}</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -174,7 +181,7 @@ export default function AdminUsersPage() {
                   <TableRow>
                     <TableCell colSpan={isSuperAdmin ? 7 : 6} className="text-center py-12 text-gray-400">
                       <Users className="mx-auto h-10 w-10 mb-3 opacity-30" />
-                      <p>Aucun utilisateur</p>
+                      <p>{t('emptyTitle')}</p>
                     </TableCell>
                   </TableRow>
                 )}
@@ -183,7 +190,7 @@ export default function AdminUsersPage() {
                     <TableCell className="font-medium">
                       <span className="flex items-center gap-1.5">
                         {u.must_change_password && (
-                          <span title="Doit changer son mot de passe">
+                          <span title={t('mustChangePassword')}>
                             <ShieldAlert className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                           </span>
                         )}
@@ -199,7 +206,7 @@ export default function AdminUsersPage() {
                     <TableCell className="text-sm">{u.clinic?.name ?? '—'}</TableCell>
                     <TableCell>
                       <Badge variant={u.is_active ? 'success' : 'destructive'} className="text-xs">
-                        {u.is_active ? 'Actif' : 'Inactif'}
+                        {u.is_active ? t('statusActive') : t('statusInactive')}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-gray-400">{formatDate(u.created_at)}</TableCell>
@@ -216,7 +223,7 @@ export default function AdminUsersPage() {
                               ? <Loader2 className="h-3 w-3 animate-spin" />
                               : <KeyRound className="h-3 w-3" />
                             }
-                            Réinit. MDP
+                            {t('resetPasswordBtn')}
                           </Button>
                         )}
                       </TableCell>
@@ -236,14 +243,12 @@ export default function AdminUsersPage() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <KeyRound className="h-5 w-5 text-amber-600" />
-                Mot de passe temporaire
+                {t('tempPasswordTitle')}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 text-sm">
               <p className="text-gray-600">
-                Communiquez ce mot de passe à <strong>{resetResult.user.full_name}</strong>{' '}
-                (<span className="text-gray-500">{resetResult.user.email}</span>).
-                L&apos;utilisateur devra le changer à la prochaine connexion.
+                {t('tempPasswordNote', { name: resetResult.user.full_name, email: resetResult.user.email })}
               </p>
               <div className="flex items-center gap-2 rounded-lg border bg-gray-50 px-3 py-2">
                 <code className="flex-1 font-mono text-base tracking-widest text-gray-900 select-all">
@@ -253,17 +258,17 @@ export default function AdminUsersPage() {
                   type="button"
                   onClick={() => copyPassword(resetResult.temp_password)}
                   className="shrink-0 rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-700 transition-colors"
-                  aria-label="Copier le mot de passe"
+                  aria-label={t('copyAriaLabel')}
                 >
                   {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
                 </button>
               </div>
               <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
-                Ce mot de passe ne sera plus affiché après la fermeture de cette fenêtre.
+                {t('tempPasswordWarning')}
               </p>
             </div>
             <DialogFooter>
-              <Button onClick={() => setResetResult(null)}>Fermer</Button>
+              <Button onClick={() => setResetResult(null)}>{t('close')}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -273,33 +278,33 @@ export default function AdminUsersPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Inviter un utilisateur</DialogTitle>
+            <DialogTitle>{t('inviteTitle')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(d => inviteMutation.mutate(d))} className="space-y-4">
             <div className="space-y-1.5">
-              <Label>Email *</Label>
-              <Input type="email" placeholder="medecin@exemple.sn" {...register('email')} />
+              <Label>{t('labelEmail')}</Label>
+              <Input type="email" placeholder={t('emailPlaceholder')} {...register('email')} />
               {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label>Rôle *</Label>
+              <Label>{t('labelRole')}</Label>
               <Select onValueChange={v => setValue('role', v as Exclude<Role, 'super_admin'>)}>
-                <SelectTrigger><SelectValue placeholder="Sélectionner un rôle" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('selectRole')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="doctor">Médecin</SelectItem>
-                  <SelectItem value="receptionist">Réceptionniste</SelectItem>
-                  <SelectItem value="nurse">Infirmier(e)</SelectItem>
-                  <SelectItem value="cashier">Caissier(e)</SelectItem>
+                  <SelectItem value="admin">{t('roleAdmin')}</SelectItem>
+                  <SelectItem value="doctor">{t('roleDoctor')}</SelectItem>
+                  <SelectItem value="receptionist">{t('roleReceptionist')}</SelectItem>
+                  <SelectItem value="nurse">{t('roleNurse')}</SelectItem>
+                  <SelectItem value="cashier">{t('roleCashier')}</SelectItem>
                 </SelectContent>
               </Select>
               {errors.role && <p className="text-xs text-red-500">{errors.role.message}</p>}
             </div>
             {profile?.role === 'super_admin' && (
               <div className="space-y-1.5">
-                <Label>Clinique *</Label>
+                <Label>{t('labelClinic')}</Label>
                 <Select onValueChange={v => setValue('clinic_id', v)}>
-                  <SelectTrigger><SelectValue placeholder="Sélectionner une clinique" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t('selectClinic')} /></SelectTrigger>
                   <SelectContent>
                     {clinics?.map(c => (
                       <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
@@ -310,10 +315,10 @@ export default function AdminUsersPage() {
               </div>
             )}
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>{t('cancel')}</Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="animate-spin" />}
-                Envoyer l&apos;invitation
+                {t('sendInvite')}
               </Button>
             </DialogFooter>
           </form>

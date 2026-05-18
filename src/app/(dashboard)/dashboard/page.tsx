@@ -10,56 +10,58 @@ import { useDashboardStats } from '@/hooks/useInvoices'
 import { useTodayQueue } from '@/hooks/useAppointments'
 import { useClinic } from '@/context/ClinicContext'
 import { formatCurrency, formatTime, cn } from '@/lib/utils'
-
-const statusConfig: Record<string, { label: string; variant: 'default' | 'success' | 'warning' | 'info' | 'destructive' }> = {
-  scheduled: { label: 'Planifié', variant: 'info' },
-  in_queue: { label: 'En attente', variant: 'warning' },
-  in_progress: { label: 'En cours', variant: 'default' },
-  completed: { label: 'Terminé', variant: 'success' },
-  cancelled: { label: 'Annulé', variant: 'destructive' },
-  no_show: { label: 'Absent', variant: 'destructive' },
-}
+import { useTranslations } from 'next-intl'
 
 export default function DashboardPage() {
   const { clinic, profile } = useClinic()
   const { data: stats, isLoading: statsLoading } = useDashboardStats()
   const { data: queue } = useTodayQueue()
+  const t = useTranslations('dashboard')
+
+  const statusConfig: Record<string, { label: string; variant: 'default' | 'success' | 'warning' | 'info' | 'destructive' }> = {
+    scheduled:   { label: t('statusScheduled'),   variant: 'info' },
+    in_queue:    { label: t('statusInQueue'),      variant: 'warning' },
+    in_progress: { label: t('statusInProgress'),   variant: 'default' },
+    completed:   { label: t('statusCompleted'),    variant: 'success' },
+    cancelled:   { label: t('statusCancelled'),    variant: 'destructive' },
+    no_show:     { label: t('statusNoShow'),       variant: 'destructive' },
+  }
 
   const statCards = [
     {
-      title: 'Total Patients',
+      title: t('statTotalPatients'),
       value: stats?.total_patients ?? 0,
       icon: Users,
       color: 'text-green-700',
       bg: 'bg-green-50',
-      desc: 'Patients enregistrés',
+      desc: t('statTotalPatientsDesc'),
     },
     {
-      title: "Rendez-vous aujourd'hui",
+      title: t('statApptToday'),
       value: stats?.appointments_today ?? 0,
       icon: CalendarDays,
       color: 'text-violet-600',
       bg: 'bg-violet-50',
-      desc: `${stats?.appointments_pending ?? 0} en attente`,
+      desc: t('statApptTodayDesc', { count: stats?.appointments_pending ?? 0 }),
     },
     {
-      title: "Consultations aujourd'hui",
+      title: t('statConsultToday'),
       value: stats?.consultations_today ?? 0,
       icon: Stethoscope,
       color: 'text-teal-600',
       bg: 'bg-teal-50',
-      desc: 'Consultations du jour',
+      desc: t('statConsultTodayDesc'),
     },
     {
-      title: 'Recettes du jour',
+      title: t('statRevenueToday'),
       value: formatCurrency(stats?.revenue_today ?? 0),
       icon: TrendingUp,
       color: 'text-amber-700',
       bg: 'bg-amber-50',
-      desc: 'Paiements reçus',
+      desc: t('statRevenueTodayDesc'),
     },
     {
-      title: 'Recettes du mois',
+      title: t('statRevenueMonth'),
       value: formatCurrency(stats?.revenue_month ?? 0),
       icon: Activity,
       color: 'text-emerald-600',
@@ -67,37 +69,44 @@ export default function DashboardPage() {
       desc: `${new Date().toLocaleString('fr-SN', { month: 'long' })} ${new Date().getFullYear()}`,
     },
     {
-      title: 'Factures impayées',
+      title: t('statUnpaidInvoices'),
       value: stats?.unpaid_invoices ?? 0,
       icon: AlertCircle,
       color: 'text-red-600',
       bg: 'bg-red-50',
-      desc: 'À encaisser',
+      desc: t('statUnpaidInvoicesDesc'),
     },
+  ]
+
+  const quickActions = [
+    { href: '/patients',     label: t('qaNewPatient'),   icon: Users,        color: 'bg-teal-50 text-teal-700 hover:bg-teal-100' },
+    { href: '/appointments', label: t('qaAppointment'),  icon: CalendarDays, color: 'bg-violet-50 text-violet-700 hover:bg-violet-100' },
+    { href: '/consultations',label: t('qaConsultation'), icon: Stethoscope,  color: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' },
+    { href: '/billing',      label: t('qaNewInvoice'),   icon: TrendingUp,   color: 'bg-amber-50 text-amber-700 hover:bg-amber-100' },
   ]
 
   return (
     <div className="flex flex-col h-full">
       <Topbar
-        title="Bonjour 👋"
-        description={`Tableau de bord — ${clinic?.name ?? ''}`}
+        title={t('title')}
+        description={t('subtitle', { clinic: clinic?.name ?? '' })}
       />
 
       <div className="flex-1 p-4 md:p-6 space-y-4 md:space-y-6 overflow-y-auto">
-        {/* Onboarding banner — only for clinic admins who haven't completed setup */}
+        {/* Onboarding banner */}
         {profile?.role === 'admin' && clinic && !clinic.onboarding_completed_at && (
           <div className="flex items-center gap-4 rounded-xl border-2 border-teal-200 bg-teal-50 p-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-700">
               <Wrench className="h-5 w-5 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-teal-900">Configurez votre clinique</p>
+              <p className="text-sm font-semibold text-teal-900">{t('onboardingTitle')}</p>
               <p className="text-xs text-teal-700 mt-0.5">
-                Étape {clinic.onboarding_step}/4 — Complétez le profil, les services et l&apos;équipe pour démarrer.
+                {t('onboardingStep', { step: clinic.onboarding_step })}
               </p>
             </div>
             <Button size="sm" className="shrink-0 bg-teal-700 hover:bg-teal-800" asChild>
-              <Link href="/onboarding">Continuer</Link>
+              <Link href="/onboarding">{t('onboardingCta')}</Link>
             </Button>
           </div>
         )}
@@ -110,8 +119,8 @@ export default function DashboardPage() {
             <div className="flex-1 bg-[#E31B23]" />
           </div>
           <div>
-            <h2 className="text-base font-semibold text-gray-900">Bienvenue sur CHMS Sénégal</h2>
-            <p className="text-sm text-gray-500 mt-0.5">Pilotez les opérations de votre clinique en toute simplicité.</p>
+            <h2 className="text-base font-semibold text-gray-900">{t('welcomeTitle')}</h2>
+            <p className="text-sm text-gray-500 mt-0.5">{t('welcomeSubtitle')}</p>
           </div>
         </div>
 
@@ -142,8 +151,8 @@ export default function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <div>
-                <CardTitle className="text-base">File d&apos;attente — Aujourd&apos;hui</CardTitle>
-                <CardDescription>{queue?.length ?? 0} patient(s)</CardDescription>
+                <CardTitle className="text-base">{t('queueTitle')}</CardTitle>
+                <CardDescription>{t('queueCount', { count: queue?.length ?? 0 })}</CardDescription>
               </div>
               <Clock className="h-5 w-5 text-gray-400" />
             </CardHeader>
@@ -151,7 +160,7 @@ export default function DashboardPage() {
               {!queue || queue.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-2 py-8 text-gray-400">
                   <Clock className="h-8 w-8 opacity-30" />
-                  <p className="text-sm">Aucun rendez-vous aujourd&apos;hui</p>
+                  <p className="text-sm">{t('queueEmpty')}</p>
                 </div>
               ) : (
                 queue.slice(0, 8).map((appt) => {
@@ -181,16 +190,11 @@ export default function DashboardPage() {
           {/* Quick actions */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Actions rapides</CardTitle>
-              <CardDescription>Raccourcis fréquents</CardDescription>
+              <CardTitle className="text-base">{t('quickActionsTitle')}</CardTitle>
+              <CardDescription>{t('quickActionsDesc')}</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-3">
-              {[
-                { href: '/patients', label: 'Nouveau patient', icon: Users, color: 'bg-teal-50 text-teal-700 hover:bg-teal-100' },
-                { href: '/appointments', label: 'Rendez-vous', icon: CalendarDays, color: 'bg-violet-50 text-violet-700 hover:bg-violet-100' },
-                { href: '/consultations', label: 'Consultation', icon: Stethoscope, color: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' },
-                { href: '/billing', label: 'Nouvelle facture', icon: TrendingUp, color: 'bg-amber-50 text-amber-700 hover:bg-amber-100' },
-              ].map(({ href, label, icon: Icon, color }) => (
+              {quickActions.map(({ href, label, icon: Icon, color }) => (
                 <Link
                   key={href}
                   href={href}

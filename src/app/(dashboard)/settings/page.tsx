@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useClinic } from '@/context/ClinicContext'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 
 const clinicSchema = z.object({
   name: z.string().min(2),
@@ -28,6 +29,7 @@ const profileSchema = z.object({
 type ProfileFormData = z.infer<typeof profileSchema>
 
 export default function SettingsPage() {
+  const t = useTranslations('settings')
   const { clinic, profile, refetch } = useClinic()
   const supabase = createClient()
 
@@ -50,7 +52,7 @@ export default function SettingsPage() {
       email: data.email ?? null,
     }).eq('id', clinic.id)
     if (error) { toast.error(error.message); return }
-    toast.success('Clinique mise à jour')
+    toast.success(t('clinicSaved'))
     refetch()
   }
 
@@ -61,7 +63,7 @@ export default function SettingsPage() {
       phone: data.phone ?? null,
     }).eq('id', profile.id)
     if (error) { toast.error(error.message); return }
-    toast.success('Profil mis à jour')
+    toast.success(t('profileSaved'))
     refetch()
   }
 
@@ -69,40 +71,40 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Topbar title="Paramètres" />
+      <Topbar title={t('title')} />
       <div className="flex-1 p-6 max-w-2xl space-y-6">
 
         {/* Profile settings */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <User className="h-4 w-4" /> Mon profil
+              <User className="h-4 w-4" /> {t('profileTitle')}
             </CardTitle>
-            <CardDescription>Modifiez vos informations personnelles</CardDescription>
+            <CardDescription>{t('profileDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={profileForm.handleSubmit(saveProfile)} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 space-y-1.5">
-                  <Label>Nom complet</Label>
+                  <Label>{t('labelFullName')}</Label>
                   <Input {...profileForm.register('full_name')} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Téléphone</Label>
+                  <Label>{t('labelPhone')}</Label>
                   <Input {...profileForm.register('phone')} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Email</Label>
+                  <Label>{t('labelEmail')}</Label>
                   <Input value={profile?.email ?? ''} disabled className="bg-gray-50" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Rôle</Label>
+                  <Label>{t('labelRole')}</Label>
                   <Input value={profile?.role ?? ''} disabled className="bg-gray-50 capitalize" />
                 </div>
               </div>
               <Button type="submit" disabled={profileForm.formState.isSubmitting}>
                 {profileForm.formState.isSubmitting && <Loader2 className="animate-spin" />}
-                Enregistrer le profil
+                {t('saveProfile')}
               </Button>
             </form>
           </CardContent>
@@ -113,37 +115,37 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <Building2 className="h-4 w-4" /> Ma clinique
+                <Building2 className="h-4 w-4" /> {t('clinicTitle')}
               </CardTitle>
-              <CardDescription>Modifiez les informations de votre clinique</CardDescription>
+              <CardDescription>{t('clinicDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={clinicForm.handleSubmit(saveClinic)} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2 space-y-1.5">
-                    <Label>Nom de la clinique</Label>
+                    <Label>{t('labelClinicName')}</Label>
                     <Input {...clinicForm.register('name')} />
                   </div>
                   <div className="col-span-2 space-y-1.5">
-                    <Label>Localisation</Label>
+                    <Label>{t('labelLocation')}</Label>
                     <Input {...clinicForm.register('location')} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label>Téléphone</Label>
+                    <Label>{t('labelPhone')}</Label>
                     <Input {...clinicForm.register('phone')} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label>Email</Label>
+                    <Label>{t('labelEmail')}</Label>
                     <Input type="email" {...clinicForm.register('email')} />
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Button type="submit" disabled={clinicForm.formState.isSubmitting}>
                     {clinicForm.formState.isSubmitting && <Loader2 className="animate-spin" />}
-                    Enregistrer la clinique
+                    {t('saveClinic')}
                   </Button>
                   <span className="text-xs text-gray-400">
-                    Plan: <strong className="capitalize">{clinic.subscription_plan}</strong>
+                    {t('planLabel', { plan: clinic.subscription_plan })}
                   </span>
                 </div>
               </form>

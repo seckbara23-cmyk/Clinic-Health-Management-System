@@ -22,18 +22,8 @@ import { usePatients } from '@/hooks/usePatients'
 import { useConsultations, useUpdateConsultation, type VitalSignsInput } from '@/hooks/useConsultations'
 import { formatDate } from '@/lib/utils'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 import type { Consultation, VitalSigns } from '@/types/database'
-
-const createSchema = z.object({
-  patient_id: z.string().min(1, 'Patient requis'),
-  chief_complaint: z.string().optional().nullable(),
-  symptoms: z.string().optional().nullable(),
-  diagnosis: z.string().optional().nullable(),
-  treatment_plan: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
-  follow_up_date: z.string().optional().nullable(),
-})
-type CreateForm = z.infer<typeof createSchema>
 
 const editSchema = z.object({
   chief_complaint: z.string().optional().nullable(),
@@ -51,15 +41,8 @@ const editSchema = z.object({
 })
 type EditForm = z.infer<typeof editSchema>
 
-const textFields = [
-  { field: 'chief_complaint' as const, label: 'Motif de consultation' },
-  { field: 'symptoms' as const, label: 'Symptômes' },
-  { field: 'diagnosis' as const, label: 'Diagnostic' },
-  { field: 'treatment_plan' as const, label: 'Plan de traitement' },
-  { field: 'notes' as const, label: 'Notes' },
-]
-
 export default function ConsultationsPage() {
+  const t = useTranslations('consultations')
   const router = useRouter()
   const { clinic, profile } = useClinic()
   const [createOpen, setCreateOpen] = useState(false)
@@ -70,6 +53,25 @@ export default function ConsultationsPage() {
   const patients = patientsResult?.data
   const { data: consultations, isLoading, isError, refetch } = useConsultations()
   const updateMutation = useUpdateConsultation()
+
+  const createSchema = z.object({
+    patient_id: z.string().min(1, t('zodPatientRequired')),
+    chief_complaint: z.string().optional().nullable(),
+    symptoms: z.string().optional().nullable(),
+    diagnosis: z.string().optional().nullable(),
+    treatment_plan: z.string().optional().nullable(),
+    notes: z.string().optional().nullable(),
+    follow_up_date: z.string().optional().nullable(),
+  })
+  type CreateForm = z.infer<typeof createSchema>
+
+  const textFields: { field: keyof CreateForm & keyof EditForm; label: string }[] = [
+    { field: 'chief_complaint', label: t('labelChiefComplaint') },
+    { field: 'symptoms',        label: t('labelSymptoms') },
+    { field: 'diagnosis',       label: t('labelDiagnosis') },
+    { field: 'treatment_plan',  label: t('labelTreatment') },
+    { field: 'notes',           label: t('labelNotes') },
+  ]
 
   const createMutation = useMutation({
     mutationFn: async (data: CreateForm) => {
@@ -150,12 +152,12 @@ export default function ConsultationsPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Topbar title="Consultations" description="Historique des consultations médicales" />
+      <Topbar title={t('title')} description={t('subtitle')} />
 
       <div className="flex-1 p-6 space-y-4">
         <div className="flex justify-end">
           <Button onClick={() => { createForm.reset(); setCreateOpen(true) }}>
-            <Plus className="h-4 w-4" /> Nouvelle consultation
+            <Plus className="h-4 w-4" /> {t('newConsult')}
           </Button>
         </div>
 
@@ -164,14 +166,14 @@ export default function ConsultationsPage() {
             <Table className="min-w-[700px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Patient</TableHead>
-                  <TableHead>Médecin</TableHead>
-                  <TableHead>Motif</TableHead>
-                  <TableHead>Diagnostic</TableHead>
-                  <TableHead>Signes vitaux</TableHead>
-                  <TableHead>Suivi</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t('colPatient')}</TableHead>
+                  <TableHead>{t('colDoctor')}</TableHead>
+                  <TableHead>{t('colReason')}</TableHead>
+                  <TableHead>{t('colDiagnosis')}</TableHead>
+                  <TableHead>{t('colVitals')}</TableHead>
+                  <TableHead>{t('colFollowUp')}</TableHead>
+                  <TableHead>{t('colDate')}</TableHead>
+                  <TableHead className="text-right">{t('colActions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -187,12 +189,12 @@ export default function ConsultationsPage() {
                     <TableCell colSpan={8} className="text-center py-12">
                       <div className="flex flex-col items-center gap-3 text-gray-400">
                         <AlertTriangle className="h-8 w-8 text-red-400" />
-                        <p className="text-sm">Impossible de charger les consultations.</p>
+                        <p className="text-sm">{t('errorTitle')}</p>
                         <button
                           onClick={() => refetch()}
                           className="flex items-center gap-1.5 text-xs text-blue-600 hover:underline"
                         >
-                          <RefreshCw className="h-3.5 w-3.5" /> Réessayer
+                          <RefreshCw className="h-3.5 w-3.5" /> {t('retry')}
                         </button>
                       </div>
                     </TableCell>
@@ -202,7 +204,7 @@ export default function ConsultationsPage() {
                   <TableRow>
                     <TableCell colSpan={8} className="text-center py-12 text-gray-400">
                       <Stethoscope className="mx-auto h-10 w-10 mb-3 opacity-30" />
-                      <p>Aucune consultation enregistrée</p>
+                      <p>{t('emptyTitle')}</p>
                     </TableCell>
                   </TableRow>
                 )}
@@ -243,14 +245,12 @@ export default function ConsultationsPage() {
                         <Button
                           variant="ghost" size="icon" className="h-8 w-8"
                           onClick={() => openEdit(c)}
-                          title="Modifier"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="ghost" size="icon" className="h-8 w-8 text-teal-700 hover:text-teal-800 hover:bg-teal-50"
                           asChild
-                          title="Ouvrir la consultation"
                         >
                           <Link href={`/consultations/${c.id}`}>
                             <ExternalLink className="h-3.5 w-3.5" />
@@ -269,12 +269,12 @@ export default function ConsultationsPage() {
       {/* Create dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-lg">
-          <DialogHeader><DialogTitle>Nouvelle consultation</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('createTitle')}</DialogTitle></DialogHeader>
           <form onSubmit={createForm.handleSubmit(d => createMutation.mutate(d))} className="space-y-3">
             <div className="space-y-1.5">
-              <Label>Patient *</Label>
+              <Label>{t('labelPatient')}</Label>
               <Select onValueChange={v => createForm.setValue('patient_id', v)}>
-                <SelectTrigger><SelectValue placeholder="Sélectionner un patient" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('selectPatient')} /></SelectTrigger>
                 <SelectContent>
                   {patients?.map(p => <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>)}
                 </SelectContent>
@@ -290,14 +290,14 @@ export default function ConsultationsPage() {
               </div>
             ))}
             <div className="space-y-1.5">
-              <Label>Date de suivi</Label>
+              <Label>{t('labelFollowUp')}</Label>
               <Input type="date" {...createForm.register('follow_up_date')} />
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Annuler</Button>
+              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>{t('cancel')}</Button>
               <Button type="submit" disabled={createForm.formState.isSubmitting}>
                 {createForm.formState.isSubmitting && <Loader2 className="animate-spin" />}
-                Créer
+                {t('create')}
               </Button>
             </DialogFooter>
           </form>
@@ -308,10 +308,9 @@ export default function ConsultationsPage() {
       <Dialog open={!!editTarget} onOpenChange={open => { if (!open) setEditTarget(null) }}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Modifier la consultation</DialogTitle>
+            <DialogTitle>{t('editTitle')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={editForm.handleSubmit(onEdit)} className="space-y-4">
-            {/* Clinical fields */}
             <div className="space-y-3">
               {textFields.map(({ field, label }) => (
                 <div key={field} className="space-y-1.5">
@@ -320,7 +319,7 @@ export default function ConsultationsPage() {
                 </div>
               ))}
               <div className="space-y-1.5">
-                <Label>Date de suivi</Label>
+                <Label>{t('labelFollowUp')}</Label>
                 <Input type="date" {...editForm.register('follow_up_date')} />
               </div>
             </div>
@@ -328,41 +327,41 @@ export default function ConsultationsPage() {
             {/* Vital signs */}
             <div className="rounded-lg border p-4 space-y-3">
               <p className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <Activity className="h-4 w-4 text-rose-500" /> Signes vitaux
+                <Activity className="h-4 w-4 text-rose-500" /> {t('labelVitals')}
               </p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Tension (mmHg)</Label>
+                  <Label className="text-xs">{t('labelBP')}</Label>
                   <Input {...editForm.register('blood_pressure')} placeholder="120/80" className="h-8 text-sm" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Fréquence cardiaque (bpm)</Label>
+                  <Label className="text-xs">{t('labelHR')}</Label>
                   <Input type="number" {...editForm.register('heart_rate')} placeholder="75" className="h-8 text-sm" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Température (°C)</Label>
+                  <Label className="text-xs">{t('labelTemp')}</Label>
                   <Input type="number" step="0.1" {...editForm.register('temperature')} placeholder="37.0" className="h-8 text-sm" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Poids (kg)</Label>
+                  <Label className="text-xs">{t('labelWeight')}</Label>
                   <Input type="number" step="0.1" {...editForm.register('weight')} placeholder="70" className="h-8 text-sm" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Taille (cm)</Label>
+                  <Label className="text-xs">{t('labelHeight')}</Label>
                   <Input type="number" {...editForm.register('height')} placeholder="175" className="h-8 text-sm" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">SpO₂ (%)</Label>
+                  <Label className="text-xs">{t('labelO2')}</Label>
                   <Input type="number" {...editForm.register('oxygen_saturation')} placeholder="98" className="h-8 text-sm" />
                 </div>
               </div>
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setEditTarget(null)}>Annuler</Button>
+              <Button type="button" variant="outline" onClick={() => setEditTarget(null)}>{t('cancel')}</Button>
               <Button type="submit" disabled={editForm.formState.isSubmitting || updateMutation.isPending}>
                 {(editForm.formState.isSubmitting || updateMutation.isPending) && <Loader2 className="animate-spin" />}
-                Enregistrer
+                {t('save')}
               </Button>
             </DialogFooter>
           </form>

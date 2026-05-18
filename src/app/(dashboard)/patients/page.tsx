@@ -20,24 +20,31 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { usePatients, useCreatePatient, useUpdatePatient, useDeletePatient, usePatientDeletionCounts } from '@/hooks/usePatients'
 import { formatDate, age } from '@/lib/utils'
 import type { Gender, BloodType } from '@/types/database'
-
-const patientSchema = z.object({
-  full_name: z.string().min(2, 'Nom requis'),
-  phone: z.string().optional().nullable(),
-  email: z.string().email().optional().or(z.literal('')).nullable(),
-  date_of_birth: z.string().optional().nullable(),
-  gender: z.enum(['male', 'female', 'other']).optional().nullable(),
-  blood_type: z.string().optional().nullable(),
-  address: z.string().optional().nullable(),
-  emergency_contact: z.string().optional().nullable(),
-  emergency_phone: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
-})
-type PatientFormData = z.infer<typeof patientSchema>
-
-const genderLabel: Record<string, string> = { male: 'Homme', female: 'Femme', other: 'Autre' }
+import { useTranslations } from 'next-intl'
 
 export default function PatientsPage() {
+  const t = useTranslations('patients')
+
+  const patientSchema = z.object({
+    full_name: z.string().min(2, t('zodNameRequired')),
+    phone: z.string().optional().nullable(),
+    email: z.string().email().optional().or(z.literal('')).nullable(),
+    date_of_birth: z.string().optional().nullable(),
+    gender: z.enum(['male', 'female', 'other']).optional().nullable(),
+    blood_type: z.string().optional().nullable(),
+    address: z.string().optional().nullable(),
+    emergency_contact: z.string().optional().nullable(),
+    emergency_phone: z.string().optional().nullable(),
+    notes: z.string().optional().nullable(),
+  })
+  type PatientFormData = z.infer<typeof patientSchema>
+
+  const genderLabel: Record<string, string> = {
+    male: t('genderMale'),
+    female: t('genderFemale'),
+    other: t('genderOther'),
+  }
+
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
   const [open, setOpen] = useState(false)
@@ -45,10 +52,8 @@ export default function PatientsPage() {
   const [deletePatientId, setDeletePatientId] = useState<string | null>(null)
   const [deletePatientName, setDeletePatientName] = useState<string>('')
 
-  // Reset to page 0 when search changes
   useEffect(() => { setPage(0) }, [search])
 
-  // Listen for FAB events
   const openCreate = useCallback(() => { setEditId(null); reset(); setOpen(true) }, []) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     window.addEventListener('fab:create-patient', openCreate)
@@ -97,7 +102,7 @@ export default function PatientsPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Topbar title="Patients" description="Gérez les dossiers patients de votre clinique" />
+      <Topbar title={t('title')} description={t('subtitle')} />
 
       <div className="flex-1 p-4 md:p-6 space-y-4">
         {/* Toolbar */}
@@ -105,7 +110,7 @@ export default function PatientsPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <Input
-              placeholder="Rechercher..."
+              placeholder={t('searchPlaceholder')}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="pl-9"
@@ -113,14 +118,14 @@ export default function PatientsPage() {
           </div>
           <Button onClick={openCreate} className="shrink-0">
             <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Nouveau patient</span>
+            <span className="hidden sm:inline">{t('newPatient')}</span>
           </Button>
         </div>
 
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">
-              {isLoading ? 'Chargement...' : `${totalPatients} patient(s)`}
+              {isLoading ? t('loading') : t('count', { count: totalPatients })}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -132,17 +137,17 @@ export default function PatientsPage() {
             {isError && (
               <EmptyState
                 icon={UserRound}
-                title="Impossible de charger les patients"
-                description="Une erreur est survenue. Vérifiez votre connexion et réessayez."
-                action={{ label: 'Réessayer', onClick: () => refetch() }}
+                title={t('errorTitle')}
+                description={t('errorDesc')}
+                action={{ label: t('retry'), onClick: () => refetch() }}
               />
             )}
             {!isLoading && !isError && (!patients || patients.length === 0) && (
               <EmptyState
                 icon={UserRound}
-                title={search ? 'Aucun résultat' : 'Aucun patient enregistré'}
-                description={search ? `Aucun patient ne correspond à "${search}".` : 'Créez votre premier dossier patient pour commencer.'}
-                action={!search ? { label: 'Nouveau patient', onClick: openCreate } : undefined}
+                title={search ? t('noResults') : t('emptyTitle')}
+                description={search ? t('noResultsDesc', { query: search }) : t('emptyDesc')}
+                action={!search ? { label: t('newPatient'), onClick: openCreate } : undefined}
               />
             )}
 
@@ -164,7 +169,7 @@ export default function PatientsPage() {
                           <Phone className="h-3 w-3" />{p.phone}
                         </a>
                       )}
-                      {p.date_of_birth && <span>{age(p.date_of_birth)} ans</span>}
+                      {p.date_of_birth && <span>{age(p.date_of_birth)} {t('ageUnit')}</span>}
                       {p.gender && <span>{genderLabel[p.gender]}</span>}
                       {p.blood_type && <span className="font-mono font-semibold text-red-700">{p.blood_type}</span>}
                     </div>
@@ -186,13 +191,13 @@ export default function PatientsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>N°</TableHead>
-                    <TableHead>Nom</TableHead>
-                    <TableHead>Téléphone</TableHead>
-                    <TableHead>Âge / Genre</TableHead>
-                    <TableHead>Groupe sanguin</TableHead>
-                    <TableHead>Enregistré le</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{t('colNumber')}</TableHead>
+                    <TableHead>{t('colName')}</TableHead>
+                    <TableHead>{t('colPhone')}</TableHead>
+                    <TableHead>{t('colAgeGender')}</TableHead>
+                    <TableHead>{t('colBloodType')}</TableHead>
+                    <TableHead>{t('colRegistered')}</TableHead>
+                    <TableHead className="text-right">{t('colActions')}</TableHead>
                     <TableHead className="w-8"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -210,7 +215,7 @@ export default function PatientsPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {p.date_of_birth && <span className="text-sm">{age(p.date_of_birth)} ans</span>}
+                          {p.date_of_birth && <span className="text-sm">{age(p.date_of_birth)} {t('ageUnit')}</span>}
                           {p.gender && <Badge variant="outline" className="text-xs">{genderLabel[p.gender]}</Badge>}
                         </div>
                       </TableCell>
@@ -258,17 +263,17 @@ export default function PatientsPage() {
                   disabled={page === 0}
                   onClick={() => setPage(p => p - 1)}
                 >
-                  <ChevronLeft className="h-4 w-4 mr-1" /> Précédent
+                  <ChevronLeft className="h-4 w-4 mr-1" /> {t('prevPage')}
                 </Button>
                 <span className="text-xs text-gray-500">
-                  Page {page + 1} / {totalPages} · {totalPatients} patients
+                  {t('pageInfo', { page: page + 1, total: totalPages, count: totalPatients })}
                 </span>
                 <Button
                   variant="outline" size="sm"
                   disabled={page >= totalPages - 1}
                   onClick={() => setPage(p => p + 1)}
                 >
-                  Suivant <ChevronRight className="h-4 w-4 ml-1" />
+                  {t('nextPage')} <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>
             )}
@@ -281,27 +286,26 @@ export default function PatientsPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
-              <AlertTriangle className="h-5 w-5" /> Supprimer le patient
+              <AlertTriangle className="h-5 w-5" /> {t('deleteTitle')}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 text-sm">
             <p>
-              Vous êtes sur le point de supprimer définitivement <span className="font-semibold">{deletePatientName}</span>.
-              Cette action est irréversible.
+              {t('deleteConfirm', { name: deletePatientName })}
             </p>
             {countsLoading ? (
               <div className="flex items-center gap-2 text-gray-500">
-                <Loader2 className="h-4 w-4 animate-spin" /> Calcul des données associées…
+                <Loader2 className="h-4 w-4 animate-spin" /> {t('deletionLoading')}
               </div>
             ) : deletionCounts && (
               <div className="rounded-lg border border-red-200 bg-red-50 p-3 space-y-1">
-                <p className="font-medium text-red-700 mb-2">Données qui seront supprimées :</p>
+                <p className="font-medium text-red-700 mb-2">{t('deletionDataTitle')}</p>
                 {[
-                  { label: 'Rendez-vous',    count: deletionCounts.appointments },
-                  { label: 'Consultations',  count: deletionCounts.consultations },
-                  { label: 'Ordonnances',    count: deletionCounts.prescriptions },
-                  { label: 'Analyses',       count: deletionCounts.lab_requests },
-                  { label: 'Factures',       count: deletionCounts.invoices },
+                  { label: t('deletionAppointments'), count: deletionCounts.appointments },
+                  { label: t('deletionConsultations'), count: deletionCounts.consultations },
+                  { label: t('deletionPrescriptions'), count: deletionCounts.prescriptions },
+                  { label: t('deletionLab'),           count: deletionCounts.lab_requests },
+                  { label: t('deletionInvoices'),      count: deletionCounts.invoices },
                 ].map(({ label, count }) => (
                   <div key={label} className="flex justify-between text-red-800">
                     <span>{label}</span>
@@ -312,7 +316,7 @@ export default function PatientsPage() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeletePatientId(null)}>Annuler</Button>
+            <Button variant="outline" onClick={() => setDeletePatientId(null)}>{t('cancel')}</Button>
             <Button
               variant="destructive"
               disabled={deleteMutation.isPending || countsLoading}
@@ -322,7 +326,7 @@ export default function PatientsPage() {
               }}
             >
               {deleteMutation.isPending && <Loader2 className="animate-spin" />}
-              Supprimer définitivement
+              {t('deleteConfirmBtn')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -332,42 +336,42 @@ export default function PatientsPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editId ? 'Modifier le patient' : 'Nouveau patient'}</DialogTitle>
+            <DialogTitle>{editId ? t('editTitle') : t('createTitle')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2 space-y-1.5">
-                <Label>Nom complet *</Label>
+                <Label>{t('labelFullName')}</Label>
                 <Input {...register('full_name')} />
                 {errors.full_name && <p className="text-xs text-red-500">{errors.full_name.message}</p>}
               </div>
               <div className="space-y-1.5">
-                <Label>Téléphone</Label>
+                <Label>{t('labelPhone')}</Label>
                 <Input {...register('phone')} placeholder="+221 77 000 0000" />
               </div>
               <div className="space-y-1.5">
-                <Label>Email</Label>
+                <Label>{t('labelEmail')}</Label>
                 <Input type="email" {...register('email')} />
               </div>
               <div className="space-y-1.5">
-                <Label>Date de naissance</Label>
+                <Label>{t('labelDOB')}</Label>
                 <Input type="date" {...register('date_of_birth')} />
               </div>
               <div className="space-y-1.5">
-                <Label>Genre</Label>
+                <Label>{t('labelGender')}</Label>
                 <Select onValueChange={v => setValue('gender', v as Gender)}>
-                  <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t('selectPlaceholder')} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="male">Homme</SelectItem>
-                    <SelectItem value="female">Femme</SelectItem>
-                    <SelectItem value="other">Autre</SelectItem>
+                    <SelectItem value="male">{t('genderMale')}</SelectItem>
+                    <SelectItem value="female">{t('genderFemale')}</SelectItem>
+                    <SelectItem value="other">{t('genderOther')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Groupe sanguin</Label>
+                <Label>{t('labelBloodType')}</Label>
                 <Select onValueChange={v => setValue('blood_type', v as BloodType)}>
-                  <SelectTrigger><SelectValue placeholder="Groupe" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t('labelBloodType')} /></SelectTrigger>
                   <SelectContent>
                     {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(bt => (
                       <SelectItem key={bt} value={bt}>{bt}</SelectItem>
@@ -376,27 +380,27 @@ export default function PatientsPage() {
                 </Select>
               </div>
               <div className="col-span-2 space-y-1.5">
-                <Label>Adresse</Label>
+                <Label>{t('labelAddress')}</Label>
                 <Input {...register('address')} />
               </div>
               <div className="space-y-1.5">
-                <Label>Contact d&apos;urgence</Label>
+                <Label>{t('labelEmergencyContact')}</Label>
                 <Input {...register('emergency_contact')} />
               </div>
               <div className="space-y-1.5">
-                <Label>Téléphone urgence</Label>
+                <Label>{t('labelEmergencyPhone')}</Label>
                 <Input {...register('emergency_phone')} />
               </div>
               <div className="col-span-2 space-y-1.5">
-                <Label>Notes</Label>
+                <Label>{t('labelNotes')}</Label>
                 <Input {...register('notes')} />
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>{t('cancel')}</Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="animate-spin" />}
-                {editId ? 'Enregistrer' : 'Créer'}
+                {editId ? t('save') : t('create')}
               </Button>
             </DialogFooter>
           </form>

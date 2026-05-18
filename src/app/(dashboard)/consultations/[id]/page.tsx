@@ -22,6 +22,7 @@ import { useCreateInvoice } from '@/hooks/useInvoices'
 import { useClinic } from '@/context/ClinicContext'
 import { formatDate, formatTime, cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 
 const schema = z.object({
   chief_complaint: z.string().optional().nullable(),
@@ -34,21 +35,14 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>
 
 const invoiceSchema = z.object({
-  amount:         z.coerce.number().min(0, 'Montant requis'),
-  payment_method: z.string().min(1, 'Mode de paiement requis'),
+  amount:         z.coerce.number().min(0),
+  payment_method: z.string().min(1),
 })
 type InvoiceForm = z.infer<typeof invoiceSchema>
 
-const PAYMENT_METHODS = [
-  { value: 'cash',         label: 'Espèces' },
-  { value: 'mobile_money', label: 'Mobile Money (Wave / Orange)' },
-  { value: 'card',         label: 'Carte bancaire' },
-  { value: 'insurance',    label: 'Assurance' },
-  { value: 'other',        label: 'Autre' },
-]
-
 export default function ConsultationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
+  const t = useTranslations('consultationDetail')
   const router = useRouter()
   const { profile } = useClinic()
   const { data: consultation, isLoading } = useConsultation(id)
@@ -57,6 +51,22 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
   const createInvoice = useCreateInvoice()
   const [invoiceOpen, setInvoiceOpen] = useState(false)
   const [saved, setSaved] = useState(false)
+
+  const PAYMENT_METHODS = [
+    { value: 'cash',         label: t('paymentCash') },
+    { value: 'mobile_money', label: t('paymentMobile') },
+    { value: 'card',         label: t('paymentCard') },
+    { value: 'insurance',    label: t('paymentInsurance') },
+    { value: 'other',        label: t('paymentOther') },
+  ]
+
+  const clinicalFields = [
+    { field: 'chief_complaint' as const, label: t('labelChiefComplaint') },
+    { field: 'symptoms'        as const, label: t('labelSymptoms') },
+    { field: 'diagnosis'       as const, label: t('labelDiagnosis') },
+    { field: 'treatment_plan'  as const, label: t('labelTreatment') },
+    { field: 'notes'           as const, label: t('labelNotes') },
+  ]
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { register, handleSubmit, formState: { errors, isSubmitting, isDirty } } = useForm<FormData>({
@@ -103,7 +113,7 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
     await createInvoice.mutateAsync({
       patient_id:      consultation.patient_id,
       consultation_id: id,
-      line_items:      [{ description: 'Consultation médicale', quantity: 1, unit_price: subtotal, total: subtotal }],
+      line_items:      [{ description: t('invoiceMedicalConsult'), quantity: 1, unit_price: subtotal, total: subtotal }],
       subtotal,
       tax_amount:      0,
       discount_amount: 0,
@@ -118,7 +128,7 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
     })
     setInvoiceOpen(false)
     invoiceForm.reset()
-    toast.success('Facture créée — disponible dans Facturation')
+    toast.success(t('invoiceCreated'))
   }
 
   if (isLoading) {
@@ -132,7 +142,7 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
   if (!consultation) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-gray-400">Consultation introuvable.</p>
+        <p className="text-gray-400">{t('notFound')}</p>
       </div>
     )
   }
@@ -143,14 +153,14 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
   const isEnded     = !!consultation.ended_at
 
   const genderLabel = (g: string | null | undefined) =>
-    g === 'male' ? 'M' : g === 'female' ? 'F' : g === 'other' ? 'Autre' : null
+    g === 'male' ? t('genderM') : g === 'female' ? t('genderF') : g === 'other' ? t('genderOther') : null
 
   return (
     <div className="flex flex-col h-full">
       {/* Topbar */}
       <div className="flex items-center gap-3 border-b bg-white px-4 md:px-6 py-3 shrink-0">
         <Button variant="ghost" size="sm" className="gap-1 text-gray-500" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4" /> Retour
+          <ArrowLeft className="h-4 w-4" /> {t('back')}
         </Button>
         <div className="h-5 w-px bg-gray-200" />
         <Stethoscope className="h-4 w-4 text-teal-700 shrink-0" />
@@ -166,7 +176,7 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
           {isEnded && (
             <span className="flex items-center gap-1 text-xs text-gray-400">
               <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              <span className="hidden sm:inline">Terminée le {formatDate(consultation.ended_at!)}</span>
+              <span className="hidden sm:inline">{t('ended', { date: formatDate(consultation.ended_at!) })}</span>
             </span>
           )}
           {!isEnded && (
@@ -178,7 +188,7 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
                 disabled={isSubmitting}
               >
                 <Receipt className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Facture</span>
+                <span className="hidden sm:inline">{t('btnInvoice')}</span>
               </Button>
               <Button
                 size="sm" className="gap-1.5"
@@ -190,7 +200,7 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
                   : saved
                   ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />
                   : null}
-                <span className="hidden sm:inline">Enregistrer</span>
+                <span className="hidden sm:inline">{t('btnSave')}</span>
               </Button>
               <Button
                 size="sm" variant="outline"
@@ -201,7 +211,7 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
                 {endMutation.isPending
                   ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   : <CheckCircle2 className="h-3.5 w-3.5" />}
-                <span className="hidden sm:inline">Terminer</span>
+                <span className="hidden sm:inline">{t('btnEnd')}</span>
               </Button>
             </>
           )}
@@ -216,7 +226,7 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <User className="h-4 w-4 text-teal-700" /> Patient
+                  <User className="h-4 w-4 text-teal-700" /> {t('cardPatient')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-1.5 text-sm">
@@ -230,12 +240,12 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
                 )}
                 {patient?.blood_type && (
                   <p className="text-gray-500">
-                    Groupe: <span className="font-medium text-red-700">{patient.blood_type}</span>
+                    {t('patientBloodGroup', { type: patient.blood_type })}
                   </p>
                 )}
                 {patient?.allergies && patient.allergies.length > 0 && (
                   <div>
-                    <p className="text-xs text-gray-400 mb-1">Allergies</p>
+                    <p className="text-xs text-gray-400 mb-1">{t('patientAllergies')}</p>
                     <div className="flex flex-wrap gap-1">
                       {patient.allergies.map(a => (
                         <span key={a} className="rounded-full bg-red-50 border border-red-200 px-2 py-0.5 text-xs text-red-700">
@@ -252,7 +262,7 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-teal-700" /> Rendez-vous
+                    <Calendar className="h-4 w-4 text-teal-700" /> {t('cardAppointment')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm space-y-1">
@@ -266,13 +276,13 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <Stethoscope className="h-4 w-4 text-teal-700" /> Médecin
+                  <Stethoscope className="h-4 w-4 text-teal-700" /> {t('cardDoctor')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-sm">
                 <p className="font-medium text-gray-700">{doctor?.full_name ?? profile?.full_name ?? '—'}</p>
                 {consultation.started_at && (
-                  <p className="text-xs text-gray-400 mt-1">Début: {formatTime(consultation.started_at)}</p>
+                  <p className="text-xs text-gray-400 mt-1">{t('cardStarted', { time: formatTime(consultation.started_at) })}</p>
                 )}
               </CardContent>
             </Card>
@@ -285,16 +295,10 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
             <form onSubmit={handleSubmit(onSave)}>
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">Données cliniques</CardTitle>
+                  <CardTitle className="text-sm">{t('clinicalTitle')}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {([
-                    { field: 'chief_complaint' as const, label: 'Motif de consultation' },
-                    { field: 'symptoms'        as const, label: 'Symptômes' },
-                    { field: 'diagnosis'       as const, label: 'Diagnostic' },
-                    { field: 'treatment_plan'  as const, label: 'Plan de traitement' },
-                    { field: 'notes'           as const, label: 'Notes cliniques' },
-                  ] as const).map(({ field, label }) => (
+                  {clinicalFields.map(({ field, label }) => (
                     <div key={field} className="space-y-1.5">
                       <Label className="text-sm">{label}</Label>
                       <Textarea
@@ -309,7 +313,7 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
                     </div>
                   ))}
                   <div className="space-y-1.5">
-                    <Label className="text-sm">Date de suivi</Label>
+                    <Label className="text-sm">{t('labelFollowUp')}</Label>
                     <Input
                       type="date"
                       {...register('follow_up_date')}
@@ -330,8 +334,8 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
                         )}
                         {saved
-                          ? <><CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" /> Enregistré</>
-                          : 'Enregistrer'}
+                          ? <><CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" /> {t('btnSaved')}</>
+                          : t('btnSave')}
                       </Button>
                     </div>
                   )}
@@ -339,7 +343,7 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
               </Card>
             </form>
 
-            {/* Structured vitals — independent form, saves to consultation_vitals */}
+            {/* Structured vitals */}
             <VitalsForm
               consultationId={id}
               patientId={consultation.patient_id}
@@ -353,30 +357,27 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
       <Dialog open={invoiceOpen} onOpenChange={setInvoiceOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Générer une facture</DialogTitle>
+            <DialogTitle>{t('invoiceTitle')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={invoiceForm.handleSubmit(onCreateInvoice)} className="space-y-4">
             <div className="rounded-lg bg-gray-50 border px-4 py-3 text-sm text-gray-700 space-y-1">
               <p className="font-medium">{patient?.full_name}</p>
               <p className="text-xs text-gray-400">
-                Consultation médicale · {formatDate(consultation.created_at)}
+                {t('invoiceMedicalConsult')} · {formatDate(consultation.created_at)}
               </p>
             </div>
             <div className="space-y-1.5">
-              <Label>Montant (XOF)</Label>
+              <Label>{t('invoiceLabelAmount')}</Label>
               <Input
                 type="number" min={0} step={100} placeholder="5000"
                 {...invoiceForm.register('amount')}
                 className="text-lg font-semibold"
               />
-              {invoiceForm.formState.errors.amount && (
-                <p className="text-xs text-red-500">{invoiceForm.formState.errors.amount.message}</p>
-              )}
             </div>
             <div className="space-y-1.5">
-              <Label>Mode de paiement</Label>
+              <Label>{t('invoiceLabelMethod')}</Label>
               <Select defaultValue="cash" onValueChange={v => invoiceForm.setValue('payment_method', v)}>
-                <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {PAYMENT_METHODS.map(m => (
                     <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
@@ -385,12 +386,12 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
               </Select>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setInvoiceOpen(false)}>Annuler</Button>
+              <Button type="button" variant="outline" onClick={() => setInvoiceOpen(false)}>{t('cancel')}</Button>
               <Button type="submit" disabled={invoiceForm.formState.isSubmitting || createInvoice.isPending}>
                 {(invoiceForm.formState.isSubmitting || createInvoice.isPending) && (
                   <Loader2 className="animate-spin h-4 w-4" />
                 )}
-                Créer la facture
+                {t('invoiceCreateBtn')}
               </Button>
             </DialogFooter>
           </form>

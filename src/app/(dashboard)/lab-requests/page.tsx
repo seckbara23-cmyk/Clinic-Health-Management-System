@@ -17,22 +17,8 @@ import { useLabRequests, useCreateLabRequest, useUpdateLabRequest } from '@/hook
 import { usePatients } from '@/hooks/usePatients'
 import { useClinic } from '@/context/ClinicContext'
 import { formatDate, cn } from '@/lib/utils'
+import { useTranslations } from 'next-intl'
 import type { LabRequest, LabRequestStatus, LabRequestType, AppointmentPriority } from '@/types/database'
-
-const createSchema = z.object({
-  patient_id:    z.string().min(1, 'Patient requis'),
-  test_name:     z.string().min(1, 'Examen requis'),
-  test_type:     z.enum(['blood','urine','imaging','biopsy','microbiology','other']),
-  priority:      z.enum(['normal','urgent','emergency']),
-  clinical_notes:z.string().optional().nullable(),
-})
-type CreateForm = z.infer<typeof createSchema>
-
-const resultSchema = z.object({
-  result_notes: z.string().min(1, 'Résultat requis'),
-  status: z.enum(['resulted','cancelled']),
-})
-type ResultForm = z.infer<typeof resultSchema>
 
 const statusColors: Record<LabRequestStatus, string> = {
   ordered:    'bg-blue-100 text-blue-700',
@@ -40,22 +26,6 @@ const statusColors: Record<LabRequestStatus, string> = {
   processing: 'bg-amber-100 text-amber-700',
   resulted:   'bg-emerald-100 text-emerald-700',
   cancelled:  'bg-red-100 text-red-500',
-}
-const statusLabels: Record<LabRequestStatus, string> = {
-  ordered:    'Demandé',
-  collected:  'Prélevé',
-  processing: 'En cours',
-  resulted:   'Résultat disponible',
-  cancelled:  'Annulé',
-}
-
-const typeLabels: Record<LabRequestType, string> = {
-  blood:         'Sang',
-  urine:         'Urine',
-  imaging:       'Imagerie',
-  biopsy:        'Biopsie',
-  microbiology:  'Microbiologie',
-  other:         'Autre',
 }
 
 const priorityBadge: Record<string, string> = {
@@ -70,10 +40,43 @@ type LabRow = LabRequest & {
 }
 
 export default function LabRequestsPage() {
+  const t = useTranslations('labRequests')
   const { profile } = useClinic()
   const [createOpen, setCreateOpen] = useState(false)
   const [resultTarget, setResultTarget] = useState<LabRow | null>(null)
   const [statusTarget, setStatusTarget] = useState<LabRow | null>(null)
+
+  const statusLabels: Record<LabRequestStatus, string> = {
+    ordered:    t('statusOrdered'),
+    collected:  t('statusCollected'),
+    processing: t('statusProcessing'),
+    resulted:   t('statusResulted'),
+    cancelled:  t('statusCancelled'),
+  }
+
+  const typeLabels: Record<LabRequestType, string> = {
+    blood:        t('typeBlood'),
+    urine:        t('typeUrine'),
+    imaging:      t('typeImaging'),
+    biopsy:       t('typeBiopsy'),
+    microbiology: t('typeMicrobiology'),
+    other:        t('typeOther'),
+  }
+
+  const createSchema = z.object({
+    patient_id:    z.string().min(1, t('zodPatientRequired')),
+    test_name:     z.string().min(1, t('zodTestRequired')),
+    test_type:     z.enum(['blood','urine','imaging','biopsy','microbiology','other']),
+    priority:      z.enum(['normal','urgent','emergency']),
+    clinical_notes:z.string().optional().nullable(),
+  })
+  type CreateForm = z.infer<typeof createSchema>
+
+  const resultSchema = z.object({
+    result_notes: z.string().min(1, t('zodResultRequired')),
+    status: z.enum(['resulted','cancelled']),
+  })
+  type ResultForm = z.infer<typeof resultSchema>
 
   const { data: labRequests, isLoading } = useLabRequests()
   const { data: patientsResult } = usePatients()
@@ -128,13 +131,13 @@ export default function LabRequestsPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Topbar title="Analyses & Examens" description="Demandes d'examens et résultats" />
+      <Topbar title={t('title')} description={t('subtitle')} />
 
       <div className="flex-1 p-6 space-y-4">
         <div className="flex justify-end">
           {canCreate && (
             <Button onClick={() => { createForm.reset({ test_type: 'blood', priority: 'normal' }); setCreateOpen(true) }}>
-              <Plus className="h-4 w-4" /> Nouvelle demande
+              <Plus className="h-4 w-4" /> {t('newRequest')}
             </Button>
           )}
         </div>
@@ -144,14 +147,14 @@ export default function LabRequestsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Patient</TableHead>
-                  <TableHead>Examen</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Priorité</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead>Résultat</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t('colPatient')}</TableHead>
+                  <TableHead>{t('colTest')}</TableHead>
+                  <TableHead>{t('colType')}</TableHead>
+                  <TableHead>{t('colPriority')}</TableHead>
+                  <TableHead>{t('colStatus')}</TableHead>
+                  <TableHead>{t('colResult')}</TableHead>
+                  <TableHead>{t('colDate')}</TableHead>
+                  <TableHead className="text-right">{t('colActions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -166,7 +169,7 @@ export default function LabRequestsPage() {
                   <TableRow>
                     <TableCell colSpan={8} className="text-center py-12 text-gray-400">
                       <FlaskConical className="mx-auto h-10 w-10 mb-3 opacity-30" />
-                      <p>Aucune demande d&apos;examen</p>
+                      <p>{t('emptyTitle')}</p>
                     </TableCell>
                   </TableRow>
                 )}
@@ -197,14 +200,13 @@ export default function LabRequestsPage() {
                             onClick={() => advanceStatus(lab)}
                             disabled={updateMutation.isPending}
                           >
-                            {lab.status === 'ordered' ? 'Prélever' : 'En cours'}
+                            {lab.status === 'ordered' ? t('btnCollect') : t('btnProcessing')}
                           </Button>
                         )}
                         {lab.status === 'processing' && (
                           <Button
                             variant="ghost" size="icon" className="h-8 w-8"
                             onClick={() => { resultForm.reset({ status: 'resulted' }); setResultTarget(lab) }}
-                            title="Entrer résultat"
                           >
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
@@ -214,7 +216,6 @@ export default function LabRequestsPage() {
                             variant="ghost" size="icon"
                             className="h-8 w-8 text-gray-400 hover:text-gray-700"
                             onClick={() => setStatusTarget(lab)}
-                            title="Changer statut"
                           >
                             <FlaskConical className="h-3.5 w-3.5" />
                           </Button>
@@ -232,12 +233,12 @@ export default function LabRequestsPage() {
       {/* Create dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Nouvelle demande d&apos;examen</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('createTitle')}</DialogTitle></DialogHeader>
           <form onSubmit={createForm.handleSubmit(onCreateSubmit)} className="space-y-4">
             <div className="space-y-1.5">
-              <Label>Patient *</Label>
+              <Label>{t('labelPatient')}</Label>
               <Select onValueChange={v => createForm.setValue('patient_id', v)}>
-                <SelectTrigger><SelectValue placeholder="Sélectionner un patient" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('selectPatient')} /></SelectTrigger>
                 <SelectContent>
                   {patients?.map(p => <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>)}
                 </SelectContent>
@@ -247,15 +248,15 @@ export default function LabRequestsPage() {
               )}
             </div>
             <div className="space-y-1.5">
-              <Label>Nom de l&apos;examen *</Label>
-              <Input {...createForm.register('test_name')} placeholder="NFS, Glycémie, Radiographie..." />
+              <Label>{t('labelTestName')}</Label>
+              <Input {...createForm.register('test_name')} placeholder={t('testNamePlaceholder')} />
               {createForm.formState.errors.test_name && (
                 <p className="text-xs text-red-500">{createForm.formState.errors.test_name.message}</p>
               )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>Type</Label>
+                <Label>{t('labelType')}</Label>
                 <Select defaultValue="blood" onValueChange={v => createForm.setValue('test_type', v as LabRequestType)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -264,26 +265,26 @@ export default function LabRequestsPage() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Priorité</Label>
+                <Label>{t('labelPriority')}</Label>
                 <Select defaultValue="normal" onValueChange={v => createForm.setValue('priority', v as AppointmentPriority)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="normal">Normal</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
-                    <SelectItem value="emergency">Urgence</SelectItem>
+                    <SelectItem value="normal">{t('priorityNormal')}</SelectItem>
+                    <SelectItem value="urgent">{t('priorityUrgent')}</SelectItem>
+                    <SelectItem value="emergency">{t('priorityEmergency')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>Notes cliniques</Label>
-              <Input {...createForm.register('clinical_notes')} placeholder="Contexte clinique..." />
+              <Label>{t('labelClinicalNotes')}</Label>
+              <Input {...createForm.register('clinical_notes')} placeholder={t('clinicalNotesPlaceholder')} />
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Annuler</Button>
+              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>{t('cancel')}</Button>
               <Button type="submit" disabled={createForm.formState.isSubmitting || createMutation.isPending}>
                 {(createForm.formState.isSubmitting || createMutation.isPending) && <Loader2 className="animate-spin" />}
-                Demander
+                {t('btnRequest')}
               </Button>
             </DialogFooter>
           </form>
@@ -294,31 +295,31 @@ export default function LabRequestsPage() {
       <Dialog open={!!resultTarget} onOpenChange={open => { if (!open) setResultTarget(null) }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Résultat — {resultTarget?.test_name}</DialogTitle>
+            <DialogTitle>{t('resultTitle', { test: resultTarget?.test_name ?? '' })}</DialogTitle>
           </DialogHeader>
           <form onSubmit={resultForm.handleSubmit(onResultSubmit)} className="space-y-4">
             <div className="space-y-1.5">
-              <Label>Résultat *</Label>
-              <Input {...resultForm.register('result_notes')} placeholder="Résultats de l'examen..." />
+              <Label>{t('labelResult')}</Label>
+              <Input {...resultForm.register('result_notes')} placeholder={t('resultPlaceholder')} />
               {resultForm.formState.errors.result_notes && (
                 <p className="text-xs text-red-500">{resultForm.formState.errors.result_notes.message}</p>
               )}
             </div>
             <div className="space-y-1.5">
-              <Label>Statut final</Label>
+              <Label>{t('labelFinalStatus')}</Label>
               <Select defaultValue="resulted" onValueChange={v => resultForm.setValue('status', v as 'resulted' | 'cancelled')}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="resulted">Résultat disponible</SelectItem>
-                  <SelectItem value="cancelled">Annulé</SelectItem>
+                  <SelectItem value="resulted">{t('statusResulted')}</SelectItem>
+                  <SelectItem value="cancelled">{t('statusCancelled')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setResultTarget(null)}>Annuler</Button>
+              <Button type="button" variant="outline" onClick={() => setResultTarget(null)}>{t('cancel')}</Button>
               <Button type="submit" disabled={resultForm.formState.isSubmitting || updateMutation.isPending}>
                 {(resultForm.formState.isSubmitting || updateMutation.isPending) && <Loader2 className="animate-spin" />}
-                Enregistrer
+                {t('save')}
               </Button>
             </DialogFooter>
           </form>
@@ -328,7 +329,7 @@ export default function LabRequestsPage() {
       {/* Change status dialog */}
       <Dialog open={!!statusTarget} onOpenChange={open => { if (!open) setStatusTarget(null) }}>
         <DialogContent className="sm:max-w-xs">
-          <DialogHeader><DialogTitle>Changer le statut</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('statusTitle')}</DialogTitle></DialogHeader>
           <div className="space-y-2 py-2">
             {(['ordered','collected','processing','cancelled'] as LabRequestStatus[]).map(s => (
               <Button

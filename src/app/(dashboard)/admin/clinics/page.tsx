@@ -19,18 +19,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useClinic } from '@/context/ClinicContext'
 import { formatDate, cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 import type { Clinic, ClinicStatus, SubscriptionPlan } from '@/types/database'
-
-const schema = z.object({
-  name:              z.string().min(2, 'Nom requis'),
-  location:          z.string().min(2, 'Localisation requise'),
-  phone:             z.string().optional().nullable(),
-  email:             z.string().email().optional().or(z.literal('')).nullable(),
-  subscription_plan: z.enum(['free', 'basic', 'pro', 'enterprise']).optional(),
-  admin_full_name:   z.string().min(2, 'Nom de l\'admin requis'),
-  admin_email:       z.string().email('Email admin invalide'),
-})
-type FormData = z.infer<typeof schema>
 
 const planColors: Record<string, string> = {
   free:       'bg-gray-100 text-gray-600',
@@ -39,18 +29,10 @@ const planColors: Record<string, string> = {
   enterprise: 'bg-amber-100 text-amber-700',
 }
 
-const statusConfig: Record<string, { label: string; variant: string; dot: string }> = {
-  pending:   { label: 'En attente',  variant: 'bg-amber-100 text-amber-700',     dot: 'bg-amber-400' },
-  active:    { label: 'Active',      variant: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
-  rejected:  { label: 'Rejetée',    variant: 'bg-red-100 text-red-700',         dot: 'bg-red-400' },
-  suspended: { label: 'Suspendue',  variant: 'bg-orange-100 text-orange-700',   dot: 'bg-orange-400' },
-  inactive:  { label: 'Inactive',   variant: 'bg-gray-100 text-gray-500',       dot: 'bg-gray-400' },
-  archived:  { label: 'Archivée',   variant: 'bg-slate-100 text-slate-500',     dot: 'bg-slate-400' },
-}
-
 type LifecycleFilter = 'active' | 'all' | 'archived'
 
 export default function AdminClinicsPage() {
+  const t = useTranslations('adminClinics')
   const { profile } = useClinic()
   const [open, setOpen] = useState(false)
   const [tempPassword, setTempPassword] = useState<{ password: string; email: string } | null>(null)
@@ -59,11 +41,30 @@ export default function AdminClinicsPage() {
   const [copied, setCopied] = useState(false)
   const qc = useQueryClient()
 
+  const statusConfig: Record<string, { label: string; variant: string; dot: string }> = {
+    pending:   { label: t('statusPending'),   variant: 'bg-amber-100 text-amber-700',     dot: 'bg-amber-400' },
+    active:    { label: t('statusActive'),    variant: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
+    rejected:  { label: t('statusRejected'),  variant: 'bg-red-100 text-red-700',         dot: 'bg-red-400' },
+    suspended: { label: t('statusSuspended'), variant: 'bg-orange-100 text-orange-700',   dot: 'bg-orange-400' },
+    inactive:  { label: t('statusInactive'),  variant: 'bg-gray-100 text-gray-500',       dot: 'bg-gray-400' },
+    archived:  { label: t('statusArchived'),  variant: 'bg-slate-100 text-slate-500',     dot: 'bg-slate-400' },
+  }
+
+  const schema = z.object({
+    name:              z.string().min(2, t('labelName')),
+    location:          z.string().min(2, t('labelLocation')),
+    phone:             z.string().optional().nullable(),
+    email:             z.string().email().optional().or(z.literal('')).nullable(),
+    subscription_plan: z.enum(['free', 'basic', 'pro', 'enterprise']).optional(),
+    admin_full_name:   z.string().min(2, t('labelAdminName')),
+    admin_email:       z.string().email(t('labelAdminEmail')),
+  })
+  type FormData = z.infer<typeof schema>
+
   const { data: clinics, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-clinics'],
     enabled: profile?.role === 'super_admin',
     queryFn: async () => {
-      // Dynamic import to avoid SSR issues with supabase client
       const { createClient } = await import('@/lib/supabase/client')
       const supabase = createClient()
       const { data, error } = await supabase
@@ -99,7 +100,7 @@ export default function AdminClinicsPage() {
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['admin-clinics'] })
-      toast.success('Clinique et compte admin créés')
+      toast.success(t('toastCreated'))
       reset()
       setTempPassword({ password: data.temp_password, email: data.clinic.email ?? '' })
     },
@@ -112,12 +113,12 @@ export default function AdminClinicsPage() {
     onSuccess: (_, { action }) => {
       qc.invalidateQueries({ queryKey: ['admin-clinics'] })
       const messages: Record<string, string> = {
-        suspend:      'Clinique suspendue',
-        reactivate:   'Clinique réactivée',
-        set_inactive: 'Clinique marquée inactive',
-        archive:      'Clinique archivée',
+        suspend:      t('toastSuspended'),
+        reactivate:   t('toastReactivated'),
+        set_inactive: t('toastInactive'),
+        archive:      t('toastArchived'),
       }
-      toast.success(messages[action] ?? 'Statut mis à jour')
+      toast.success(messages[action] ?? t('toastStatusUpdated'))
       setArchiveTarget(null)
     },
     onError: (e: Error) => toast.error(e.message),
@@ -138,10 +139,10 @@ export default function AdminClinicsPage() {
   if (profile?.role !== 'super_admin') {
     return (
       <div className="flex flex-col h-full">
-        <Topbar title="Administration" />
+        <Topbar title={t('noAccess')} />
         <div className="flex-1 flex flex-col items-center justify-center gap-3 text-gray-400">
           <Shield className="h-12 w-12 opacity-30" />
-          <p>Accès réservé aux super administrateurs</p>
+          <p>{t('noAccessMessage')}</p>
         </div>
       </div>
     )
@@ -158,16 +159,16 @@ export default function AdminClinicsPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Topbar title="Gestion des Cliniques" description="Vue super administrateur" />
+      <Topbar title={t('title')} description={t('subtitle')} />
 
       <div className="flex-1 p-4 md:p-6 space-y-4 overflow-y-auto">
         <div className="flex flex-wrap items-center gap-3">
           {/* Filter tabs */}
           <div className="flex gap-1.5">
             {([
-              { key: 'active',   label: 'Actives' },
-              { key: 'all',      label: 'Toutes' },
-              { key: 'archived', label: `Archivées (${archivedCount})` },
+              { key: 'active',   label: t('filterActive') },
+              { key: 'all',      label: t('filterAll') },
+              { key: 'archived', label: t('filterArchived', { count: archivedCount }) },
             ] as { key: LifecycleFilter; label: string }[]).map(f => (
               <button
                 key={f.key}
@@ -187,18 +188,18 @@ export default function AdminClinicsPage() {
           </div>
 
           <p className="text-sm text-gray-500 ml-1">
-            {visibleClinics?.length ?? 0} clinique(s)
+            {t('clinicCount', { count: visibleClinics?.length ?? 0 })}
           </p>
 
           <Button className="ml-auto" onClick={() => { reset(); setTempPassword(null); setOpen(true) }}>
-            <Plus className="h-4 w-4" /> Nouvelle clinique
+            <Plus className="h-4 w-4" /> {t('newClinic')}
           </Button>
         </div>
 
         {lifecycleFilter === 'archived' && (
           <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-600">
             <Archive className="h-4 w-4 shrink-0" />
-            Les cliniques archivées sont masquées de la vue normale. Les données historiques sont conservées.
+            {t('archivedNotice')}
           </div>
         )}
 
@@ -213,13 +214,13 @@ export default function AdminClinicsPage() {
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50">
                 <AlertTriangle className="h-7 w-7 text-red-500" />
               </div>
-              <p className="font-medium text-gray-900">Impossible de charger les cliniques</p>
-              <p className="text-sm text-gray-500">Vérifiez votre connexion et réessayez.</p>
+              <p className="font-medium text-gray-900">{t('errorTitle')}</p>
+              <p className="text-sm text-gray-500">{t('errorDesc')}</p>
               <button
                 onClick={() => refetch()}
                 className="flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
               >
-                <RefreshCw className="h-4 w-4" /> Réessayer
+                <RefreshCw className="h-4 w-4" /> {t('retry')}
               </button>
             </div>
           )}
@@ -227,12 +228,10 @@ export default function AdminClinicsPage() {
             <div className="col-span-3 flex flex-col items-center gap-3 py-16 text-center text-gray-400">
               <Shield className="h-12 w-12 opacity-20" />
               <p className="font-medium text-gray-600">
-                {lifecycleFilter === 'archived'
-                  ? 'Aucune clinique archivée'
-                  : 'Aucune clinique enregistrée'}
+                {lifecycleFilter === 'archived' ? t('emptyArchived') : t('emptyNone')}
               </p>
               {lifecycleFilter !== 'archived' && (
-                <p className="text-sm">Créez votre première clinique ci-dessus.</p>
+                <p className="text-sm">{t('emptySubtext')}</p>
               )}
             </div>
           )}
@@ -265,7 +264,7 @@ export default function AdminClinicsPage() {
                   {clinic.email && <p className="text-xs text-gray-400 mt-1 truncate">{clinic.email}</p>}
 
                   <div className="mt-3 pt-3 border-t flex items-center justify-between text-xs text-gray-400">
-                    <span className="shrink-0">Créée le {formatDate(clinic.created_at)}</span>
+                    <span className="shrink-0">{t('createdOn', { date: formatDate(clinic.created_at) })}</span>
                     <div className="flex gap-1 ml-2">
                       {status === 'active' && (
                         <>
@@ -274,7 +273,7 @@ export default function AdminClinicsPage() {
                             className="h-7 px-2 text-xs text-amber-600 hover:bg-amber-50"
                             onClick={() => lifecycleMutation.mutate({ clinicId: clinic.id, action: 'suspend' })}
                             disabled={isPending}
-                            title="Suspendre"
+                            title={t('suspendTitle')}
                           >
                             {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Ban className="h-3 w-3" />}
                           </Button>
@@ -283,7 +282,7 @@ export default function AdminClinicsPage() {
                             className="h-7 px-2 text-xs text-slate-600 hover:bg-slate-50"
                             onClick={() => setArchiveTarget(clinic)}
                             disabled={isPending}
-                            title="Archiver"
+                            title={t('archiveTitle')}
                           >
                             <Archive className="h-3 w-3" />
                           </Button>
@@ -296,7 +295,7 @@ export default function AdminClinicsPage() {
                             className="h-7 px-2 text-xs text-emerald-600 hover:bg-emerald-50"
                             onClick={() => lifecycleMutation.mutate({ clinicId: clinic.id, action: 'reactivate' })}
                             disabled={isPending}
-                            title="Réactiver"
+                            title={t('reactivateTitle')}
                           >
                             {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
                           </Button>
@@ -305,7 +304,7 @@ export default function AdminClinicsPage() {
                             className="h-7 px-2 text-xs text-slate-600 hover:bg-slate-50"
                             onClick={() => setArchiveTarget(clinic)}
                             disabled={isPending}
-                            title="Archiver"
+                            title={t('archiveTitle')}
                           >
                             <Archive className="h-3 w-3" />
                           </Button>
@@ -325,29 +324,27 @@ export default function AdminClinicsPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-slate-700">
-              <Archive className="h-5 w-5" /> Archiver la clinique
+              <Archive className="h-5 w-5" /> {t('archiveDialogTitle')}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 text-sm text-gray-600">
-            <p>
-              Vous êtes sur le point d&apos;archiver <strong>{archiveTarget?.name}</strong>.
-            </p>
+            <p>{t('archiveWarning', { name: archiveTarget?.name ?? '' })}</p>
             <ul className="space-y-1 text-xs text-gray-500 list-disc list-inside">
-              <li>Tous les utilisateurs de cette clinique seront désactivés</li>
-              <li>Les données (patients, consultations, factures) sont conservées</li>
-              <li>La clinique sera masquée de la vue normale mais reste accessible en mode audit</li>
-              <li>Cette action est réversible via Supabase si nécessaire</li>
+              <li>{t('archiveNote1')}</li>
+              <li>{t('archiveNote2')}</li>
+              <li>{t('archiveNote3')}</li>
+              <li>{t('archiveNote4')}</li>
             </ul>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setArchiveTarget(null)}>Annuler</Button>
+            <Button variant="outline" onClick={() => setArchiveTarget(null)}>{t('cancel')}</Button>
             <Button
               variant="destructive"
               onClick={() => archiveTarget && lifecycleMutation.mutate({ clinicId: archiveTarget.id, action: 'archive' })}
               disabled={lifecycleMutation.isPending}
             >
               {lifecycleMutation.isPending && <Loader2 className="animate-spin" />}
-              Archiver
+              {t('archiveBtn')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -357,92 +354,90 @@ export default function AdminClinicsPage() {
       <Dialog open={open} onOpenChange={(o) => { if (!o) { reset(); setTempPassword(null) } setOpen(o) }}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Créer une clinique</DialogTitle>
+            <DialogTitle>{t('createTitle')}</DialogTitle>
           </DialogHeader>
 
           {tempPassword ? (
             <div className="space-y-4">
               <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 p-3">
                 <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
-                <p className="text-sm text-emerald-800 font-medium">Clinique et compte admin créés.</p>
+                <p className="text-sm text-emerald-800 font-medium">{t('tempPasswordCreated')}</p>
               </div>
               <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-700">Mot de passe temporaire de l&apos;admin</p>
+                <p className="text-sm font-medium text-gray-700">{t('tempPasswordTitle')}</p>
                 <div className="flex gap-2">
                   <Input value={tempPassword.password} readOnly className="font-mono tracking-widest bg-gray-50" />
-                  <Button variant="outline" size="icon" onClick={copyPassword} title="Copier">
+                  <Button variant="outline" size="icon" onClick={copyPassword} title={t('close')}>
                     {copied ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
                   </Button>
                 </div>
                 <p className="text-xs text-amber-700 flex gap-1.5 items-start">
                   <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                  Ce mot de passe ne s&apos;affichera qu&apos;une seule fois. L&apos;admin devra le changer à la première connexion.
+                  {t('tempPasswordWarning')}
                 </p>
               </div>
               <DialogFooter>
-                <Button onClick={() => { setOpen(false); setTempPassword(null) }}>Fermer</Button>
+                <Button onClick={() => { setOpen(false); setTempPassword(null) }}>{t('close')}</Button>
               </DialogFooter>
             </div>
           ) : (
             <form onSubmit={handleSubmit(d => createMutation.mutate(d))} className="space-y-4">
               <div className="space-y-3">
-                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Clinique</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">{t('sectionClinic')}</p>
                 <div className="space-y-1.5">
-                  <Label>Nom *</Label>
-                  <Input {...register('name')} placeholder="Clinique Sainte Marie" />
+                  <Label>{t('labelName')}</Label>
+                  <Input {...register('name')} placeholder={t('namePlaceholder')} />
                   {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Localisation *</Label>
-                  <Input {...register('location')} placeholder="Dakar, Plateau" />
+                  <Label>{t('labelLocation')}</Label>
+                  <Input {...register('location')} placeholder={t('locationPlaceholder')} />
                   {errors.location && <p className="text-xs text-red-500">{errors.location.message}</p>}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label>Téléphone</Label>
+                    <Label>{t('labelPhone')}</Label>
                     <Input {...register('phone')} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label>Email</Label>
+                    <Label>{t('labelEmail')}</Label>
                     <Input type="email" {...register('email')} />
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Plan</Label>
+                  <Label>{t('labelPlan')}</Label>
                   <Select defaultValue="free" onValueChange={v => setValue('subscription_plan', v as SubscriptionPlan)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="free">Gratuit</SelectItem>
-                      <SelectItem value="basic">Basic</SelectItem>
-                      <SelectItem value="pro">Pro</SelectItem>
-                      <SelectItem value="enterprise">Enterprise</SelectItem>
+                      <SelectItem value="free">{t('planFree')}</SelectItem>
+                      <SelectItem value="basic">{t('planBasic')}</SelectItem>
+                      <SelectItem value="pro">{t('planPro')}</SelectItem>
+                      <SelectItem value="enterprise">{t('planEnterprise')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
               <div className="space-y-3 border-t pt-4">
-                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Administrateur</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">{t('sectionAdmin')}</p>
                 <div className="space-y-1.5">
-                  <Label>Nom complet *</Label>
+                  <Label>{t('labelAdminName')}</Label>
                   <Input {...register('admin_full_name')} placeholder="Dr. Aminata Diallo" />
                   {errors.admin_full_name && <p className="text-xs text-red-500">{errors.admin_full_name.message}</p>}
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Email *</Label>
-                  <Input type="email" {...register('admin_email')} placeholder="admin@clinique.sn" />
+                  <Label>{t('labelAdminEmail')}</Label>
+                  <Input type="email" {...register('admin_email')} placeholder={t('adminEmailPlaceholder')} />
                   {errors.admin_email && <p className="text-xs text-red-500">{errors.admin_email.message}</p>}
                 </div>
-                <p className="text-xs text-gray-400">
-                  Un mot de passe temporaire sera généré. L&apos;admin devra le changer à la première connexion.
-                </p>
+                <p className="text-xs text-gray-400">{t('adminNote')}</p>
               </div>
 
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
+                <Button type="button" variant="outline" onClick={() => setOpen(false)}>{t('cancel')}</Button>
                 <Button type="submit" disabled={isSubmitting || createMutation.isPending}>
                   {(isSubmitting || createMutation.isPending) && <Loader2 className="animate-spin" />}
-                  Créer
+                  {t('create')}
                 </Button>
               </DialogFooter>
             </form>

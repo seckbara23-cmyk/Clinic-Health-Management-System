@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAnalytics } from '@/hooks/useAnalytics'
 import { useClinic } from '@/context/ClinicContext'
 import { formatCurrency } from '@/lib/utils'
+import { useTranslations } from 'next-intl'
 
 function KpiCard({ label, value, sub, icon: Icon, color }: {
   label: string
@@ -39,6 +40,7 @@ function KpiCard({ label, value, sub, icon: Icon, color }: {
 const tooltipStyle = { fontSize: 12, borderRadius: 8 }
 
 export default function AnalyticsPage() {
+  const t = useTranslations('analytics')
   const { profile } = useClinic()
   const { data, isLoading, isError, refetch } = useAnalytics()
 
@@ -47,9 +49,9 @@ export default function AnalyticsPage() {
   if (!canView) {
     return (
       <div className="flex flex-col h-full">
-        <Topbar title="Analyses" />
+        <Topbar title={t('noAccess')} />
         <div className="flex-1 flex items-center justify-center text-gray-400">
-          <p>Accès réservé aux administrateurs</p>
+          <p>{t('noAccessMessage')}</p>
         </div>
       </div>
     )
@@ -57,7 +59,7 @@ export default function AnalyticsPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Topbar title="Analyses & Rapports" description="Statistiques sur les 12 derniers mois" />
+      <Topbar title={t('title')} description={t('subtitle')} />
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {isLoading && (
@@ -72,16 +74,14 @@ export default function AnalyticsPage() {
               <AlertTriangle className="h-7 w-7 text-red-500" />
             </div>
             <div>
-              <p className="font-medium text-gray-900">Impossible de charger les statistiques</p>
-              <p className="text-sm text-gray-500 mt-1">
-                Vérifiez votre connexion ou que la migration 021 est appliquée.
-              </p>
+              <p className="font-medium text-gray-900">{t('errorTitle')}</p>
+              <p className="text-sm text-gray-500 mt-1">{t('errorDesc')}</p>
             </div>
             <button
               onClick={() => refetch()}
               className="flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
-              <RefreshCw className="h-4 w-4" /> Réessayer
+              <RefreshCw className="h-4 w-4" /> {t('retry')}
             </button>
           </div>
         )}
@@ -91,30 +91,30 @@ export default function AnalyticsPage() {
             {/* KPI cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <KpiCard
-                label="Revenus encaissés"
+                label={t('kpiRevenue')}
                 value={formatCurrency(data.kpis.totalRevenue)}
-                sub={`/ ${formatCurrency(data.kpis.totalInvoiced)} facturé`}
+                sub={t('kpiRevenueSub', { invoiced: formatCurrency(data.kpis.totalInvoiced) })}
                 icon={TrendingUp}
                 color="text-emerald-700"
               />
               <KpiCard
-                label="Nouveaux patients"
+                label={t('kpiNewPatients')}
                 value={data.kpis.newPatients}
-                sub="12 derniers mois"
+                sub={t('kpiNewPatientsSub')}
                 icon={Users}
                 color="text-blue-700"
               />
               <KpiCard
-                label="Rendez-vous"
+                label={t('kpiAppointments')}
                 value={data.kpis.totalAppointments}
-                sub={`${data.kpis.completionRate}% complétés`}
+                sub={t('kpiAppointmentsSub', { rate: data.kpis.completionRate })}
                 icon={CalendarCheck}
                 color="text-violet-700"
               />
               <KpiCard
-                label="Consultations"
+                label={t('kpiConsultations')}
                 value={data.kpis.totalConsultations}
-                sub={`${data.kpis.totalLabs} analyses`}
+                sub={t('kpiConsultationsSub', { labs: data.kpis.totalLabs })}
                 icon={Stethoscope}
                 color="text-amber-700"
               />
@@ -128,9 +128,9 @@ export default function AnalyticsPage() {
                     <Percent className="h-6 w-6 text-emerald-700" />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Taux de recouvrement</p>
+                    <p className="text-sm text-gray-500">{t('collectionRateLabel')}</p>
                     <p className="text-3xl font-bold text-emerald-700">{data.kpis.collectionRate}%</p>
-                    <p className="text-xs text-gray-400">Montant encaissé / facturé</p>
+                    <p className="text-xs text-gray-400">{t('collectionRateSub')}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -140,9 +140,9 @@ export default function AnalyticsPage() {
                     <CalendarCheck className="h-6 w-6 text-violet-700" />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Taux de complétion</p>
+                    <p className="text-sm text-gray-500">{t('completionRateLabel')}</p>
                     <p className="text-3xl font-bold text-violet-700">{data.kpis.completionRate}%</p>
-                    <p className="text-xs text-gray-400">Rendez-vous terminés vs total</p>
+                    <p className="text-xs text-gray-400">{t('completionRateSub')}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -151,7 +151,7 @@ export default function AnalyticsPage() {
             {/* Revenue chart */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Revenus mensuels (XOF)</CardTitle>
+                <CardTitle className="text-base">{t('chartRevenue')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={260}>
@@ -164,8 +164,8 @@ export default function AnalyticsPage() {
                       formatter={(value) => [formatCurrency(Number(value ?? 0)), '']}
                     />
                     <Legend wrapperStyle={{ fontSize: 12 }} />
-                    <Bar dataKey="invoiced" name="Facturé" fill="#bfdbfe" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="revenue" name="Encaissé" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="invoiced" name={t('chartBarInvoiced')} fill="#bfdbfe" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="revenue" name={t('chartBarRevenue')} fill="#2563eb" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -175,7 +175,7 @@ export default function AnalyticsPage() {
             <div className="grid lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Rendez-vous par mois</CardTitle>
+                  <CardTitle className="text-base">{t('chartApptByMonth')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={220}>
@@ -185,9 +185,9 @@ export default function AnalyticsPage() {
                       <YAxis tick={{ fontSize: 10 }} />
                       <Tooltip contentStyle={tooltipStyle} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
-                      <Bar dataKey="total" name="Total" fill="#c4b5fd" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="completed" name="Terminés" fill="#7c3aed" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="cancelled" name="Annulés" fill="#fca5a5" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="total" name={t('chartApptTotal')} fill="#c4b5fd" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="completed" name={t('chartApptCompleted')} fill="#7c3aed" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="cancelled" name={t('chartApptCancelled')} fill="#fca5a5" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -195,7 +195,7 @@ export default function AnalyticsPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Nouveaux patients par mois</CardTitle>
+                  <CardTitle className="text-base">{t('chartPatientsByMonth')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={220}>
@@ -204,7 +204,7 @@ export default function AnalyticsPage() {
                       <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                       <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
                       <Tooltip contentStyle={tooltipStyle} />
-                      <Line type="monotone" dataKey="new" name="Nouveaux patients" stroke="#2563eb" strokeWidth={2} dot={{ r: 4 }} />
+                      <Line type="monotone" dataKey="new" name={t('chartNewPatients')} stroke="#2563eb" strokeWidth={2} dot={{ r: 4 }} />
                     </LineChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -215,11 +215,11 @@ export default function AnalyticsPage() {
             <div className="grid lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Répartition des rendez-vous par statut</CardTitle>
+                  <CardTitle className="text-base">{t('chartApptStatus')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {data.apptStatusBreakdown.length === 0 ? (
-                    <p className="text-center text-gray-400 py-8 text-sm">Aucune donnée</p>
+                    <p className="text-center text-gray-400 py-8 text-sm">{t('noData')}</p>
                   ) : (
                     <div className="flex items-center gap-6">
                       <ResponsiveContainer width={160} height={160}>
@@ -256,12 +256,12 @@ export default function AnalyticsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
-                    <FlaskConical className="h-4 w-4" /> Analyses par statut
+                    <FlaskConical className="h-4 w-4" /> {t('chartLabStatus')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {data.labStatusBreakdown.length === 0 ? (
-                    <p className="text-center text-gray-400 py-8 text-sm">Aucune donnée</p>
+                    <p className="text-center text-gray-400 py-8 text-sm">{t('noData')}</p>
                   ) : (
                     <div className="flex items-center gap-6">
                       <ResponsiveContainer width={160} height={160}>

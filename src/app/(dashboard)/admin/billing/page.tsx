@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { EmptyState } from '@/components/ui/empty-state'
 import { useClinic } from '@/context/ClinicContext'
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
+import { useTranslations } from 'next-intl'
 
 const paymentStatusVariant: Record<string, string> = {
   pending:   'bg-amber-100 text-amber-700',
@@ -16,13 +17,6 @@ const paymentStatusVariant: Record<string, string> = {
   failed:    'bg-red-100 text-red-700',
   cancelled: 'bg-gray-100 text-gray-500',
   refunded:  'bg-blue-100 text-blue-700',
-}
-const paymentStatusLabel: Record<string, string> = {
-  pending:   'En attente',
-  paid:      'Payé',
-  failed:    'Échoué',
-  cancelled: 'Annulé',
-  refunded:  'Remboursé',
 }
 
 const invoiceStatusVariant: Record<string, string> = {
@@ -32,20 +26,6 @@ const invoiceStatusVariant: Record<string, string> = {
   partial:   'bg-amber-100 text-amber-700',
   overdue:   'bg-red-100 text-red-700',
   cancelled: 'bg-gray-100 text-gray-400',
-}
-const invoiceStatusLabel: Record<string, string> = {
-  draft: 'Brouillon', sent: 'Envoyée', paid: 'Payée',
-  partial: 'Partiel', overdue: 'En retard', cancelled: 'Annulée',
-}
-
-const providerLabel: Record<string, string> = {
-  wave:         'Wave',
-  orange_money: 'Orange Money',
-  cash:         'Espèces',
-  card:         'Carte',
-  mobile_money: 'Mobile Money',
-  insurance:    'Assurance',
-  other:        'Autre',
 }
 
 interface AdminInvoice {
@@ -65,8 +45,36 @@ interface AdminInvoice {
 }
 
 export default function AdminBillingPage() {
+  const t = useTranslations('adminBilling')
   const { profile } = useClinic()
   const supabase = createClient()
+
+  const paymentStatusLabel: Record<string, string> = {
+    pending:   t('paymentStatusPending'),
+    paid:      t('paymentStatusPaid'),
+    failed:    t('paymentStatusFailed'),
+    cancelled: t('paymentStatusCancelled'),
+    refunded:  t('paymentStatusRefunded'),
+  }
+
+  const invoiceStatusLabel: Record<string, string> = {
+    draft:     t('invoiceStatusDraft'),
+    sent:      t('invoiceStatusSent'),
+    paid:      t('invoiceStatusPaid'),
+    partial:   t('invoiceStatusPartial'),
+    overdue:   t('invoiceStatusOverdue'),
+    cancelled: t('invoiceStatusCancelled'),
+  }
+
+  const providerLabel: Record<string, string> = {
+    wave:         t('providerWave'),
+    orange_money: t('providerOrangeMoney'),
+    cash:         t('providerCash'),
+    card:         t('providerCard'),
+    mobile_money: t('providerMobileMoney'),
+    insurance:    t('providerInsurance'),
+    other:        t('providerOther'),
+  }
 
   const { data: invoices, isLoading } = useQuery({
     queryKey: ['admin-invoices'],
@@ -95,16 +103,16 @@ export default function AdminBillingPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Topbar title="Paiements" description="Vue globale des paiements — toutes cliniques" />
+      <Topbar title={t('title')} description={t('subtitle')} />
 
       <div className="flex-1 p-4 md:p-6 space-y-4">
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: 'Factures totales', value: invoices?.length ?? 0, color: 'text-blue-700', bg: 'bg-blue-50' },
-            { label: 'Revenu encaissé', value: formatCurrency(totalRevenue), color: 'text-emerald-700', bg: 'bg-emerald-50' },
-            { label: 'Paiements en ligne', value: totalOnline, color: 'text-violet-700', bg: 'bg-violet-50' },
-            { label: 'En attente', value: totalPending, color: 'text-amber-700', bg: 'bg-amber-50' },
+            { label: t('statTotal'),   value: invoices?.length ?? 0,        color: 'text-blue-700',    bg: 'bg-blue-50' },
+            { label: t('statRevenue'), value: formatCurrency(totalRevenue),  color: 'text-emerald-700', bg: 'bg-emerald-50' },
+            { label: t('statOnline'),  value: totalOnline,                   color: 'text-violet-700',  bg: 'bg-violet-50' },
+            { label: t('statPending'), value: totalPending,                  color: 'text-amber-700',   bg: 'bg-amber-50' },
           ].map(s => (
             <div key={s.label} className={cn('rounded-xl p-3 md:p-4', s.bg)}>
               <p className="text-[10px] md:text-xs font-medium text-gray-500">{s.label}</p>
@@ -116,10 +124,7 @@ export default function AdminBillingPage() {
         {/* Pilot notice */}
         <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
-          <span>
-            Les paiements Wave et Orange Money ne sont pas encore actifs.
-            Les colonnes <strong>payment_status</strong> et <strong>provider_ref</strong> seront renseignées après activation.
-          </span>
+          <span>{t('pilotNotice')}</span>
         </div>
 
         {/* Table */}
@@ -133,8 +138,8 @@ export default function AdminBillingPage() {
             {!isLoading && (!invoices || invoices.length === 0) && (
               <EmptyState
                 icon={CreditCard}
-                title="Aucune facture"
-                description="Les factures de toutes les cliniques apparaîtront ici."
+                title={t('emptyTitle')}
+                description={t('emptyDesc')}
               />
             )}
             {!isLoading && invoices && invoices.length > 0 && (
@@ -176,16 +181,16 @@ export default function AdminBillingPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>N° Facture</TableHead>
-                        <TableHead>Clinique</TableHead>
-                        <TableHead>Patient</TableHead>
-                        <TableHead>Montant</TableHead>
-                        <TableHead>Mode</TableHead>
-                        <TableHead>Statut facture</TableHead>
-                        <TableHead>Statut paiement</TableHead>
-                        <TableHead>Réf. fournisseur</TableHead>
-                        <TableHead>Créé le</TableHead>
-                        <TableHead>Payé le</TableHead>
+                        <TableHead>{t('colInvoiceNumber')}</TableHead>
+                        <TableHead>{t('colClinic')}</TableHead>
+                        <TableHead>{t('colPatient')}</TableHead>
+                        <TableHead>{t('colAmount')}</TableHead>
+                        <TableHead>{t('colMethod')}</TableHead>
+                        <TableHead>{t('colInvoiceStatus')}</TableHead>
+                        <TableHead>{t('colPaymentStatus')}</TableHead>
+                        <TableHead>{t('colProviderRef')}</TableHead>
+                        <TableHead>{t('colCreatedAt')}</TableHead>
+                        <TableHead>{t('colPaidAt')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
