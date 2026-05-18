@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { createClient } from '@/lib/supabase/server'
+import { logAuditEvent } from '@/lib/audit'
 
 async function getSuperAdmin() {
   const supabase = await createClient()
@@ -8,7 +9,7 @@ async function getSuperAdmin() {
   if (!user) return null
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('role, id')
+    .select('role, id, email')
     .eq('id', user.id)
     .single()
   if (profile?.role !== 'super_admin') return null
@@ -41,12 +42,30 @@ export async function POST(
   if (action === 'suspend') {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (service as any).from('clinics').update({ status: 'suspended' } as never).eq('id', clinicId)
+
+    await logAuditEvent({
+      actorId:    admin.id,
+      action:     'clinic.suspend',
+      targetType: 'clinic',
+      targetId:   clinicId,
+      metadata: { actor_email: admin.email ?? '', clinic_name: clinic.name, previous_status: clinic.status },
+    })
+
     return NextResponse.json({ ok: true, status: 'suspended' })
   }
 
   if (action === 'set_inactive') {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (service as any).from('clinics').update({ status: 'inactive' } as never).eq('id', clinicId)
+
+    await logAuditEvent({
+      actorId:    admin.id,
+      action:     'clinic.set_inactive',
+      targetType: 'clinic',
+      targetId:   clinicId,
+      metadata: { actor_email: admin.email ?? '', clinic_name: clinic.name, previous_status: clinic.status },
+    })
+
     return NextResponse.json({ ok: true, status: 'inactive' })
   }
 
@@ -59,6 +78,15 @@ export async function POST(
       .update({ is_active: true } as never)
       .eq('clinic_id', clinicId)
       .neq('role', 'super_admin')
+
+    await logAuditEvent({
+      actorId:    admin.id,
+      action:     'clinic.reactivate',
+      targetType: 'clinic',
+      targetId:   clinicId,
+      metadata: { actor_email: admin.email ?? '', clinic_name: clinic.name, previous_status: clinic.status },
+    })
+
     return NextResponse.json({ ok: true, status: 'active' })
   }
 
@@ -73,6 +101,14 @@ export async function POST(
       .from('user_profiles')
       .update({ is_active: false } as never)
       .eq('clinic_id', clinicId)
+
+    await logAuditEvent({
+      actorId:    admin.id,
+      action:     'clinic.archive',
+      targetType: 'clinic',
+      targetId:   clinicId,
+      metadata: { actor_email: admin.email ?? '', clinic_name: clinic.name, previous_status: clinic.status },
+    })
 
     return NextResponse.json({ ok: true, status: 'archived' })
   }

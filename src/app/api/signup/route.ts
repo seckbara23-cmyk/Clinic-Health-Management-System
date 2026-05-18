@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { createClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
+  const limited = await rateLimit(req, 'signup')
+  if (limited) return limited
+
   const { email, password, full_name, clinic_name, clinic_location } = await req.json()
 
   // 1. Sign up via the normal (anon) auth client so the session cookie is set

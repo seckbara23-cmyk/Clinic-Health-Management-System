@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
 import { createServiceClient } from '@/lib/supabase/service'
 import { createClient } from '@/lib/supabase/server'
+import { logAuditEvent } from '@/lib/audit'
 
 function generateTempPassword(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
@@ -14,7 +15,7 @@ async function getSuperAdmin() {
   if (!user) return null
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('role, id')
+    .select('role, id, email')
     .eq('id', user.id)
     .single()
   if (profile?.role !== 'super_admin') return null
@@ -61,6 +62,19 @@ export async function POST(
       })
       .eq('id', id)
 
+    await logAuditEvent({
+      actorId:    admin.id,
+      action:     'clinic_request.reject',
+      targetType: 'clinic_request',
+      targetId:   id,
+      metadata: {
+        actor_email:      admin.email ?? '',
+        clinic_name:      request.clinic_name,
+        admin_email:      request.admin_email,
+        rejection_reason: rejection_reason ?? null,
+      },
+    })
+
     return NextResponse.json({ ok: true })
   }
 
@@ -84,15 +98,16 @@ export async function POST(
     }
 
     // 2. Create auth user with temporary password — never logged
+    //    app_metadata.must_change_password is server-controlled and is read by
+    //    the middleware to enforce password change before dashboard access.
     const tempPassword = generateTempPassword()
     const { data: authData, error: authError } = await service.auth.admin.createUser({
       email:         request.admin_email,
       password:      tempPassword,
       email_confirm: true,
-      user_metadata: {
-        full_name: request.admin_full_name,
-        role:      'admin',
-      },
+      user_metadata: { full_name: request.admin_full_name },
+      // app_metadata is server-only; middleware reads this to enforce must_change_password
+      app_metadata:  { must_change_password: true },
     })
 
     if (authError || !authData.user) {
@@ -121,7 +136,7 @@ export async function POST(
       return NextResponse.json({ error: profileError.message }, { status: 400 })
     }
 
-    // 4. Mark request approved — record audit trail
+    // 4. Mark request approved
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (service as any)
       .from('clinic_requests')
@@ -134,6 +149,21 @@ export async function POST(
         review_notes:    review_notes ?? null,
       })
       .eq('id', id)
+
+    // 5. Write audit log — non-blocking
+    await logAuditEvent({
+      actorId:    admin.id,
+      action:     'clinic_request.approve',
+      targetType: 'clinic_request',
+      targetId:   id,
+      metadata: {
+        actor_email:   admin.email ?? '',
+        clinic_id:     clinic.id,
+        clinic_name:   request.clinic_name,
+        admin_email:   request.admin_email,
+        admin_user_id: adminUserId,
+      },
+    })
 
     return NextResponse.json({
       ok: true,

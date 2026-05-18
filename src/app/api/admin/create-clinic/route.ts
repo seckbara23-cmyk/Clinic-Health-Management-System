@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
 import { createServiceClient } from '@/lib/supabase/service'
 import { createClient } from '@/lib/supabase/server'
+import { logAuditEvent } from '@/lib/audit'
 
 function generateTempPassword(): string {
   // Excludes visually ambiguous chars (0/O, 1/l/I) so it's safe to read aloud or copy by hand
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('role')
+    .select('role, email')
     .eq('id', user.id)
     .single()
 
@@ -57,17 +58,16 @@ export async function POST(req: NextRequest) {
   }
 
   // 2. Create auth user with a temporary password the super admin will share out-of-band.
-  //    must_change_password = true ensures they are forced to set their own password on first login.
-  //    The temp password is returned to the caller and NEVER logged.
+  //    app_metadata.must_change_password is server-controlled (cannot be set by the user)
+  //    and is read by the middleware to enforce password change before dashboard access.
   const tempPassword = generateTempPassword()
   const { data: authData, error: authError } = await service.auth.admin.createUser({
     email:         admin_email.toLowerCase().trim(),
     password:      tempPassword,
     email_confirm: true,
-    user_metadata: {
-      full_name: admin_full_name.trim(),
-      role:      'admin',
-    },
+    user_metadata: { full_name: admin_full_name.trim() },
+    // app_metadata is server-only; middleware reads this to enforce must_change_password
+    app_metadata:  { must_change_password: true },
   })
 
   if (authError || !authData.user) {
@@ -95,6 +95,21 @@ export async function POST(req: NextRequest) {
     await service.from('clinics').delete().eq('id', clinic.id)
     return NextResponse.json({ error: profileError.message }, { status: 400 })
   }
+
+  // 4. Write audit log — non-blocking (failure must not abort the operation)
+  await logAuditEvent({
+    actorId:    user.id,
+    action:     'clinic.create',
+    targetType: 'clinic',
+    targetId:   clinic.id,
+    metadata: {
+      actor_email:     profile?.email ?? '',
+      clinic_name:     name.trim(),
+      clinic_location: location.trim(),
+      admin_email:     admin_email.toLowerCase().trim(),
+      admin_user_id:   adminUserId,
+    },
+  })
 
   return NextResponse.json({
     clinic,

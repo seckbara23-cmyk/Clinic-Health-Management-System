@@ -76,14 +76,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true })  // not our invoice
   }
 
+  // Security: require a non-empty provider reference so we can perform a two-factor
+  // lookup (invoice ID + provider reference). Without this, a replayed webhook with
+  // a valid invoice UUID could mark a different invoice as paid.
+  // Mirrors the same guard in the Wave webhook handler.
+  if (!providerRef) {
+    console.warn('[orange-money/webhook] Missing providerRef — refusing single-factor invoice lookup')
+    return NextResponse.json({ received: true })
+  }
+
   const service = createServiceClient()
 
-  // ── Find invoice by order_id / reference ───────────────────────
+  // ── Find invoice by order_id AND provider reference (two-factor lookup) ──────
+  // Both fields must match: invoice ID verifies ownership, provider reference
+  // verifies this webhook corresponds to the specific payment session we initiated.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: invoice } = await (service as any)
     .from('invoices')
     .select('id, clinic_id, total_amount, currency, status')
     .eq('id', invoiceId)
+    .eq('payment_provider_reference', providerRef)  // prevents replay attacks
     .single() as { data: { id: string; clinic_id: string; total_amount: number; currency: string; status: string } | null }
 
   if (!invoice) {
