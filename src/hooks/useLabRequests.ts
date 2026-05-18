@@ -18,7 +18,7 @@ export function useLabRequests(patientId?: string) {
     queryFn: async () => {
       let q = supabase
         .from('lab_requests')
-        .select('*, patient:patients(id, full_name, patient_number), doctor:user_profiles(id, full_name)')
+        .select('*, patient:patients(id, full_name, patient_number), doctor:user_profiles!lab_requests_doctor_profiles_fkey(id, full_name)')
         .eq('clinic_id', clinic!.id)
         .order('created_at', { ascending: false })
       if (patientId) q = q.eq('patient_id', patientId)

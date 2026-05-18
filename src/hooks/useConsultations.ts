@@ -14,7 +14,7 @@ export function useConsultations(patientId?: string) {
     queryFn: async () => {
       let q = supabase
         .from('consultations')
-        .select('*, patient:patients(id, full_name, patient_number), doctor:user_profiles!consultations_doctor_id_fkey(id, full_name)')
+        .select('*, patient:patients(id, full_name, patient_number), doctor:user_profiles!consultations_doctor_profiles_fkey(id, full_name)')
         .eq('clinic_id', clinic!.id)
         .order('created_at', { ascending: false })
         .limit(100)
@@ -41,7 +41,7 @@ export function useConsultation(id: string | null) {
         .select(`
           *,
           patient:patients(id, full_name, patient_number, date_of_birth, gender, blood_type, allergies, phone),
-          doctor:user_profiles!consultations_doctor_id_fkey(id, full_name),
+          doctor:user_profiles!consultations_doctor_profiles_fkey(id, full_name),
           appointment:appointments(id, title, scheduled_at, notes, status)
         `)
         .eq('id', id!)

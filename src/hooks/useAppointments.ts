@@ -15,7 +15,7 @@ export function useAppointments(date?: string, patientId?: string) {
     queryFn: async () => {
       let q = supabase
         .from('appointments')
-        .select('*, patient:patients(id, full_name, patient_number, phone), doctor:user_profiles!appointments_doctor_id_fkey(id, full_name, role)')
+        .select('*, patient:patients(id, full_name, patient_number, phone), doctor:user_profiles!appointments_doctor_profiles_fkey(id, full_name, role)')
         .eq('clinic_id', clinic!.id)
         .order('scheduled_at', { ascending: true })
 
@@ -54,7 +54,7 @@ export function useWeekAppointments(weekStart: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('appointments')
-        .select('*, patient:patients(id, full_name, patient_number), doctor:user_profiles!appointments_doctor_id_fkey(id, full_name, role)')
+        .select('*, patient:patients(id, full_name, patient_number), doctor:user_profiles!appointments_doctor_profiles_fkey(id, full_name, role)')
         .eq('clinic_id', clinic!.id)
         .gte('scheduled_at', `${startDate.toISOString().split('T')[0]}T00:00:00`)
         .lte('scheduled_at', `${endDate.toISOString().split('T')[0]}T23:59:59`)
