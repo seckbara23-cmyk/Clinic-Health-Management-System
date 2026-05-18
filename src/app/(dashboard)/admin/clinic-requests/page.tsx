@@ -14,7 +14,8 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useClinic } from '@/context/ClinicContext'
-import { formatDate, cn } from '@/lib/utils'
+import { useFormatters } from '@/hooks/useFormatters'
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 import type { ClinicRequest } from '@/types/database'
@@ -29,6 +30,7 @@ interface ApprovalResult {
 
 export default function ClinicRequestsPage() {
   const t = useTranslations('adminRequests')
+  const { formatDate } = useFormatters()
   const { profile } = useClinic()
   const [filter, setFilter] = useState<Filter>('pending')
   const [rejectTarget, setRejectTarget] = useState<ClinicRequest | null>(null)

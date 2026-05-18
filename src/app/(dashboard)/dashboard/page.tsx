@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button'
 import { useDashboardStats } from '@/hooks/useInvoices'
 import { useTodayQueue } from '@/hooks/useAppointments'
 import { useClinic } from '@/context/ClinicContext'
-import { formatCurrency, formatTime, cn } from '@/lib/utils'
+import { useFormatters } from '@/hooks/useFormatters'
+import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
 
 export default function DashboardPage() {
@@ -17,6 +18,7 @@ export default function DashboardPage() {
   const { data: stats, isLoading: statsLoading } = useDashboardStats()
   const { data: queue } = useTodayQueue()
   const t = useTranslations('dashboard')
+  const { formatCurrency, formatTime, intlLocale } = useFormatters()
 
   const statusConfig: Record<string, { label: string; variant: 'default' | 'success' | 'warning' | 'info' | 'destructive' }> = {
     scheduled:   { label: t('statusScheduled'),   variant: 'info' },
@@ -66,7 +68,7 @@ export default function DashboardPage() {
       icon: Activity,
       color: 'text-emerald-600',
       bg: 'bg-emerald-50',
-      desc: `${new Date().toLocaleString('fr-SN', { month: 'long' })} ${new Date().getFullYear()}`,
+      desc: `${new Date().toLocaleString(intlLocale, { month: 'long' })} ${new Date().getFullYear()}`,
     },
     {
       title: t('statUnpaidInvoices'),

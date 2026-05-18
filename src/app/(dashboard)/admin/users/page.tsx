@@ -17,7 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { useClinic } from '@/context/ClinicContext'
-import { formatDate, cn } from '@/lib/utils'
+import { useFormatters } from '@/hooks/useFormatters'
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 import type { UserProfile, Clinic, Role } from '@/types/database'
@@ -38,6 +39,7 @@ const roleColors: Record<string, string> = {
 
 export default function AdminUsersPage() {
   const t = useTranslations('adminUsers')
+  const { formatDate } = useFormatters()
   const { profile } = useClinic()
   const [open, setOpen] = useState(false)
   const [resetResult, setResetResult] = useState<ResetResult | null>(null)

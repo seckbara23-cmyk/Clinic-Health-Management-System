@@ -9,7 +9,7 @@ import { Topbar } from '@/components/layout/Topbar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAnalytics } from '@/hooks/useAnalytics'
 import { useClinic } from '@/context/ClinicContext'
-import { formatCurrency } from '@/lib/utils'
+import { useFormatters } from '@/hooks/useFormatters'
 import { useTranslations } from 'next-intl'
 
 function KpiCard({ label, value, sub, icon: Icon, color }: {
@@ -41,6 +41,7 @@ const tooltipStyle = { fontSize: 12, borderRadius: 8 }
 
 export default function AnalyticsPage() {
   const t = useTranslations('analytics')
+  const { formatCurrency } = useFormatters()
   const { profile } = useClinic()
   const { data, isLoading, isError, refetch } = useAnalytics()
 

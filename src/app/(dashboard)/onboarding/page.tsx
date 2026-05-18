@@ -15,7 +15,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useClinic } from '@/context/ClinicContext'
 import { useClinicServices, useCreateClinicService, useDeleteClinicService } from '@/hooks/useClinicServices'
-import { formatCurrency, cn } from '@/lib/utils'
+import { useFormatters } from '@/hooks/useFormatters'
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 import type { Role } from '@/types/database'
@@ -238,6 +239,7 @@ function StepProfile({
 // ── Step 2: Services & pricing ──────────────────────────────────
 function StepServices({ onNext }: { onNext: () => void }) {
   const t = useTranslations('onboarding')
+  const { formatCurrency } = useFormatters()
   const { data: services } = useClinicServices()
   const createService = useCreateClinicService()
   const deleteService = useDeleteClinicService()

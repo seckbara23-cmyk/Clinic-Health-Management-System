@@ -18,12 +18,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { usePatients, useCreatePatient, useUpdatePatient, useDeletePatient, usePatientDeletionCounts } from '@/hooks/usePatients'
-import { formatDate, age } from '@/lib/utils'
+import { useFormatters } from '@/hooks/useFormatters'
+import { age } from '@/lib/utils'
 import type { Gender, BloodType } from '@/types/database'
 import { useTranslations } from 'next-intl'
 
 export default function PatientsPage() {
   const t = useTranslations('patients')
+  const { formatDate } = useFormatters()
 
   const patientSchema = z.object({
     full_name: z.string().min(2, t('zodNameRequired')),

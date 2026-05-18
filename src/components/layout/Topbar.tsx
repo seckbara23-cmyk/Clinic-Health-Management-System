@@ -8,7 +8,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useClinic } from '@/context/ClinicContext'
 import { useSidebar } from '@/context/SidebarContext'
 import { useNotifications, type Notification } from '@/hooks/useNotifications'
-import { formatDate, cn } from '@/lib/utils'
+import { useFormatters } from '@/hooks/useFormatters'
+import { useTranslations } from 'next-intl'
+import { cn } from '@/lib/utils'
 
 interface TopbarProps {
   title: string
@@ -30,6 +32,8 @@ const notifColor: Record<Notification['type'], string> = {
 }
 
 export function Topbar({ title, description }: TopbarProps) {
+  const t = useTranslations('topbar')
+  const { formatDate } = useFormatters()
   const { clinic } = useClinic()
   const { openMobile } = useSidebar()
   const { data: notifications } = useNotifications()
@@ -44,7 +48,7 @@ export function Topbar({ title, description }: TopbarProps) {
           size="icon"
           className="shrink-0 md:hidden"
           onClick={openMobile}
-          aria-label="Ouvrir le menu"
+          aria-label={t('openMenu')}
         >
           <Menu className="h-5 w-5" />
         </Button>
@@ -56,7 +60,7 @@ export function Topbar({ title, description }: TopbarProps) {
       <div className="flex items-center gap-3">
         <div className="relative hidden md:block">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input placeholder="Rechercher..." className="w-64 pl-9 h-9" />
+          <Input placeholder={t('searchPlaceholder')} className="w-64 pl-9 h-9" />
         </div>
         <span className="hidden text-xs text-gray-500 md:block">
           {formatDate(new Date(), { dateStyle: 'full' })}
@@ -75,7 +79,7 @@ export function Topbar({ title, description }: TopbarProps) {
           </PopoverTrigger>
           <PopoverContent align="end" className="w-80 p-0">
             <div className="flex items-center justify-between border-b px-4 py-3">
-              <p className="text-sm font-semibold">Notifications</p>
+              <p className="text-sm font-semibold">{t('notifications')}</p>
               {count > 0 && (
                 <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-600">
                   {count}
@@ -85,7 +89,7 @@ export function Topbar({ title, description }: TopbarProps) {
             {count === 0 ? (
               <div className="flex flex-col items-center justify-center gap-2 py-8 text-gray-400">
                 <Bell className="h-8 w-8 opacity-30" />
-                <p className="text-sm">Aucune notification</p>
+                <p className="text-sm">{t('noNotifications')}</p>
               </div>
             ) : (
               <ul className="max-h-80 overflow-y-auto divide-y">

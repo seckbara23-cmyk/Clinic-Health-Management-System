@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { useClinic } from '@/context/ClinicContext'
 
@@ -11,6 +12,7 @@ export interface Notification {
 }
 
 export function useNotifications() {
+  const t = useTranslations('notifications')
   const { clinic } = useClinic()
   const supabase = createClient()
   const today = new Date().toISOString().slice(0, 10)
@@ -48,7 +50,7 @@ export function useNotifications() {
         notifications.push({
           id: `follow_up_${c.id}`,
           type: 'follow_up',
-          label: 'Suivi prévu aujourd\'hui',
+          label: t('followUpToday'),
           detail: patient?.full_name ?? 'Patient',
           href: '/consultations',
         })
@@ -59,7 +61,7 @@ export function useNotifications() {
         notifications.push({
           id: `lab_${l.id}`,
           type: 'lab_result',
-          label: 'Résultat disponible',
+          label: t('labResult'),
           detail: `${l.test_name} — ${patient?.full_name ?? 'Patient'}`,
           href: '/lab-requests',
         })
@@ -70,7 +72,7 @@ export function useNotifications() {
         notifications.push({
           id: `inv_${inv.id}`,
           type: inv.status === 'overdue' ? 'overdue_invoice' : 'unpaid_invoice',
-          label: inv.status === 'overdue' ? 'Facture en retard' : 'Paiement partiel',
+          label: inv.status === 'overdue' ? t('overdueInvoice') : t('partialPayment'),
           detail: `${inv.invoice_number} — ${patient?.full_name ?? '—'}`,
           href: '/billing',
         })

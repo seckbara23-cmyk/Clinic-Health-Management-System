@@ -17,7 +17,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { usePrescriptions, useCreatePrescription, useUpdatePrescription } from '@/hooks/usePrescriptions'
 import { useConsultations } from '@/hooks/useConsultations'
 import { useClinic } from '@/context/ClinicContext'
-import { formatDate, cn } from '@/lib/utils'
+import { useFormatters } from '@/hooks/useFormatters'
+import { cn } from '@/lib/utils'
 import { openPrescriptionPDF } from '@/lib/pdf'
 import { useTranslations } from 'next-intl'
 import type { Prescription, Medication, PrescriptionStatus } from '@/types/database'
@@ -36,6 +37,7 @@ type PrescriptionRow = Prescription & {
 
 export default function PrescriptionsPage() {
   const t = useTranslations('prescriptions')
+  const { formatDate } = useFormatters()
   const { profile, clinic } = useClinic()
   const [createOpen, setCreateOpen] = useState(false)
   const [printTarget, setPrintTarget] = useState<PrescriptionRow | null>(null)
@@ -332,6 +334,7 @@ export default function PrescriptionsPage() {
 
 function PrescriptionPrintDialog({ rx, onClose }: { rx: PrescriptionRow; onClose: () => void }) {
   const t = useTranslations('prescriptions')
+  const { formatDate } = useFormatters()
   return (
     <Dialog open onOpenChange={open => { if (!open) onClose() }}>
       <DialogContent className="sm:max-w-lg">

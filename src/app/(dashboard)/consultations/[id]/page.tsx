@@ -20,7 +20,8 @@ import { VitalsForm } from '@/components/consultations/VitalsForm'
 import { useConsultation, useUpdateConsultation, useEndConsultation } from '@/hooks/useConsultations'
 import { useCreateInvoice } from '@/hooks/useInvoices'
 import { useClinic } from '@/context/ClinicContext'
-import { formatDate, formatTime, cn } from '@/lib/utils'
+import { useFormatters } from '@/hooks/useFormatters'
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 
@@ -43,6 +44,7 @@ type InvoiceForm = z.infer<typeof invoiceSchema>
 export default function ConsultationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const t = useTranslations('consultationDetail')
+  const { formatDate, formatTime } = useFormatters()
   const router = useRouter()
   const { profile } = useClinic()
   const { data: consultation, isLoading } = useConsultation(id)

@@ -17,7 +17,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useClinic } from '@/context/ClinicContext'
-import { formatDate, cn } from '@/lib/utils'
+import { useFormatters } from '@/hooks/useFormatters'
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 import type { Clinic, ClinicStatus, SubscriptionPlan } from '@/types/database'
@@ -33,6 +34,7 @@ type LifecycleFilter = 'active' | 'all' | 'archived'
 
 export default function AdminClinicsPage() {
   const t = useTranslations('adminClinics')
+  const { formatDate } = useFormatters()
   const { profile } = useClinic()
   const [open, setOpen] = useState(false)
   const [tempPassword, setTempPassword] = useState<{ password: string; email: string } | null>(null)

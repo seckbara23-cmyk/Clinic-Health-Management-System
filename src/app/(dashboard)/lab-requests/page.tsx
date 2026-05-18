@@ -16,7 +16,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useLabRequests, useCreateLabRequest, useUpdateLabRequest } from '@/hooks/useLabRequests'
 import { usePatients } from '@/hooks/usePatients'
 import { useClinic } from '@/context/ClinicContext'
-import { formatDate, cn } from '@/lib/utils'
+import { useFormatters } from '@/hooks/useFormatters'
+import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
 import type { LabRequest, LabRequestStatus, LabRequestType, AppointmentPriority } from '@/types/database'
 
@@ -41,6 +42,7 @@ type LabRow = LabRequest & {
 
 export default function LabRequestsPage() {
   const t = useTranslations('labRequests')
+  const { formatDate } = useFormatters()
   const { profile } = useClinic()
   const [createOpen, setCreateOpen] = useState(false)
   const [resultTarget, setResultTarget] = useState<LabRow | null>(null)

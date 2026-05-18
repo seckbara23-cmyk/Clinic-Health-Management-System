@@ -881,5 +881,17 @@
     "labStatusProcessing": "Processing",
     "labStatusResulted": "Result available",
     "labStatusCancelled": "Cancelled"
+  },
+  "topbar": {
+    "openMenu": "Open menu",
+    "searchPlaceholder": "Search...",
+    "notifications": "Notifications",
+    "noNotifications": "No notifications"
+  },
+  "notifications": {
+    "followUpToday": "Follow-up scheduled today",
+    "labResult": "Result available",
+    "overdueInvoice": "Overdue invoice",
+    "partialPayment": "Partial payment"
   }
 }

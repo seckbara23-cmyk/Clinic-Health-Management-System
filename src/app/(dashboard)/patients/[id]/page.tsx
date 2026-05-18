@@ -25,7 +25,8 @@ import { useLabRequests } from '@/hooks/useLabRequests'
 import { useDoctors } from '@/hooks/useDoctors'
 import { useLatestPatientVitals } from '@/hooks/useVitals'
 import { useClinic } from '@/context/ClinicContext'
-import { formatDate, formatTime, formatCurrency, age, cn } from '@/lib/utils'
+import { useFormatters } from '@/hooks/useFormatters'
+import { age, cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 import type { Prescription, LabRequest } from '@/types/database'
@@ -55,6 +56,7 @@ type Tab = 'history' | 'prescriptions' | 'labs' | 'timeline'
 export default function PatientProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const t = useTranslations('patientProfile')
+  const { formatDate, formatTime, formatCurrency } = useFormatters()
   const router = useRouter()
   const { profile } = useClinic()
   const [activeTab, setActiveTab] = useState<Tab>('history')
@@ -356,7 +358,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                 <CardContent className="text-sm space-y-3">
                   <p className="text-xs text-gray-400 flex items-center gap-1">
                     <Clock className="h-3 w-3" />
-                    {formatDate(latestVitals.created_at)} à {new Intl.DateTimeFormat('fr-SN', { timeStyle: 'short' }).format(new Date(latestVitals.created_at))}
+                    {formatDate(latestVitals.created_at)} à {formatTime(latestVitals.created_at)}
                   </p>
                   <div className="grid grid-cols-2 gap-2">
                     {latestVitals.systolic_bp != null && latestVitals.diastolic_bp != null && (

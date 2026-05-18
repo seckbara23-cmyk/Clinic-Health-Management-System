@@ -20,7 +20,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useClinic } from '@/context/ClinicContext'
 import { usePatients } from '@/hooks/usePatients'
 import { useConsultations, useUpdateConsultation, type VitalSignsInput } from '@/hooks/useConsultations'
-import { formatDate } from '@/lib/utils'
+import { useFormatters } from '@/hooks/useFormatters'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 import type { Consultation, VitalSigns } from '@/types/database'
@@ -43,6 +43,7 @@ type EditForm = z.infer<typeof editSchema>
 
 export default function ConsultationsPage() {
   const t = useTranslations('consultations')
+  const { formatDate } = useFormatters()
   const router = useRouter()
   const { clinic, profile } = useClinic()
   const [createOpen, setCreateOpen] = useState(false)

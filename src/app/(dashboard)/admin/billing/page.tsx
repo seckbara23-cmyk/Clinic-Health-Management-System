@@ -8,7 +8,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { EmptyState } from '@/components/ui/empty-state'
 import { useClinic } from '@/context/ClinicContext'
-import { formatCurrency, formatDate, cn } from '@/lib/utils'
+import { useFormatters } from '@/hooks/useFormatters'
+import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
 
 const paymentStatusVariant: Record<string, string> = {
@@ -46,6 +47,7 @@ interface AdminInvoice {
 
 export default function AdminBillingPage() {
   const t = useTranslations('adminBilling')
+  const { formatCurrency, formatDate } = useFormatters()
   const { profile } = useClinic()
   const supabase = createClient()
 

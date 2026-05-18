@@ -14,7 +14,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { useConsultationVitals, useRecordVitals } from '@/hooks/useVitals'
-import { formatDate, formatTime, cn } from '@/lib/utils'
+import { useFormatters } from '@/hooks/useFormatters'
+import { cn } from '@/lib/utils'
 
 // ── Schema ───────────────────────────────────────────────────────
 // Preprocess: empty string / null / undefined → null; otherwise coerce to number
@@ -161,6 +162,7 @@ interface Props {
 }
 
 export function VitalsForm({ consultationId, patientId, isEnded }: Props) {
+  const { formatDate, formatTime } = useFormatters()
   const [historyOpen, setHistoryOpen] = useState(false)
   const [saved, setSaved] = useState(false)
   const prefilled = useRef<string | null>(null)

@@ -19,7 +19,8 @@ import { useInvoices, useCreateInvoice, useRecordPayment } from '@/hooks/useInvo
 import { usePatients } from '@/hooks/usePatients'
 import { useClinic } from '@/context/ClinicContext'
 import { openInvoicePDF } from '@/lib/pdf'
-import { formatCurrency, formatDate, cn } from '@/lib/utils'
+import { useFormatters } from '@/hooks/useFormatters'
+import { cn } from '@/lib/utils'
 import { PAYMENT_PROVIDERS } from '@/lib/payments/config'
 import { useTranslations } from 'next-intl'
 import type { Invoice, PaymentMethod } from '@/types/database'
@@ -42,6 +43,7 @@ const statusVariant: Record<string, string> = {
 
 export default function BillingPage() {
   const t = useTranslations('billing')
+  const { formatCurrency, formatDate } = useFormatters()
 
   const statusLabel: Record<string, string> = {
     draft:     t('statusDraft'),

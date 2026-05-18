@@ -1,11 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
+import { useLocale } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { useClinic } from '@/context/ClinicContext'
 
-// Format an ISO date string (YYYY-MM-01) as a short month label (e.g. "janv. 25")
-function labelMonth(isoDate: string) {
-  return new Date(isoDate).toLocaleDateString('fr-SN', { month: 'short', year: '2-digit' })
-}
+const INTL_LOCALE: Record<string, string> = { fr: 'fr-SN', en: 'en-US' }
 
 // Raw shape returned by the get_clinic_analytics RPC (months use YYYY-MM-01 ISO strings)
 interface RpcResult {
@@ -28,11 +26,16 @@ interface RpcResult {
 }
 
 export function useAnalytics() {
+  const locale = useLocale()
+  const intlLocale = INTL_LOCALE[locale] ?? 'fr-SN'
   const { clinic } = useClinic()
   const supabase = createClient()
 
+  const labelMonth = (isoDate: string) =>
+    new Date(isoDate).toLocaleDateString(intlLocale, { month: 'short', year: '2-digit' })
+
   return useQuery({
-    queryKey: ['analytics', clinic?.id],
+    queryKey: ['analytics', clinic?.id, locale],
     enabled: !!clinic,
     staleTime: 5 * 60_000,
     queryFn: async () => {
@@ -44,7 +47,6 @@ export function useAnalytics() {
 
       const raw = data as RpcResult
 
-      // Apply fr-SN month labels (the RPC returns YYYY-MM-01 ISO strings)
       return {
         revenueByMonth:      raw.revenue_by_month.map(r => ({ ...r, month: labelMonth(r.month) })),
         appointmentsByMonth: raw.appointments_by_month.map(r => ({ ...r, month: labelMonth(r.month) })),

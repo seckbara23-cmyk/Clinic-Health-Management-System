@@ -21,7 +21,8 @@ import {
 } from '@/hooks/useAppointments'
 import { usePatients } from '@/hooks/usePatients'
 import { useDoctors } from '@/hooks/useDoctors'
-import { formatTime, formatDate, cn } from '@/lib/utils'
+import { useFormatters } from '@/hooks/useFormatters'
+import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
 import type { Appointment, AppointmentPriority } from '@/types/database'
 
@@ -58,6 +59,7 @@ function getWeekDays(weekStart: string) {
 
 export default function AppointmentsPage() {
   const t = useTranslations('appointments')
+  const { formatTime, formatDate, intlLocale } = useFormatters()
 
   const createSchema = z.object({
     patient_id: z.string().min(1, t('zodPatientRequired')),
@@ -249,7 +251,7 @@ export default function AppointmentsPage() {
                       )}
                       onClick={() => { setDate(day); setViewMode('list') }}
                     >
-                      {new Date(day + 'T12:00:00').toLocaleDateString('fr-SN', { weekday: 'short', day: 'numeric' })}
+                      {new Date(day + 'T12:00:00').toLocaleDateString(intlLocale, { weekday: 'short', day: 'numeric' })}
                     </button>
                     <div className="space-y-1">
                       {weekLoading && <div className="h-8 rounded bg-gray-100 animate-pulse" />}

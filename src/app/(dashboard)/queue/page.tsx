@@ -14,7 +14,8 @@ import { Button } from '@/components/ui/button'
 import { useAppointments, useUpdateAppointmentStatus, useCheckInPatient, useCallPatient } from '@/hooks/useAppointments'
 import { useCreateConsultation } from '@/hooks/useConsultations'
 import { useClinic } from '@/context/ClinicContext'
-import { formatTime, cn } from '@/lib/utils'
+import { useFormatters } from '@/hooks/useFormatters'
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 import type { Appointment, AppointmentStatus } from '@/types/database'
@@ -49,6 +50,7 @@ export default function QueuePage() {
   const supabase = createClient()
   const qc = useQueryClient()
   const t = useTranslations('queue')
+  const { formatTime, intlLocale } = useFormatters()
   const { data: allAppts, isLoading } = useAppointments(today)
   const updateStatus = useUpdateAppointmentStatus()
   const checkIn = useCheckInPatient()
@@ -126,7 +128,7 @@ export default function QueuePage() {
     <div className="flex flex-col h-full">
       <Topbar
         title={t('title')}
-        description={`${now.toLocaleDateString('fr-SN', { weekday: 'long', day: 'numeric', month: 'long' })} — ${now.toLocaleTimeString('fr-SN', { hour: '2-digit', minute: '2-digit' })}`}
+        description={`${now.toLocaleDateString(intlLocale, { weekday: 'long', day: 'numeric', month: 'long' })} — ${now.toLocaleTimeString(intlLocale, { hour: '2-digit', minute: '2-digit' })}`}
       />
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
