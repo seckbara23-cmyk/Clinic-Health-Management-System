@@ -64,7 +64,7 @@ export default function BillingPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [receiptInvoice, setReceiptInvoice] = useState<Invoice | null>(null)
   const [partialInvoice, setPartialInvoice] = useState<Invoice | null>(null)
-  const [statusFilter, setStatusFilter] = useState<string>('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
 
   // FAB listener
   const openCreate = useCallback(() => { reset(); setCreateOpen(true) }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -74,7 +74,7 @@ export default function BillingPage() {
   }, [openCreate])
 
   const { clinic } = useClinic()
-  const { data: invoices, isLoading } = useInvoices(statusFilter || undefined)
+  const { data: invoices, isLoading } = useInvoices(statusFilter === 'all' ? undefined : statusFilter)
   const { data: patientsResult } = usePatients()
   const patients = patientsResult?.data
   const createMutation = useCreateInvoice()
@@ -199,7 +199,7 @@ export default function BillingPage() {
               <SelectValue placeholder="Tous" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tous</SelectItem>
+              <SelectItem value="all">Tous</SelectItem>
               {Object.entries(statusLabel).map(([v, l]) => (
                 <SelectItem key={v} value={v}>{l}</SelectItem>
               ))}
@@ -223,8 +223,8 @@ export default function BillingPage() {
               <EmptyState
                 icon={Receipt}
                 title="Aucune facture"
-                description={statusFilter ? 'Aucune facture avec ce statut.' : 'Créez votre première facture.'}
-                action={!statusFilter ? { label: 'Nouvelle facture', onClick: openCreate } : undefined}
+                description={statusFilter !== 'all' ? 'Aucune facture avec ce statut.' : 'Créez votre première facture.'}
+                action={statusFilter === 'all' ? { label: 'Nouvelle facture', onClick: openCreate } : undefined}
               />
             )}
 
