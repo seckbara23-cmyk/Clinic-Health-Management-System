@@ -1,8 +1,7 @@
 'use client'
 
-// Background photo: place a clinic/reception image at public/clinic-bg.jpg
-// (any JPEG ~1920×1080, ≤ 400 KB after compression works well).
-// Without the file the teal gradient fallback is shown automatically.
+// Background: public/clinic-bg.jpg — single clinic reception photo.
+// Gradient layer beneath is the fallback if the file is ever missing.
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -60,6 +59,7 @@ export default function LoginPage() {
           alt=""
           fill
           priority
+          quality={85}
           sizes="100vw"
           className="object-cover object-center"
           onError={() => setBgError(true)}
