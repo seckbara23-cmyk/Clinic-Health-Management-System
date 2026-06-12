@@ -69,7 +69,7 @@ export type Database = {
           clinic_id: string | null
           full_name: string
           email: string
-          role: 'super_admin' | 'admin' | 'doctor' | 'receptionist' | 'nurse' | 'cashier'
+          role: 'super_admin' | 'admin' | 'doctor' | 'receptionist' | 'nurse' | 'cashier' | 'lab_technician'
           phone: string | null
           avatar_url: string | null
           is_active: boolean
@@ -661,6 +661,216 @@ export type Database = {
         }
         Relationships: []
       }
+      lab_tests: {
+        Row: {
+          id: string
+          clinic_id: string
+          name: string
+          category: string | null
+          sample_type: string | null
+          unit: string | null
+          normal_range_low: number | null
+          normal_range_high: number | null
+          normal_range_text: string | null
+          price: number
+          currency: string
+          is_active: boolean
+          sort_order: number
+          deleted_at: string | null
+          deleted_by: string | null
+          deletion_reason: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          clinic_id: string
+          name: string
+          category?: string | null
+          sample_type?: string | null
+          unit?: string | null
+          normal_range_low?: number | null
+          normal_range_high?: number | null
+          normal_range_text?: string | null
+          price?: number
+          currency?: string
+          is_active?: boolean
+          sort_order?: number
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          clinic_id?: string
+          name?: string
+          category?: string | null
+          sample_type?: string | null
+          unit?: string | null
+          normal_range_low?: number | null
+          normal_range_high?: number | null
+          normal_range_text?: string | null
+          price?: number
+          currency?: string
+          is_active?: boolean
+          sort_order?: number
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      lab_orders: {
+        Row: {
+          id: string
+          clinic_id: string
+          patient_id: string
+          consultation_id: string | null
+          ordered_by: string
+          patient_name: string | null
+          patient_number: string | null
+          status: string
+          priority: string
+          clinical_notes: string | null
+          sample_collected_at: string | null
+          completed_at: string | null
+          reviewed_by: string | null
+          reviewed_at: string | null
+          interpretation: string | null
+          invoice_id: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deletion_reason: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          clinic_id: string
+          patient_id: string
+          consultation_id?: string | null
+          ordered_by: string
+          patient_name?: string | null
+          patient_number?: string | null
+          status?: string
+          priority?: string
+          clinical_notes?: string | null
+          sample_collected_at?: string | null
+          completed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          interpretation?: string | null
+          invoice_id?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          clinic_id?: string
+          patient_id?: string
+          consultation_id?: string | null
+          ordered_by?: string
+          patient_name?: string | null
+          patient_number?: string | null
+          status?: string
+          priority?: string
+          clinical_notes?: string | null
+          sample_collected_at?: string | null
+          completed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          interpretation?: string | null
+          invoice_id?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      lab_order_items: {
+        Row: {
+          id: string
+          clinic_id: string
+          lab_order_id: string
+          patient_id: string
+          lab_test_id: string | null
+          test_name: string
+          unit: string | null
+          normal_range_low: number | null
+          normal_range_high: number | null
+          normal_range_text: string | null
+          price: number
+          result_value: string | null
+          result_numeric: number | null
+          flag: string
+          result_notes: string | null
+          resulted_by: string | null
+          resulted_at: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deletion_reason: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          clinic_id?: string
+          lab_order_id: string
+          patient_id?: string
+          lab_test_id?: string | null
+          test_name?: string
+          unit?: string | null
+          normal_range_low?: number | null
+          normal_range_high?: number | null
+          normal_range_text?: string | null
+          price?: number
+          result_value?: string | null
+          result_numeric?: number | null
+          flag?: string
+          result_notes?: string | null
+          resulted_by?: string | null
+          resulted_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          clinic_id?: string
+          lab_order_id?: string
+          patient_id?: string
+          lab_test_id?: string | null
+          test_name?: string
+          unit?: string | null
+          normal_range_low?: number | null
+          normal_range_high?: number | null
+          normal_range_text?: string | null
+          price?: number
+          result_value?: string | null
+          result_numeric?: number | null
+          flag?: string
+          result_notes?: string | null
+          resulted_by?: string | null
+          resulted_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       audit_events: {
         Row: {
           id: string
@@ -714,6 +924,16 @@ export type Database = {
           total_collected: number
           pending_count: number
           online_count: number
+        }[]
+      }
+      get_lab_order_patient_identity: {
+        Args: { p_order_id: string }
+        Returns: {
+          full_name: string
+          patient_number: string
+          cni: string | null
+          date_of_birth: string | null
+          gender: string | null
         }[]
       }
     }

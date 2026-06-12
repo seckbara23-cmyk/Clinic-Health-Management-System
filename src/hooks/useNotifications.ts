@@ -30,10 +30,11 @@ export function useNotifications() {
           .eq('follow_up_date', today)
           .limit(20),
         supabase
-          .from('lab_requests')
-          .select('id, test_name, patient:patients(full_name)')
+          .from('lab_orders')
+          .select('id, patient_name')
           .eq('clinic_id', clinic!.id)
-          .eq('status', 'resulted')
+          .eq('status', 'completed')
+          .is('deleted_at', null)
           .limit(20),
         supabase
           .from('invoices')
@@ -57,13 +58,13 @@ export function useNotifications() {
       }
 
       for (const l of labs.data ?? []) {
-        const patient = (l as { patient?: { full_name?: string } }).patient
+        const row = l as { id: string; patient_name?: string | null }
         notifications.push({
-          id: `lab_${l.id}`,
+          id: `lab_${row.id}`,
           type: 'lab_result',
           label: t('labResult'),
-          detail: `${l.test_name} — ${patient?.full_name ?? 'Patient'}`,
-          href: '/lab-requests',
+          detail: row.patient_name ?? 'Patient',
+          href: '/lab-orders',
         })
       }
 

@@ -1,4 +1,4 @@
-import type { Invoice, Clinic, Prescription } from '@/types/database'
+import type { Invoice, Clinic, Prescription, LabOrder, LabOrderItem, LabOrderPatientIdentity, LabResultFlag } from '@/types/database'
 
 function formatXOF(amount: number) {
   return new Intl.NumberFormat('fr-SN', { style: 'currency', currency: 'XOF' }).format(amount)
@@ -210,6 +210,114 @@ ${baseStyles}
 
   <div class="footer">
     CHMS — ${clinic.name} · ${new Date().toLocaleDateString('fr-SN')}
+  </div>
+</div>
+<script>window.onload = () => window.print()</script>
+</body></html>`
+
+  const blob = new Blob([html], { type: 'text/html' })
+  const url = URL.createObjectURL(blob)
+  window.open(url, '_blank')
+}
+
+const flagLabelFR: Record<LabResultFlag, string> = {
+  normal: 'Normal', abnormal: 'Anormal', high: 'Élevé', low: 'Bas', critical: 'Critique',
+}
+const flagColorHex: Record<LabResultFlag, string> = {
+  normal: '#111', abnormal: '#b45309', high: '#b91c1c', low: '#1d4ed8', critical: '#991b1b',
+}
+
+export function openLabResultPDF(
+  order: LabOrder,
+  items: LabOrderItem[],
+  clinic: Clinic,
+  identity: LabOrderPatientIdentity | null,
+  doctorName: string,
+  techName: string,
+) {
+  const registrationLine = [
+    clinic.ninea ? `NINEA: ${clinic.ninea}` : null,
+    clinic.rc_number ? `RC: ${clinic.rc_number}` : null,
+  ].filter(Boolean).join(' · ')
+
+  const rows = items.map(item => {
+    const range = item.normal_range_text
+      ?? (item.normal_range_low != null && item.normal_range_high != null ? `${item.normal_range_low} – ${item.normal_range_high}` : '—')
+    const flag = item.flag as LabResultFlag
+    const bold = flag !== 'normal'
+    return `<tr>
+      <td>${item.test_name}</td>
+      <td style="text-align:right;color:${flagColorHex[flag]};${bold ? 'font-weight:bold' : ''}">${item.result_value ?? '—'}</td>
+      <td style="text-align:center">${item.unit ?? '—'}</td>
+      <td style="text-align:center">${range}</td>
+      <td style="text-align:center;color:${flagColorHex[flag]};${bold ? 'font-weight:bold' : ''}">${flagLabelFR[flag]}</td>
+    </tr>`
+  }).join('')
+
+  const html = `<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="UTF-8"><title>Résultat d'analyse</title>
+<style>${baseStyles}
+.result-title { font-size: 24px; font-weight: bold; color: #0f766e; text-align: right; }
+</style></head>
+<body>
+<div class="page">
+  <div class="header" style="border-bottom-color:#0f766e">
+    <div>
+      <div class="clinic-name" style="color:#0f766e">${clinic.name}</div>
+      <div class="clinic-meta">${clinic.location}${clinic.phone ? ' · ' + clinic.phone : ''}${clinic.email ? ' · ' + clinic.email : ''}</div>
+      ${registrationLine ? `<div class="clinic-meta">${registrationLine}</div>` : ''}
+    </div>
+    <div>
+      <div class="result-title">RÉSULTAT D'ANALYSE</div>
+      <div style="font-size:13px;color:#888">${formatDateFR(order.created_at)}</div>
+    </div>
+  </div>
+
+  <div class="meta-grid">
+    <div class="meta-box">
+      <div class="meta-label">Patient</div>
+      <div class="meta-value">${identity?.full_name ?? order.patient_name ?? '—'}</div>
+      ${(identity?.patient_number ?? order.patient_number) ? `<div style="font-size:12px;color:#888;font-family:monospace">${identity?.patient_number ?? order.patient_number}</div>` : ''}
+      ${identity?.cni ? `<div style="font-size:12px;color:#888;font-family:monospace">CNI: ${identity.cni}</div>` : ''}
+      ${identity?.date_of_birth ? `<div style="font-size:12px;color:#888">Né(e) le ${formatDateFR(identity.date_of_birth)}${identity.gender ? ' · ' + identity.gender : ''}</div>` : ''}
+    </div>
+    <div class="meta-box">
+      <div class="meta-label">Prescripteur</div>
+      <div class="meta-value">${doctorName || '—'}</div>
+      ${order.priority !== 'normal' ? `<div style="font-size:12px;color:#b91c1c;text-transform:capitalize">${order.priority}</div>` : ''}
+    </div>
+  </div>
+
+  <table>
+    <thead><tr>
+      <th style="width:36%">Analyse</th>
+      <th style="text-align:right">Résultat</th>
+      <th style="text-align:center">Unité</th>
+      <th style="text-align:center">Valeurs de référence</th>
+      <th style="text-align:center">Interprétation</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+
+  ${order.interpretation ? `
+  <div style="margin-top:16px;padding:12px 16px;background:#f0fdfa;border-radius:8px;font-size:13px;color:#0f766e">
+    <strong>Interprétation:</strong> ${order.interpretation}
+  </div>` : ''}
+
+  <div style="display:flex;justify-content:space-between;margin-top:40px;font-size:12px;color:#555">
+    <div>
+      <div style="border-top:1px solid #111;width:180px;padding-top:4px">Technicien de laboratoire</div>
+      <div>${techName || '—'}</div>
+    </div>
+    <div style="text-align:right">
+      <div style="border-top:1px solid #111;width:180px;padding-top:4px;margin-left:auto">Médecin validateur</div>
+      <div>${order.reviewed_by ? (order.reviewer?.full_name ?? doctorName) : '—'}${order.reviewed_at ? ' · ' + formatDateFR(order.reviewed_at) : ''}</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Généré par CHMS — ${clinic.name} · ${new Date().toLocaleDateString('fr-SN')}
   </div>
 </div>
 <script>window.onload = () => window.print()</script>

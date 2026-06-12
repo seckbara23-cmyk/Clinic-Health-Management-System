@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Users, CalendarDays, Receipt,
   Settings, LogOut, Stethoscope, ShieldCheck,
-  Building2, ChevronRight, ClipboardList, Pill, FlaskConical, BarChart2, Inbox, X, CreditCard,
+  Building2, ChevronRight, ClipboardList, Pill, FlaskConical, BarChart2, Inbox, X, CreditCard, TestTube,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useClinic } from '@/context/ClinicContext'
@@ -25,7 +25,8 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: '/dashboard',     labelKey: 'dashboard',     icon: LayoutDashboard },
-  { href: '/patients',      labelKey: 'patients',      icon: Users },
+  { href: '/patients',      labelKey: 'patients',      icon: Users,
+    roles: ['super_admin', 'admin', 'doctor', 'nurse', 'receptionist', 'cashier'] },
   { href: '/queue',         labelKey: 'queue',         icon: ClipboardList,
     roles: ['super_admin', 'admin', 'doctor', 'nurse', 'receptionist'] },
   { href: '/appointments',  labelKey: 'appointments',  icon: CalendarDays,
@@ -34,8 +35,10 @@ const navItems: NavItem[] = [
     roles: ['super_admin', 'admin', 'doctor', 'nurse'] },
   { href: '/prescriptions', labelKey: 'prescriptions', icon: Pill,
     roles: ['super_admin', 'admin', 'doctor', 'nurse'] },
-  { href: '/lab-requests',  labelKey: 'labRequests',   icon: FlaskConical,
-    roles: ['super_admin', 'admin', 'doctor', 'nurse'] },
+  { href: '/lab-orders',    labelKey: 'labOrders',     icon: FlaskConical,
+    roles: ['super_admin', 'admin', 'doctor', 'nurse', 'lab_technician'] },
+  { href: '/lab-catalog',   labelKey: 'labCatalog',    icon: TestTube,
+    roles: ['super_admin', 'admin'] },
   { href: '/billing',       labelKey: 'billing',       icon: Receipt,
     roles: ['super_admin', 'admin', 'receptionist', 'cashier', 'doctor'] },
   { href: '/analytics',     labelKey: 'analytics',     icon: BarChart2,

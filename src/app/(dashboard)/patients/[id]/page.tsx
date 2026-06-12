@@ -23,7 +23,7 @@ import { useAppointments, useCreateAppointment } from '@/hooks/useAppointments'
 import { useConsultations, useCreateConsultation } from '@/hooks/useConsultations'
 import { useInvoices } from '@/hooks/useInvoices'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
-import { useLabRequests } from '@/hooks/useLabRequests'
+import { useLabOrders } from '@/hooks/useLab'
 import { useDoctors } from '@/hooks/useDoctors'
 import { useLatestPatientVitals } from '@/hooks/useVitals'
 import { useClinic } from '@/context/ClinicContext'
@@ -31,7 +31,7 @@ import { useFormatters } from '@/hooks/useFormatters'
 import { age, cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
-import type { Prescription, LabRequest } from '@/types/database'
+import type { Prescription, LabOrder, LabOrderStatus } from '@/types/database'
 
 const apptStatusColors: Record<string, string> = {
   scheduled: 'bg-blue-100 text-blue-800', in_queue: 'bg-amber-100 text-amber-800',
@@ -48,8 +48,9 @@ const rxStatusColors: Record<string, string> = {
   expired: 'bg-gray-100 text-gray-500', cancelled: 'bg-red-100 text-red-500',
 }
 const labStatusColors: Record<string, string> = {
-  ordered: 'bg-blue-100 text-blue-700', collected: 'bg-purple-100 text-purple-700',
-  processing: 'bg-amber-100 text-amber-700', resulted: 'bg-emerald-100 text-emerald-700',
+  ordered: 'bg-blue-100 text-blue-700', sample_collected: 'bg-purple-100 text-purple-700',
+  sample_rejected: 'bg-red-100 text-red-700', in_progress: 'bg-amber-100 text-amber-700',
+  completed: 'bg-emerald-100 text-emerald-700', reviewed: 'bg-teal-100 text-teal-700',
   cancelled: 'bg-red-100 text-red-500',
 }
 
@@ -91,11 +92,13 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
     cancelled: t('rxStatusCancelled'),
   }
   const labStatusLabels: Record<string, string> = {
-    ordered:    t('labStatusOrdered'),
-    collected:  t('labStatusCollected'),
-    processing: t('labStatusProcessing'),
-    resulted:   t('labStatusResulted'),
-    cancelled:  t('labStatusCancelled'),
+    ordered:          t('labStatusOrdered'),
+    sample_collected: t('labStatusSampleCollected'),
+    sample_rejected:  t('labStatusSampleRejected'),
+    in_progress:      t('labStatusInProgress'),
+    completed:        t('labStatusCompleted'),
+    reviewed:         t('labStatusReviewed'),
+    cancelled:        t('labStatusCancelled'),
   }
   const genderLabel: Record<string, string> = {
     male:   t('genderMale'),
@@ -110,7 +113,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
   const { data: consultations } = useConsultations(id)
   const { data: patientInvoices } = useInvoices(undefined, id)
   const { data: prescriptions } = usePrescriptions()
-  const { data: labRequests } = useLabRequests(id)
+  const { data: labOrders } = useLabOrders(id)
   const { data: doctors } = useDoctors()
   const createConsultation = useCreateConsultation()
   const createAppt = useCreateAppointment()
@@ -212,10 +215,10 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
       badgeColor: rxStatusColors[rx.status] ?? '',
       icon: Pill,
     })),
-    ...(labRequests ?? []).map(lab => ({
+    ...(labOrders ?? []).map(lab => ({
       date: lab.created_at, type: 'lab' as const,
-      title: lab.test_name,
-      subtitle: lab.result_notes ?? undefined,
+      title: (lab.items && lab.items.length === 1) ? lab.items[0].test_name : t('labOrderCount', { count: lab.items?.length ?? 0 }),
+      subtitle: lab.interpretation ?? undefined,
       badge: labStatusLabels[lab.status] ?? lab.status,
       badgeColor: labStatusColors[lab.status] ?? '',
       icon: FlaskConical,
@@ -490,7 +493,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                 { label: t('chipAppt'),          value: patientAppointments?.length ?? 0, color: 'bg-blue-50 text-blue-700' },
                 { label: t('chipInvoices'),      value: patientInvoices?.length ?? 0,     color: 'bg-emerald-50 text-emerald-700' },
                 { label: t('chipPrescriptions'), value: patientPrescriptions.length,      color: 'bg-amber-50 text-amber-700' },
-                { label: t('chipLabs'),          value: labRequests?.length ?? 0,         color: 'bg-pink-50 text-pink-700' },
+                { label: t('chipLabs'),          value: labOrders?.length ?? 0,           color: 'bg-pink-50 text-pink-700' },
               ].map(s => (
                 <div key={s.label} className={cn('rounded-xl p-2 md:p-3 text-center', s.color)}>
                   <div className="text-lg font-bold md:text-xl">{s.value}</div>
@@ -655,35 +658,40 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
             {activeTab === 'labs' && (
               <Card>
                 <CardContent className="p-0">
-                  {!labRequests || labRequests.length === 0 ? (
+                  {!labOrders || labOrders.length === 0 ? (
                     <div className="text-center py-12 text-gray-400">
                       <FlaskConical className="mx-auto h-10 w-10 mb-3 opacity-30" />
                       <p>{t('noLab')}</p>
                     </div>
                   ) : (
                     <div className="divide-y">
-                      {(labRequests as unknown as LabRequest[]).map(lab => (
-                        <div key={lab.id} className="p-4 space-y-1.5">
+                      {(labOrders as LabOrder[]).map(order => (
+                        <div key={order.id} className="p-4 space-y-2">
                           <div className="flex items-center justify-between">
-                            <p className="font-medium text-gray-900">{lab.test_name}</p>
-                            <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', labStatusColors[lab.status])}>
-                              {labStatusLabels[lab.status]}
+                            <p className="font-medium text-gray-900">
+                              {order.items && order.items.length === 1 ? order.items[0].test_name : t('labOrderCount', { count: order.items?.length ?? 0 })}
+                            </p>
+                            <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', labStatusColors[order.status as LabOrderStatus])}>
+                              {labStatusLabels[order.status]}
                             </span>
                           </div>
                           <div className="flex gap-2 text-xs text-gray-500">
-                            <span>{lab.test_type}</span>
-                            {lab.priority !== 'normal' && (
-                              <span className="text-amber-600 font-medium">⚠ {lab.priority}</span>
-                            )}
-                            <span>{formatDate(lab.created_at)}</span>
+                            {order.priority !== 'normal' && <span className="text-amber-600 font-medium">⚠ {order.priority}</span>}
+                            <span>{formatDate(order.created_at)}</span>
                           </div>
-                          {lab.clinical_notes && <p className="text-xs text-gray-500 italic">{lab.clinical_notes}</p>}
-                          {lab.result_notes && (
-                            <div className="rounded-md bg-emerald-50 border border-emerald-200 p-2">
-                              <p className="text-xs font-medium text-emerald-700 mb-0.5">{t('labResultLabel')}</p>
-                              <p className="text-xs text-emerald-800">{lab.result_notes}</p>
+                          {(order.items ?? []).some(i => i.result_value) && (
+                            <div className="rounded-md bg-emerald-50 border border-emerald-200 p-2 space-y-1">
+                              {(order.items ?? []).filter(i => i.result_value).map(i => (
+                                <div key={i.id} className="flex items-center justify-between text-xs">
+                                  <span className="text-emerald-900">{i.test_name}</span>
+                                  <span className={cn('font-medium', i.flag === 'normal' ? 'text-emerald-800' : 'text-red-700')}>
+                                    {i.result_value}{i.unit ? ` ${i.unit}` : ''}
+                                  </span>
+                                </div>
+                              ))}
                             </div>
                           )}
+                          {order.interpretation && <p className="text-xs text-gray-600 italic">{order.interpretation}</p>}
                         </div>
                       ))}
                     </div>

@@ -1,6 +1,6 @@
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
 
-export type Role = 'super_admin' | 'admin' | 'doctor' | 'receptionist' | 'nurse' | 'cashier'
+export type Role = 'super_admin' | 'admin' | 'doctor' | 'receptionist' | 'nurse' | 'cashier' | 'lab_technician'
 export type SubscriptionPlan = 'free' | 'basic' | 'pro' | 'enterprise'
 export type SubscriptionStatus = 'active' | 'suspended' | 'cancelled'
 export type ClinicStatus = 'pending' | 'active' | 'rejected' | 'suspended' | 'inactive' | 'archived'
@@ -366,6 +366,98 @@ export interface LabRequest {
   updated_at: string
   patient?: Patient
   doctor?: UserProfile
+}
+
+// ─── Laboratory module (Phase 4) ────────────────────────────────
+export type LabOrderStatus =
+  | 'ordered'
+  | 'sample_collected'
+  | 'sample_rejected'
+  | 'in_progress'
+  | 'completed'
+  | 'reviewed'
+  | 'cancelled'
+export type LabResultFlag = 'normal' | 'abnormal' | 'high' | 'low' | 'critical'
+
+export interface LabTest {
+  id: string
+  clinic_id: string
+  name: string
+  category: string | null
+  sample_type: string | null
+  unit: string | null
+  normal_range_low: number | null
+  normal_range_high: number | null
+  normal_range_text: string | null
+  price: number
+  currency: string
+  is_active: boolean
+  sort_order: number
+  deleted_at: string | null
+  deleted_by: string | null
+  deletion_reason: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface LabOrderItem {
+  id: string
+  clinic_id: string
+  lab_order_id: string
+  patient_id: string
+  lab_test_id: string | null
+  test_name: string
+  unit: string | null
+  normal_range_low: number | null
+  normal_range_high: number | null
+  normal_range_text: string | null
+  price: number
+  result_value: string | null
+  result_numeric: number | null
+  flag: LabResultFlag
+  result_notes: string | null
+  resulted_by: string | null
+  resulted_at: string | null
+  deleted_at: string | null
+  deleted_by: string | null
+  deletion_reason: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface LabOrder {
+  id: string
+  clinic_id: string
+  patient_id: string
+  consultation_id: string | null
+  ordered_by: string
+  patient_name: string | null
+  patient_number: string | null
+  status: LabOrderStatus
+  priority: AppointmentPriority
+  clinical_notes: string | null
+  sample_collected_at: string | null
+  completed_at: string | null
+  reviewed_by: string | null
+  reviewed_at: string | null
+  interpretation: string | null
+  invoice_id: string | null
+  deleted_at: string | null
+  deleted_by: string | null
+  deletion_reason: string | null
+  created_at: string
+  updated_at: string
+  items?: LabOrderItem[]
+  doctor?: UserProfile
+  reviewer?: UserProfile
+}
+
+export interface LabOrderPatientIdentity {
+  full_name: string
+  patient_number: string
+  cni: string | null
+  date_of_birth: string | null
+  gender: string | null
 }
 
 export interface ClinicInvitation {

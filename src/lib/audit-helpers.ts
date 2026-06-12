@@ -10,7 +10,7 @@ export function requestClientInfo(req: NextRequest): { ip: string | null; ua: st
 }
 
 // Entity types that may be view-logged / soft-deleted via the audit API.
-export const AUDITABLE_ENTITIES = ['patient', 'appointment', 'consultation', 'prescription', 'invoice'] as const
+export const AUDITABLE_ENTITIES = ['patient', 'appointment', 'consultation', 'prescription', 'invoice', 'lab_order'] as const
 export type AuditableEntity = (typeof AUDITABLE_ENTITIES)[number]
 
 export function isAuditableEntity(v: unknown): v is AuditableEntity {
