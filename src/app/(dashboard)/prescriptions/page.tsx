@@ -20,6 +20,7 @@ import { useClinic } from '@/context/ClinicContext'
 import { useFormatters } from '@/hooks/useFormatters'
 import { cn } from '@/lib/utils'
 import { openPrescriptionPDF } from '@/lib/pdf'
+import { logRecordView } from '@/lib/audit-client'
 import { useTranslations } from 'next-intl'
 import type { Prescription, Medication, PrescriptionStatus } from '@/types/database'
 
@@ -171,7 +172,7 @@ export default function PrescriptionsPage() {
                         {clinic && (
                           <Button
                             variant="ghost" size="icon" className="h-8 w-8"
-                            onClick={() => openPrescriptionPDF(rx, clinic, rx.patient?.full_name ?? '—', rx.doctor?.full_name ?? '—')}
+                            onClick={() => { logRecordView('prescription', rx.id); openPrescriptionPDF(rx, clinic, rx.patient?.full_name ?? '—', rx.doctor?.full_name ?? '—') }}
                           >
                             <Download className="h-3.5 w-3.5" />
                           </Button>

@@ -1,8 +1,9 @@
 'use client'
 
-import { use, useState } from 'react'
+import { use, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { logRecordView } from '@/lib/audit-client'
 import {
   ArrowLeft, UserRound, Phone, Mail, MapPin, AlertCircle,
   Droplets, Calendar, Stethoscope, Receipt, Clock, Pencil,
@@ -103,6 +104,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
   }
 
   const { data: patient, isLoading } = usePatient(id)
+  useEffect(() => { logRecordView('patient', id) }, [id])
   const { data: latestVitals } = useLatestPatientVitals(id)
   const { data: patientAppointments } = useAppointments(undefined, id)
   const { data: consultations } = useConsultations(id)
@@ -294,6 +296,13 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                       <span className="font-mono text-xs">{t('cniLabel')} {patient.cni}</span>
                     </div>
                   )}
+                  <div className="flex items-center gap-2">
+                    {patient.consent_given ? (
+                      <Badge variant="secondary" className="text-xs text-emerald-700">{t('consentGivenBadge')}</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs text-amber-600 border-amber-200">{t('consentMissingBadge')}</Badge>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useInvoices, useCreateInvoice, useRecordPayment } from '@/hooks/useInvoices'
 import { usePatients } from '@/hooks/usePatients'
+import { logRecordView } from '@/lib/audit-client'
 import { useClinic } from '@/context/ClinicContext'
 import { openInvoicePDF } from '@/lib/pdf'
 import { useFormatters } from '@/hooks/useFormatters'
@@ -288,7 +289,7 @@ export default function BillingPage() {
                     </div>
                     <div className="flex gap-2 pt-1">
                       <Button size="sm" variant="outline" className="flex-1 h-9 text-xs"
-                        onClick={() => setReceiptInvoice(inv)}>
+                        onClick={() => { setReceiptInvoice(inv); logRecordView('invoice', inv.id) }}>
                         <Eye className="h-3.5 w-3.5 mr-1" /> {t('mobileView')}
                       </Button>
                       {unpaid && (
@@ -341,7 +342,7 @@ export default function BillingPage() {
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Button size="sm" variant="ghost" className="h-7 w-7 p-0"
-                            onClick={() => setReceiptInvoice(inv)}>
+                            onClick={() => { setReceiptInvoice(inv); logRecordView('invoice', inv.id) }}>
                             <Eye className="h-3.5 w-3.5" />
                           </Button>
                           {inv.status !== 'paid' && inv.status !== 'cancelled' && (

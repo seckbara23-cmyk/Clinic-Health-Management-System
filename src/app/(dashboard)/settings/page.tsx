@@ -3,7 +3,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, Building2, User } from 'lucide-react'
+import { Loader2, Building2, User, Download, Database } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Topbar } from '@/components/layout/Topbar'
 import { Button } from '@/components/ui/button'
@@ -11,9 +11,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useClinic } from '@/context/ClinicContext'
+import { useExportEntity } from '@/hooks/useCompliance'
 import { isValidPhone, toStoredPhone } from '@/lib/phone'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
+
+const EXPORT_ENTITIES = ['patients', 'appointments', 'consultations', 'prescriptions', 'invoices', 'payments'] as const
 
 export default function SettingsPage() {
   const t = useTranslations('settings')
@@ -91,6 +94,8 @@ export default function SettingsPage() {
   }
 
   const canEditClinic = profile?.role === 'admin' || profile?.role === 'super_admin'
+  const isAdmin = profile?.role === 'admin'
+  const exportEntity = useExportEntity()
 
   return (
     <div className="flex flex-col h-full">
@@ -218,6 +223,37 @@ export default function SettingsPage() {
                   </span>
                 </div>
               </form>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Data export (CDP) — clinic admin only */}
+        {isAdmin && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Database className="h-4 w-4" /> {t('exportTitle')}
+              </CardTitle>
+              <CardDescription>{t('exportDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {EXPORT_ENTITIES.map(entity => (
+                  <Button
+                    key={entity}
+                    variant="outline"
+                    className="justify-start"
+                    disabled={exportEntity.isPending}
+                    onClick={() => exportEntity.mutate(entity)}
+                  >
+                    {exportEntity.isPending && exportEntity.variables === entity
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <Download className="h-4 w-4" />}
+                    {t(`export_${entity}`)}
+                  </Button>
+                ))}
+              </div>
+              <p className="mt-3 text-xs text-gray-400">{t('exportNote')}</p>
             </CardContent>
           </Card>
         )}

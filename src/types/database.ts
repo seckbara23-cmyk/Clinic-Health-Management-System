@@ -41,6 +41,18 @@ export type SmsStatus =
   | 'cancelled'  // cancelled before send
   | 'skipped'    // intentionally not sent (opt-out, no phone, etc.)
 
+// ─── Compliance: consent + audit ────────────────────────────────
+export type ConsentMethod = 'verbal' | 'written' | 'electronic'
+export type AuditEntityType = 'patient' | 'appointment' | 'consultation' | 'prescription' | 'invoice' | 'export'
+export type AuditEventAction = 'viewed' | 'updated' | 'soft_deleted' | 'restored' | 'exported'
+
+// Soft-delete columns shared by every protected medical/billing table.
+export interface SoftDeletable {
+  deleted_at: string | null
+  deleted_by: string | null
+  deletion_reason: string | null
+}
+
 export interface Clinic {
   id: string
   name: string
@@ -118,6 +130,14 @@ export interface Patient {
   insurance_coverage_percent: number | null
   sms_opt_in: boolean
   sms_opt_out_at: string | null
+  consent_given: boolean
+  consent_date: string | null
+  consent_method: ConsentMethod | null
+  consent_notes: string | null
+  consent_recorded_by: string | null
+  deleted_at: string | null
+  deleted_by: string | null
+  deletion_reason: string | null
   notes: string | null
   created_by: string | null
   created_at: string
@@ -138,6 +158,9 @@ export interface Appointment {
   arrived_at: string | null
   called_at: string | null
   last_reminder_sent_at: string | null
+  deleted_at: string | null
+  deleted_by: string | null
+  deletion_reason: string | null
   notes: string | null
   created_by: string | null
   created_at: string
@@ -170,6 +193,9 @@ export interface Consultation {
   follow_up_date: string | null
   started_at: string | null
   ended_at: string | null
+  deleted_at: string | null
+  deleted_by: string | null
+  deletion_reason: string | null
   created_at: string
   updated_at: string
   patient?: Patient
@@ -194,6 +220,9 @@ export interface Prescription {
   instructions: string | null
   valid_until: string | null
   status: PrescriptionStatus
+  deleted_at: string | null
+  deleted_by: string | null
+  deletion_reason: string | null
   created_at: string
   updated_at: string
   patient?: Patient
@@ -232,11 +261,35 @@ export interface Invoice {
   webhook_received_at: string | null
   due_date: string | null
   paid_at: string | null
+  deleted_at: string | null
+  deleted_by: string | null
+  deletion_reason: string | null
   notes: string | null
   created_by: string | null
   created_at: string
   updated_at: string
   patient?: Patient
+}
+
+export interface AuditEvent {
+  id: string
+  clinic_id: string
+  user_id: string | null
+  entity_type: string
+  entity_id: string | null
+  action: AuditEventAction
+  metadata: Record<string, unknown>
+  created_at: string
+}
+
+export interface PlatformBillingSummary {
+  clinic_id: string
+  clinic_name: string
+  invoice_count: number
+  total_invoiced: number
+  total_collected: number
+  pending_count: number
+  online_count: number
 }
 
 export interface PaymentEvent {

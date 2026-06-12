@@ -1,7 +1,8 @@
 'use client'
 
-import { use, useState } from 'react'
+import { use, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { logRecordView } from '@/lib/audit-client'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -48,6 +49,7 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
   const router = useRouter()
   const { profile } = useClinic()
   const { data: consultation, isLoading } = useConsultation(id)
+  useEffect(() => { logRecordView('consultation', id) }, [id])
   const updateMutation = useUpdateConsultation()
   const endMutation = useEndConsultation()
   const createInvoice = useCreateInvoice()

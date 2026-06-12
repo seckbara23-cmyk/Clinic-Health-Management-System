@@ -124,6 +124,14 @@ export type Database = {
           insurance_coverage_percent: number | null
           sms_opt_in: boolean
           sms_opt_out_at: string | null
+          consent_given: boolean
+          consent_date: string | null
+          consent_method: string | null
+          consent_notes: string | null
+          consent_recorded_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deletion_reason: string | null
           notes: string | null
           created_by: string | null
           created_at: string
@@ -150,6 +158,14 @@ export type Database = {
           insurance_coverage_percent?: number | null
           sms_opt_in?: boolean
           sms_opt_out_at?: string | null
+          consent_given?: boolean
+          consent_date?: string | null
+          consent_method?: string | null
+          consent_notes?: string | null
+          consent_recorded_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
           notes?: string | null
           created_by?: string | null
           created_at?: string
@@ -176,6 +192,14 @@ export type Database = {
           insurance_coverage_percent?: number | null
           sms_opt_in?: boolean
           sms_opt_out_at?: string | null
+          consent_given?: boolean
+          consent_date?: string | null
+          consent_method?: string | null
+          consent_notes?: string | null
+          consent_recorded_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
           notes?: string | null
           created_by?: string | null
           created_at?: string
@@ -196,6 +220,9 @@ export type Database = {
           priority: string
           queue_number: number | null
           last_reminder_sent_at: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deletion_reason: string | null
           notes: string | null
           created_by: string | null
           created_at: string
@@ -253,6 +280,9 @@ export type Database = {
           follow_up_date: string | null
           started_at: string | null
           ended_at: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deletion_reason: string | null
           created_at: string
           updated_at: string
         }
@@ -305,6 +335,9 @@ export type Database = {
           instructions: string | null
           valid_until: string | null
           status: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deletion_reason: string | null
           created_at: string
           updated_at: string
         }
@@ -358,6 +391,9 @@ export type Database = {
           payment_method: string | null
           due_date: string | null
           paid_at: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deletion_reason: string | null
           notes: string | null
           created_by: string | null
           created_at: string
@@ -625,6 +661,39 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_events: {
+        Row: {
+          id: string
+          clinic_id: string
+          user_id: string | null
+          entity_type: string
+          entity_id: string | null
+          action: string
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          clinic_id: string
+          user_id?: string | null
+          entity_type: string
+          entity_id?: string | null
+          action: string
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          clinic_id?: string
+          user_id?: string | null
+          entity_type?: string
+          entity_id?: string | null
+          action?: string
+          metadata?: Json
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: {
@@ -632,6 +701,21 @@ export type Database = {
       is_super_admin: { Args: Record<PropertyKey, never>; Returns: boolean }
       get_user_role: { Args: Record<PropertyKey, never>; Returns: string }
       claim_sms_batch: { Args: { p_limit?: number }; Returns: Database['public']['Tables']['sms_messages']['Row'][] }
+      log_record_view: { Args: { p_entity: string; p_id: string; p_ip?: string | null; p_ua?: string | null }; Returns: undefined }
+      soft_delete_record: { Args: { p_entity: string; p_id: string; p_reason?: string | null; p_ip?: string | null; p_ua?: string | null }; Returns: undefined }
+      restore_record: { Args: { p_entity: string; p_id: string; p_ip?: string | null; p_ua?: string | null }; Returns: undefined }
+      get_platform_billing_summary: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          clinic_id: string
+          clinic_name: string
+          invoice_count: number
+          total_invoiced: number
+          total_collected: number
+          pending_count: number
+          online_count: number
+        }[]
+      }
     }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>

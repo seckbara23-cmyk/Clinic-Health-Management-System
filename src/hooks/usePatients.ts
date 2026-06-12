@@ -7,12 +7,12 @@ import { toast } from 'sonner'
 
 export const PATIENTS_PAGE_SIZE = 25
 
-export function usePatients(search?: string, page = 0) {
+export function usePatients(search?: string, page = 0, includeDeleted = false) {
   const { clinic } = useClinic()
   const supabase = createClient()
 
   return useQuery({
-    queryKey: ['patients', clinic?.id, search, page],
+    queryKey: ['patients', clinic?.id, search, page, includeDeleted],
     enabled: !!clinic?.id,
     staleTime: 30_000,
     queryFn: async () => {
@@ -22,12 +22,15 @@ export function usePatients(search?: string, page = 0) {
       let q = supabase
         .from('patients')
         .select(
-          'id, full_name, patient_number, phone, email, date_of_birth, gender, blood_type, created_at, address, emergency_contact, emergency_phone, notes, cni, insurance_payer_type, insurance_provider, insurance_policy_number, insurance_coverage_percent, sms_opt_in, sms_opt_out_at',
+          'id, full_name, patient_number, phone, email, date_of_birth, gender, blood_type, created_at, address, emergency_contact, emergency_phone, notes, cni, insurance_payer_type, insurance_provider, insurance_policy_number, insurance_coverage_percent, sms_opt_in, sms_opt_out_at, consent_given, consent_date, consent_method, consent_notes, deleted_at, deletion_reason',
           { count: 'exact' }
         )
         .eq('clinic_id', clinic!.id)
         .order('created_at', { ascending: false })
         .range(page * PATIENTS_PAGE_SIZE, (page + 1) * PATIENTS_PAGE_SIZE - 1)
+
+      // Soft-deleted patients are hidden unless the admin opts to see them.
+      if (!includeDeleted) q = q.is('deleted_at', null)
 
       if (search?.trim()) {
         q = q.or(`full_name.ilike.%${search}%,patient_number.ilike.%${search}%,phone.ilike.%${search}%`)
@@ -73,6 +76,9 @@ interface PatientInsertInput {
   insurance_policy_number?: string | null
   insurance_coverage_percent?: number | null
   sms_opt_in?: boolean | null
+  consent_given?: boolean | null
+  consent_method?: string | null
+  consent_notes?: string | null
   notes?: string | null
 }
 
@@ -102,6 +108,11 @@ export function useCreatePatient() {
           insurance_coverage_percent: input.insurance_coverage_percent ?? null,
           sms_opt_in: input.sms_opt_in ?? true,
           sms_opt_out_at: input.sms_opt_in === false ? new Date().toISOString() : null,
+          consent_given: input.consent_given ?? false,
+          consent_date: input.consent_given ? new Date().toISOString() : null,
+          consent_method: input.consent_given ? (input.consent_method ?? null) : null,
+          consent_notes: input.consent_notes?.trim() || null,
+          consent_recorded_by: input.consent_given ? profile!.id : null,
           notes: input.notes ?? null,
           clinic_id: clinic!.id,
           created_by: profile!.id,
@@ -121,7 +132,7 @@ export function useCreatePatient() {
 
 export function useUpdatePatient() {
   const qc = useQueryClient()
-  const { clinic } = useClinic()
+  const { clinic, profile } = useClinic()
   const supabase = createClient()
 
   return useMutation({
@@ -145,6 +156,11 @@ export function useUpdatePatient() {
           insurance_coverage_percent: input.insurance_coverage_percent ?? null,
           sms_opt_in: input.sms_opt_in ?? true,
           sms_opt_out_at: input.sms_opt_in === false ? new Date().toISOString() : null,
+          consent_given: input.consent_given ?? false,
+          consent_date: input.consent_given ? new Date().toISOString() : null,
+          consent_method: input.consent_given ? (input.consent_method ?? null) : null,
+          consent_notes: input.consent_notes?.trim() || null,
+          consent_recorded_by: input.consent_given ? profile!.id : null,
           notes: input.notes ?? null,
         })
         .eq('id', id)
@@ -200,24 +216,7 @@ export function usePatientDeletionCounts(patientId: string | null) {
   })
 }
 
-export function useDeletePatient() {
-  const qc = useQueryClient()
-  const { clinic } = useClinic()
-  const supabase = createClient()
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('patients')
-        .delete()
-        .eq('id', id)
-        .eq('clinic_id', clinic!.id)
-      if (error) throw error
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['patients', clinic?.id] })
-      toast.success('Patient supprimé')
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-}
+// NOTE: patient deletion is now SOFT and reversible. Use
+// useSoftDeleteRecord({ entity: 'patient', id, reason }) from
+// '@/hooks/useCompliance' instead of a hard delete. Hard deletes are blocked
+// at the RLS layer (migration 027) so no medical history can be erased.

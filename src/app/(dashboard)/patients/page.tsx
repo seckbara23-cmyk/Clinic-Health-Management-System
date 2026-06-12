@@ -5,11 +5,12 @@ import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Search, Plus, UserRound, Phone, Calendar, Trash2, Pencil, ExternalLink, ChevronLeft, ChevronRight, Loader2, AlertTriangle } from 'lucide-react'
+import { Search, Plus, UserRound, Phone, Calendar, Trash2, Pencil, ExternalLink, ChevronLeft, ChevronRight, Loader2, AlertTriangle, RotateCcw, Eye } from 'lucide-react'
 import { Topbar } from '@/components/layout/Topbar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { PatientRowSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Badge } from '@/components/ui/badge'
@@ -17,16 +18,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { usePatients, useCreatePatient, useUpdatePatient, useDeletePatient, usePatientDeletionCounts } from '@/hooks/usePatients'
+import { usePatients, useCreatePatient, useUpdatePatient, usePatientDeletionCounts } from '@/hooks/usePatients'
+import { useSoftDeleteRecord, useRestoreRecord } from '@/hooks/useCompliance'
+import { useClinic } from '@/context/ClinicContext'
 import { useFormatters } from '@/hooks/useFormatters'
 import { age } from '@/lib/utils'
 import { isValidPhone } from '@/lib/phone'
-import type { Gender, BloodType, InsurancePayerType } from '@/types/database'
+import type { Gender, BloodType, InsurancePayerType, ConsentMethod } from '@/types/database'
 import { useTranslations } from 'next-intl'
 
 export default function PatientsPage() {
   const t = useTranslations('patients')
   const { formatDate } = useFormatters()
+  const { profile } = useClinic()
+  const isAdmin = profile?.role === 'admin'
 
   const phoneField = z.string().optional().nullable()
     .refine(isValidPhone, t('zodPhoneInvalid'))
@@ -47,6 +52,9 @@ export default function PatientsPage() {
     insurance_policy_number: z.string().optional().nullable(),
     insurance_coverage_percent: z.number().min(0, t('zodCoverageRange')).max(100, t('zodCoverageRange')).optional().nullable(),
     sms_opt_in: z.boolean().optional(),
+    consent_given: z.boolean().optional(),
+    consent_method: z.string().optional().nullable(),
+    consent_notes: z.string().optional().nullable(),
     notes: z.string().optional().nullable(),
   })
   type PatientFormData = z.infer<typeof patientSchema>
@@ -63,28 +71,32 @@ export default function PatientsPage() {
   const [editId, setEditId] = useState<string | null>(null)
   const [deletePatientId, setDeletePatientId] = useState<string | null>(null)
   const [deletePatientName, setDeletePatientName] = useState<string>('')
+  const [deleteReason, setDeleteReason] = useState('')
+  const [showDeleted, setShowDeleted] = useState(false)
 
-  useEffect(() => { setPage(0) }, [search])
+  useEffect(() => { setPage(0) }, [search, showDeleted])
 
-  const openCreate = useCallback(() => { setEditId(null); reset({ sms_opt_in: true }); setOpen(true) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const openCreate = useCallback(() => { setEditId(null); reset({ sms_opt_in: true, consent_given: false }); setOpen(true) }, []) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     window.addEventListener('fab:create-patient', openCreate)
     return () => window.removeEventListener('fab:create-patient', openCreate)
   }, [openCreate])
 
-  const { data: result, isLoading, isError, refetch } = usePatients(search, page)
+  const { data: result, isLoading, isError, refetch } = usePatients(search, page, isAdmin && showDeleted)
   const patients = result?.data
   const totalPatients = result?.total ?? 0
   const totalPages = Math.ceil(totalPatients / 25)
   const createMutation = useCreatePatient()
   const updateMutation = useUpdatePatient()
-  const deleteMutation = useDeletePatient()
+  const softDelete = useSoftDeleteRecord()
+  const restore = useRestoreRecord()
   const { data: deletionCounts, isLoading: countsLoading } = usePatientDeletionCounts(deletePatientId)
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
   })
   const watchPayerType = watch('insurance_payer_type')
+  const watchConsent = watch('consent_given')
 
   function openEdit(p: NonNullable<typeof patients>[0]) {
     setEditId(p.id)
@@ -104,6 +116,9 @@ export default function PatientsPage() {
       insurance_policy_number: p.insurance_policy_number,
       insurance_coverage_percent: p.insurance_coverage_percent,
       sms_opt_in: p.sms_opt_in ?? true,
+      consent_given: p.consent_given ?? false,
+      consent_method: p.consent_method,
+      consent_notes: p.consent_notes,
       notes: p.notes,
     })
     setOpen(true)
@@ -135,6 +150,17 @@ export default function PatientsPage() {
               className="pl-9"
             />
           </div>
+          {isAdmin && (
+            <Button
+              variant={showDeleted ? 'default' : 'outline'}
+              onClick={() => setShowDeleted(v => !v)}
+              className="shrink-0"
+              title={t('showDeleted')}
+            >
+              <Eye className="h-4 w-4" />
+              <span className="hidden sm:inline">{t('showDeleted')}</span>
+            </Button>
+          )}
           <Button onClick={openCreate} className="shrink-0">
             <Plus className="h-4 w-4" />
             <span className="hidden sm:inline">{t('newPatient')}</span>
@@ -222,9 +248,12 @@ export default function PatientsPage() {
                 </TableHeader>
                 <TableBody>
                   {patients?.map((p) => (
-                    <TableRow key={p.id}>
+                    <TableRow key={p.id} className={p.deleted_at ? 'opacity-60' : undefined}>
                       <TableCell className="font-mono text-xs text-blue-600">{p.patient_number}</TableCell>
-                      <TableCell className="font-medium">{p.full_name}</TableCell>
+                      <TableCell className="font-medium">
+                        {p.full_name}
+                        {p.deleted_at && <Badge variant="outline" className="ml-2 text-xs text-red-600 border-red-200">{t('deletedBadge')}</Badge>}
+                      </TableCell>
                       <TableCell>
                         {p.phone ? (
                           <a href={`tel:${p.phone}`} className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600">
@@ -251,16 +280,34 @@ export default function PatientsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)}>
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost" size="icon"
-                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => { setDeletePatientId(p.id); setDeletePatientName(p.full_name) }}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                          {p.deleted_at ? (
+                            isAdmin && (
+                              <Button
+                                variant="ghost" size="icon"
+                                className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                title={t('restore')}
+                                disabled={restore.isPending}
+                                onClick={() => restore.mutate({ entity: 'patient', id: p.id })}
+                              >
+                                <RotateCcw className="h-3.5 w-3.5" />
+                              </Button>
+                            )
+                          ) : (
+                            <>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              {isAdmin && (
+                                <Button
+                                  variant="ghost" size="icon"
+                                  className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => { setDeletePatientId(p.id); setDeletePatientName(p.full_name); setDeleteReason('') }}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -309,16 +356,15 @@ export default function PatientsPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 text-sm">
-            <p>
-              {t('deleteConfirm', { name: deletePatientName })}
-            </p>
+            <p>{t('deleteConfirm', { name: deletePatientName })}</p>
+            <p className="text-xs text-gray-500">{t('softDeleteNote')}</p>
             {countsLoading ? (
               <div className="flex items-center gap-2 text-gray-500">
                 <Loader2 className="h-4 w-4 animate-spin" /> {t('deletionLoading')}
               </div>
             ) : deletionCounts && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3 space-y-1">
-                <p className="font-medium text-red-700 mb-2">{t('deletionDataTitle')}</p>
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-1">
+                <p className="font-medium text-amber-800 mb-2">{t('deletionDataTitle')}</p>
                 {[
                   { label: t('deletionAppointments'), count: deletionCounts.appointments },
                   { label: t('deletionConsultations'), count: deletionCounts.consultations },
@@ -326,25 +372,37 @@ export default function PatientsPage() {
                   { label: t('deletionLab'),           count: deletionCounts.lab_requests },
                   { label: t('deletionInvoices'),      count: deletionCounts.invoices },
                 ].map(({ label, count }) => (
-                  <div key={label} className="flex justify-between text-red-800">
+                  <div key={label} className="flex justify-between text-amber-900">
                     <span>{label}</span>
                     <span className="font-semibold">{count}</span>
                   </div>
                 ))}
               </div>
             )}
+            <div className="space-y-1.5">
+              <Label>{t('deleteReasonLabel')}</Label>
+              <Textarea
+                value={deleteReason}
+                onChange={e => setDeleteReason(e.target.value)}
+                placeholder={t('deleteReasonPlaceholder')}
+                rows={2}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeletePatientId(null)}>{t('cancel')}</Button>
             <Button
               variant="destructive"
-              disabled={deleteMutation.isPending || countsLoading}
+              disabled={softDelete.isPending || countsLoading}
               onClick={() => {
                 if (!deletePatientId) return
-                deleteMutation.mutate(deletePatientId, { onSuccess: () => setDeletePatientId(null) })
+                softDelete.mutate(
+                  { entity: 'patient', id: deletePatientId, reason: deleteReason.trim() || undefined },
+                  { onSuccess: () => setDeletePatientId(null) },
+                )
               }}
             >
-              {deleteMutation.isPending && <Loader2 className="animate-spin" />}
+              {softDelete.isPending && <Loader2 className="animate-spin" />}
               {t('deleteConfirmBtn')}
             </Button>
           </DialogFooter>
@@ -426,6 +484,44 @@ export default function PatientsPage() {
                 <Label>{t('labelEmergencyPhone')}</Label>
                 <Input {...register('emergency_phone')} placeholder="+221 77 123 45 67" />
                 {errors.emergency_phone && <p className="text-xs text-red-500">{errors.emergency_phone.message}</p>}
+              </div>
+
+              {/* Consent (CDP) */}
+              <div className="col-span-2 border-t pt-3 space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('consentSection')}</p>
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                    {...register('consent_given')}
+                  />
+                  <span className="text-sm">
+                    <span className="font-medium">{t('labelConsentGiven')}</span>
+                    <span className="block text-xs text-gray-500">{t('consentHint')}</span>
+                  </span>
+                </label>
+                {watchConsent && (
+                  <div className="grid grid-cols-2 gap-4 pl-7">
+                    <div className="space-y-1.5">
+                      <Label>{t('labelConsentMethod')}</Label>
+                      <Select
+                        value={watch('consent_method') ?? ''}
+                        onValueChange={v => setValue('consent_method', v as ConsentMethod)}
+                      >
+                        <SelectTrigger><SelectValue placeholder={t('selectPlaceholder')} /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="verbal">{t('consentVerbal')}</SelectItem>
+                          <SelectItem value="written">{t('consentWritten')}</SelectItem>
+                          <SelectItem value="electronic">{t('consentElectronic')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>{t('labelConsentNotes')}</Label>
+                      <Input {...register('consent_notes')} />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Insurance / mutuelle */}
