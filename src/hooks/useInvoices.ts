@@ -15,7 +15,7 @@ export function useInvoices(status?: string, patientId?: string) {
     queryFn: async () => {
       let q = supabase
         .from('invoices')
-        .select('*, patient:patients(id, full_name, patient_number, phone)')
+        .select('*, patient:patients(id, full_name, patient_number, phone, cni)')
         .eq('clinic_id', clinic!.id)
         .order('created_at', { ascending: false })
 
@@ -38,6 +38,11 @@ interface InvoiceInsert {
   discount_amount: number
   total_amount: number
   amount_paid: number
+  // Third-party payer split (Senegal IPM / mutuelle / CNSS / IPRES).
+  // Omitted → insurance_share 0, fully patient-payable (legacy behavior).
+  insurance_share?: number
+  payer_type?: string | null
+  payer_name?: string | null
   currency: string
   status: string
   payment_method: string | null
@@ -64,6 +69,9 @@ export function useCreateInvoice() {
           discount_amount: input.discount_amount,
           total_amount: input.total_amount,
           amount_paid: input.amount_paid,
+          insurance_share: input.insurance_share ?? 0,
+          payer_type: input.payer_type ?? null,
+          payer_name: input.payer_name ?? null,
           currency: input.currency,
           status: input.status,
           payment_method: input.payment_method,

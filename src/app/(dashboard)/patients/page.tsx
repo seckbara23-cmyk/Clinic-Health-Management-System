@@ -20,23 +20,32 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { usePatients, useCreatePatient, useUpdatePatient, useDeletePatient, usePatientDeletionCounts } from '@/hooks/usePatients'
 import { useFormatters } from '@/hooks/useFormatters'
 import { age } from '@/lib/utils'
-import type { Gender, BloodType } from '@/types/database'
+import { isValidPhone } from '@/lib/phone'
+import type { Gender, BloodType, InsurancePayerType } from '@/types/database'
 import { useTranslations } from 'next-intl'
 
 export default function PatientsPage() {
   const t = useTranslations('patients')
   const { formatDate } = useFormatters()
 
+  const phoneField = z.string().optional().nullable()
+    .refine(isValidPhone, t('zodPhoneInvalid'))
+
   const patientSchema = z.object({
     full_name: z.string().min(2, t('zodNameRequired')),
-    phone: z.string().optional().nullable(),
+    phone: phoneField,
     email: z.string().email().optional().or(z.literal('')).nullable(),
     date_of_birth: z.string().optional().nullable(),
     gender: z.enum(['male', 'female', 'other']).optional().nullable(),
     blood_type: z.string().optional().nullable(),
     address: z.string().optional().nullable(),
     emergency_contact: z.string().optional().nullable(),
-    emergency_phone: z.string().optional().nullable(),
+    emergency_phone: phoneField,
+    cni: z.string().optional().nullable(),
+    insurance_payer_type: z.string().optional().nullable(),
+    insurance_provider: z.string().optional().nullable(),
+    insurance_policy_number: z.string().optional().nullable(),
+    insurance_coverage_percent: z.number().min(0, t('zodCoverageRange')).max(100, t('zodCoverageRange')).optional().nullable(),
     notes: z.string().optional().nullable(),
   })
   type PatientFormData = z.infer<typeof patientSchema>
@@ -71,9 +80,10 @@ export default function PatientsPage() {
   const deleteMutation = useDeletePatient()
   const { data: deletionCounts, isLoading: countsLoading } = usePatientDeletionCounts(deletePatientId)
 
-  const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm<PatientFormData>({
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
   })
+  const watchPayerType = watch('insurance_payer_type')
 
   function openEdit(p: NonNullable<typeof patients>[0]) {
     setEditId(p.id)
@@ -87,6 +97,11 @@ export default function PatientsPage() {
       address: p.address,
       emergency_contact: p.emergency_contact,
       emergency_phone: p.emergency_phone,
+      cni: p.cni,
+      insurance_payer_type: p.insurance_payer_type,
+      insurance_provider: p.insurance_provider,
+      insurance_policy_number: p.insurance_policy_number,
+      insurance_coverage_percent: p.insurance_coverage_percent,
       notes: p.notes,
     })
     setOpen(true)
@@ -349,11 +364,16 @@ export default function PatientsPage() {
               </div>
               <div className="space-y-1.5">
                 <Label>{t('labelPhone')}</Label>
-                <Input {...register('phone')} placeholder="+221 77 000 0000" />
+                <Input {...register('phone')} placeholder="+221 77 123 45 67" />
+                {errors.phone && <p className="text-xs text-red-500">{errors.phone.message}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label>{t('labelEmail')}</Label>
                 <Input type="email" {...register('email')} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t('labelCNI')}</Label>
+                <Input {...register('cni')} placeholder="1 234 5678 90123" />
               </div>
               <div className="space-y-1.5">
                 <Label>{t('labelDOB')}</Label>
@@ -391,8 +411,56 @@ export default function PatientsPage() {
               </div>
               <div className="space-y-1.5">
                 <Label>{t('labelEmergencyPhone')}</Label>
-                <Input {...register('emergency_phone')} />
+                <Input {...register('emergency_phone')} placeholder="+221 77 123 45 67" />
+                {errors.emergency_phone && <p className="text-xs text-red-500">{errors.emergency_phone.message}</p>}
               </div>
+
+              {/* Insurance / mutuelle */}
+              <div className="col-span-2 border-t pt-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">{t('insuranceSection')}</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>{t('labelPayerType')}</Label>
+                    <Select
+                      value={watchPayerType ?? 'none'}
+                      onValueChange={v => setValue('insurance_payer_type', v === 'none' ? null : (v as InsurancePayerType))}
+                    >
+                      <SelectTrigger><SelectValue placeholder={t('selectPlaceholder')} /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">{t('payerNone')}</SelectItem>
+                        <SelectItem value="ipm">{t('payerIpm')}</SelectItem>
+                        <SelectItem value="mutuelle">{t('payerMutuelle')}</SelectItem>
+                        <SelectItem value="cnss">{t('payerCnss')}</SelectItem>
+                        <SelectItem value="ipres">{t('payerIpres')}</SelectItem>
+                        <SelectItem value="private">{t('payerPrivate')}</SelectItem>
+                        <SelectItem value="other">{t('payerOther')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>{t('labelInsuranceProvider')}</Label>
+                    <Input {...register('insurance_provider')} disabled={!watchPayerType} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>{t('labelPolicyNumber')}</Label>
+                    <Input {...register('insurance_policy_number')} disabled={!watchPayerType} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>{t('labelCoverage')}</Label>
+                    <Input
+                      type="number" min={0} max={100} step={1} placeholder="80"
+                      disabled={!watchPayerType}
+                      {...register('insurance_coverage_percent', {
+                        setValueAs: v => (v === '' || v == null ? null : Number(v)),
+                      })}
+                    />
+                    {errors.insurance_coverage_percent && (
+                      <p className="text-xs text-red-500">{errors.insurance_coverage_percent.message}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="col-span-2 space-y-1.5">
                 <Label>{t('labelNotes')}</Label>
                 <Input {...register('notes')} />

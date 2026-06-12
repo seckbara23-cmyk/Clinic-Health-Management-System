@@ -35,8 +35,13 @@ const baseStyles = `
   @media print { @page { margin: 20mm; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 `
 
+const payerTypeLabel: Record<string, string> = {
+  ipm: 'IPM', mutuelle: 'Mutuelle de santé', cnss: 'CNSS',
+  ipres: 'IPRES', private: 'Assurance privée', other: 'Autre tiers payeur',
+}
+
 export function openInvoicePDF(invoice: Invoice, clinic: Clinic) {
-  const patient = (invoice as { patient?: { full_name?: string; patient_number?: string } }).patient
+  const patient = (invoice as { patient?: { full_name?: string; patient_number?: string; cni?: string } }).patient
   const items = invoice.line_items as Array<{ description: string; quantity: number; unit_price: number; total: number }>
 
   const statusLabel: Record<string, string> = {
@@ -48,6 +53,17 @@ export function openInvoicePDF(invoice: Invoice, clinic: Clinic) {
     draft: 'badge-draft', sent: 'badge-draft', overdue: 'badge-draft', cancelled: 'badge-draft',
   }
   const balance = Number(invoice.total_amount) - Number(invoice.amount_paid)
+  const insuranceShare = Number(invoice.insurance_share ?? 0)
+  const patientShare = Number(invoice.total_amount) - insuranceShare
+  const payerLine = insuranceShare > 0
+    ? [invoice.payer_type ? payerTypeLabel[invoice.payer_type] : null, invoice.payer_name]
+        .filter(Boolean).join(' — ')
+    : ''
+  // NINEA / RC are required on formal invoices in Senegal.
+  const registrationLine = [
+    clinic.ninea ? `NINEA: ${clinic.ninea}` : null,
+    clinic.rc_number ? `RC: ${clinic.rc_number}` : null,
+  ].filter(Boolean).join(' · ')
 
   const html = `<!DOCTYPE html>
 <html lang="fr">
@@ -59,6 +75,7 @@ export function openInvoicePDF(invoice: Invoice, clinic: Clinic) {
     <div>
       <div class="clinic-name">${clinic.name}</div>
       <div class="clinic-meta">${clinic.location}${clinic.phone ? ' · ' + clinic.phone : ''}${clinic.email ? ' · ' + clinic.email : ''}</div>
+      ${registrationLine ? `<div class="clinic-meta">${registrationLine}</div>` : ''}
     </div>
     <div>
       <div class="doc-title">FACTURE</div>
@@ -71,6 +88,7 @@ export function openInvoicePDF(invoice: Invoice, clinic: Clinic) {
       <div class="meta-label">Patient</div>
       <div class="meta-value">${patient?.full_name ?? '—'}</div>
       ${patient?.patient_number ? `<div style="font-size:12px;color:#888;font-family:monospace">${patient.patient_number}</div>` : ''}
+      ${patient?.cni ? `<div style="font-size:12px;color:#888;font-family:monospace">CNI: ${patient.cni}</div>` : ''}
     </div>
     <div class="meta-box">
       <div class="meta-label">Date d'émission</div>
@@ -111,6 +129,9 @@ export function openInvoicePDF(invoice: Invoice, clinic: Clinic) {
     ${Number(invoice.discount_amount) > 0 ? `<div class="total-row"><span>Remise</span><span>- ${formatXOF(Number(invoice.discount_amount))}</span></div>` : ''}
     ${Number(invoice.tax_amount) > 0 ? `<div class="total-row"><span>Taxes</span><span>${formatXOF(Number(invoice.tax_amount))}</span></div>` : ''}
     <div class="total-final"><span>Total</span><span>${formatXOF(Number(invoice.total_amount))}</span></div>
+    ${insuranceShare > 0 ? `
+    <div class="total-row"><span>Part tiers payeur${payerLine ? ` (${payerLine})` : ''}</span><span>${formatXOF(insuranceShare)}</span></div>
+    <div class="total-row"><span>Part patient</span><span>${formatXOF(patientShare)}</span></div>` : ''}
     <div class="total-row"><span>Montant payé</span><span style="color:#065f46">${formatXOF(Number(invoice.amount_paid))}</span></div>
     ${balance > 0 ? `<div class="total-row"><span>Reste à payer</span><span style="color:#dc2626;font-weight:600">${formatXOF(balance)}</span></div>` : ''}
   </div>

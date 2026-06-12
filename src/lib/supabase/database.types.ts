@@ -13,6 +13,8 @@ export type Database = {
           location: string
           phone: string | null
           email: string | null
+          ninea: string | null
+          rc_number: string | null
           logo_url: string | null
           subscription_plan: string
           subscription_status: string
@@ -25,6 +27,8 @@ export type Database = {
           location: string
           phone?: string | null
           email?: string | null
+          ninea?: string | null
+          rc_number?: string | null
           logo_url?: string | null
           subscription_plan?: string
           subscription_status?: string
@@ -37,6 +41,8 @@ export type Database = {
           location?: string
           phone?: string | null
           email?: string | null
+          ninea?: string | null
+          rc_number?: string | null
           logo_url?: string | null
           subscription_plan?: string
           subscription_status?: string
@@ -99,6 +105,11 @@ export type Database = {
           emergency_phone: string | null
           blood_type: string | null
           allergies: string[] | null
+          cni: string | null
+          insurance_payer_type: string | null
+          insurance_provider: string | null
+          insurance_policy_number: string | null
+          insurance_coverage_percent: number | null
           notes: string | null
           created_by: string | null
           created_at: string
@@ -118,6 +129,11 @@ export type Database = {
           emergency_phone?: string | null
           blood_type?: string | null
           allergies?: string[] | null
+          cni?: string | null
+          insurance_payer_type?: string | null
+          insurance_provider?: string | null
+          insurance_policy_number?: string | null
+          insurance_coverage_percent?: number | null
           notes?: string | null
           created_by?: string | null
           created_at?: string
@@ -137,6 +153,11 @@ export type Database = {
           emergency_phone?: string | null
           blood_type?: string | null
           allergies?: string[] | null
+          cni?: string | null
+          insurance_payer_type?: string | null
+          insurance_provider?: string | null
+          insurance_policy_number?: string | null
+          insurance_coverage_percent?: number | null
           notes?: string | null
           created_by?: string | null
           created_at?: string
@@ -307,6 +328,10 @@ export type Database = {
           discount_amount: number
           total_amount: number
           amount_paid: number
+          insurance_share: number
+          patient_share: number
+          payer_type: string | null
+          payer_name: string | null
           currency: string
           status: string
           payment_method: string | null
@@ -329,6 +354,9 @@ export type Database = {
           discount_amount?: number
           total_amount?: number
           amount_paid?: number
+          insurance_share?: number
+          payer_type?: string | null
+          payer_name?: string | null
           currency?: string
           status?: string
           payment_method?: string | null
@@ -351,6 +379,9 @@ export type Database = {
           discount_amount?: number
           total_amount?: number
           amount_paid?: number
+          insurance_share?: number
+          payer_type?: string | null
+          payer_name?: string | null
           currency?: string
           status?: string
           payment_method?: string | null

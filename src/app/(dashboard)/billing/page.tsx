@@ -59,10 +59,16 @@ export default function BillingPage() {
     line_items: z.array(lineItemSchema).min(1),
     discount_amount: z.number().min(0).optional(),
     tax_amount: z.number().min(0).optional(),
+    insurance_share: z.number().min(0).optional(),
+    payer_type: z.string().optional().nullable(),
+    payer_name: z.string().optional().nullable(),
     payment_method: z.string().optional().nullable(),
     notes: z.string().optional().nullable(),
     due_date: z.string().optional().nullable(),
-  })
+  }).refine(d => {
+    const st = d.line_items.reduce((s, i) => s + i.quantity * i.unit_price, 0)
+    return (d.insurance_share ?? 0) <= st - (d.discount_amount ?? 0) + (d.tax_amount ?? 0)
+  }, { message: t('zodShareExceedsTotal'), path: ['insurance_share'] })
   type InvoiceFormData = z.infer<typeof invoiceSchema>
 
   const partialSchema = z.object({
@@ -95,6 +101,7 @@ export default function BillingPage() {
       line_items: [{ description: '', quantity: 1, unit_price: 0, total: 0 }],
       discount_amount: 0,
       tax_amount: 0,
+      insurance_share: 0,
     },
   })
 
@@ -104,15 +111,23 @@ export default function BillingPage() {
   const watchItems = watch('line_items')
   const watchDiscount = watch('discount_amount') ?? 0
   const watchTax = watch('tax_amount') ?? 0
+  const watchInsuranceShare = Number(watch('insurance_share')) || 0
+  const watchPatientId = watch('patient_id')
 
   const subtotal = watchItems?.reduce((s, i) => s + (Number(i.quantity) * Number(i.unit_price)), 0) ?? 0
   const total = subtotal - Number(watchDiscount) + Number(watchTax)
+  const patientShare = Math.max(total - watchInsuranceShare, 0)
+  const selectedPatient = patients?.find(p => p.id === watchPatientId)
+  const coveragePercent = selectedPatient?.insurance_coverage_percent != null
+    ? Number(selectedPatient.insurance_coverage_percent)
+    : null
 
   async function onSubmit(data: InvoiceFormData) {
     const items = data.line_items.map(i => ({
       ...i,
       total: Number(i.quantity) * Number(i.unit_price),
     }))
+    const share = Math.min(Number(data.insurance_share ?? 0), total)
     await createMutation.mutateAsync({
       patient_id: data.patient_id,
       consultation_id: null,
@@ -122,6 +137,9 @@ export default function BillingPage() {
       discount_amount: Number(data.discount_amount ?? 0),
       total_amount: total,
       amount_paid: 0,
+      insurance_share: share,
+      payer_type: share > 0 ? (data.payer_type ?? null) : null,
+      payer_name: share > 0 ? (data.payer_name ?? null) : null,
       currency: 'XOF',
       status: 'draft',
       payment_method: (data.payment_method as PaymentMethod) ?? null,
@@ -359,7 +377,14 @@ export default function BillingPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>{t('labelPatient')}</Label>
-                <Select onValueChange={v => setValue('patient_id', v)}>
+                <Select onValueChange={v => {
+                  setValue('patient_id', v)
+                  // Snapshot the payer from the patient record so the invoice
+                  // stays correct if the patient later changes mutuelle.
+                  const p = patients?.find(x => x.id === v)
+                  setValue('payer_type', p?.insurance_payer_type ?? null)
+                  setValue('payer_name', p?.insurance_provider ?? null)
+                }}>
                   <SelectTrigger><SelectValue placeholder={t('selectPatient')} /></SelectTrigger>
                   <SelectContent>
                     {patients?.map(p => (
@@ -368,6 +393,14 @@ export default function BillingPage() {
                   </SelectContent>
                 </Select>
                 {errors.patient_id && <p className="text-xs text-red-500">{errors.patient_id.message}</p>}
+                {selectedPatient?.insurance_payer_type && (
+                  <p className="text-xs text-emerald-600">
+                    {t('patientInsuredHint', {
+                      provider: selectedPatient.insurance_provider ?? t(`payer_${selectedPatient.insurance_payer_type}`),
+                    })}
+                    {coveragePercent != null ? ` · ${coveragePercent}%` : ''}
+                  </p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label>{t('labelPaymentMethod')}</Label>
@@ -436,6 +469,36 @@ export default function BillingPage() {
                 <span>{t('total')}</span>
                 <span className="text-blue-700">{formatCurrency(total)}</span>
               </div>
+
+              {/* Third-party payer split */}
+              <div className="flex items-center justify-between border-t pt-1.5">
+                <span className="text-gray-500">
+                  {t('insuranceShare')}
+                  {selectedPatient?.insurance_provider ? ` — ${selectedPatient.insurance_provider}` : ''}
+                </span>
+                <div className="flex items-center gap-2">
+                  {coveragePercent != null && (
+                    <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-xs"
+                      onClick={() => setValue('insurance_share', Math.min(Math.round(total * coveragePercent / 100), total), { shouldValidate: true })}>
+                      {t('applyCoverage', { percent: coveragePercent })}
+                    </Button>
+                  )}
+                  <Input
+                    type="number" min={0}
+                    {...register('insurance_share', { setValueAs: v => (v === '' || v == null ? 0 : Number(v)) })}
+                    className="h-7 w-28 text-sm text-right"
+                  />
+                </div>
+              </div>
+              {errors.insurance_share && (
+                <p className="text-xs text-red-500 text-right">{errors.insurance_share.message}</p>
+              )}
+              {watchInsuranceShare > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">{t('patientShare')}</span>
+                  <span className="font-medium">{formatCurrency(patientShare)}</span>
+                </div>
+              )}
             </div>
 
             <DialogFooter>
@@ -497,6 +560,21 @@ export default function BillingPage() {
                 <span>{t('receiptTotal')}</span>
                 <span className="text-blue-700">{formatCurrency(Number(receiptInvoice.total_amount))}</span>
               </div>
+              {Number(receiptInvoice.insurance_share) > 0 && (
+                <>
+                  <div className="flex justify-between text-gray-500">
+                    <span>
+                      {t('receiptInsuranceShare')}
+                      {receiptInvoice.payer_name ? ` (${receiptInvoice.payer_name})` : ''}
+                    </span>
+                    <span>{formatCurrency(Number(receiptInvoice.insurance_share))}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-500">
+                    <span>{t('receiptPatientShare')}</span>
+                    <span>{formatCurrency(Number(receiptInvoice.total_amount) - Number(receiptInvoice.insurance_share))}</span>
+                  </div>
+                </>
+              )}
               <div className="flex justify-between text-gray-500">
                 <span>{t('receiptPaid')}</span>
                 <span className="text-emerald-600 font-medium">{formatCurrency(Number(receiptInvoice.amount_paid))}</span>

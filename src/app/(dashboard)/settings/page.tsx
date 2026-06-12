@@ -11,31 +11,40 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useClinic } from '@/context/ClinicContext'
+import { isValidPhone, toStoredPhone } from '@/lib/phone'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
-
-const clinicSchema = z.object({
-  name: z.string().min(2),
-  location: z.string().min(2),
-  phone: z.string().optional().nullable(),
-  email: z.string().email().optional().or(z.literal('')).nullable(),
-})
-type ClinicFormData = z.infer<typeof clinicSchema>
-
-const profileSchema = z.object({
-  full_name: z.string().min(2),
-  phone: z.string().optional().nullable(),
-})
-type ProfileFormData = z.infer<typeof profileSchema>
 
 export default function SettingsPage() {
   const t = useTranslations('settings')
   const { clinic, profile, refetch } = useClinic()
   const supabase = createClient()
 
+  const phoneField = z.string().optional().nullable().refine(isValidPhone, t('zodPhoneInvalid'))
+
+  const clinicSchema = z.object({
+    name: z.string().min(2),
+    location: z.string().min(2),
+    phone: phoneField,
+    email: z.string().email().optional().or(z.literal('')).nullable(),
+    ninea: z.string().optional().nullable(),
+    rc_number: z.string().optional().nullable(),
+  })
+  type ClinicFormData = z.infer<typeof clinicSchema>
+
+  const profileSchema = z.object({
+    full_name: z.string().min(2),
+    phone: phoneField,
+  })
+  type ProfileFormData = z.infer<typeof profileSchema>
+
   const clinicForm = useForm<ClinicFormData>({
     resolver: zodResolver(clinicSchema),
-    defaultValues: { name: clinic?.name ?? '', location: clinic?.location ?? '', phone: clinic?.phone ?? '', email: clinic?.email ?? '' },
+    defaultValues: {
+      name: clinic?.name ?? '', location: clinic?.location ?? '',
+      phone: clinic?.phone ?? '', email: clinic?.email ?? '',
+      ninea: clinic?.ninea ?? '', rc_number: clinic?.rc_number ?? '',
+    },
   })
 
   const profileForm = useForm<ProfileFormData>({
@@ -48,8 +57,10 @@ export default function SettingsPage() {
     const { error } = await supabase.from('clinics').update({
       name: data.name,
       location: data.location,
-      phone: data.phone ?? null,
+      phone: toStoredPhone(data.phone),
       email: data.email ?? null,
+      ninea: data.ninea?.trim() || null,
+      rc_number: data.rc_number?.trim() || null,
     }).eq('id', clinic.id)
     if (error) { toast.error(error.message); return }
     toast.success(t('clinicSaved'))
@@ -60,7 +71,7 @@ export default function SettingsPage() {
     if (!profile) return
     const { error } = await supabase.from('user_profiles').update({
       full_name: data.full_name,
-      phone: data.phone ?? null,
+      phone: toStoredPhone(data.phone),
     }).eq('id', profile.id)
     if (error) { toast.error(error.message); return }
     toast.success(t('profileSaved'))
@@ -91,7 +102,10 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>{t('labelPhone')}</Label>
-                  <Input {...profileForm.register('phone')} />
+                  <Input {...profileForm.register('phone')} placeholder="+221 77 123 45 67" />
+                  {profileForm.formState.errors.phone && (
+                    <p className="text-xs text-red-500">{profileForm.formState.errors.phone.message}</p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label>{t('labelEmail')}</Label>
@@ -132,11 +146,24 @@ export default function SettingsPage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label>{t('labelPhone')}</Label>
-                    <Input {...clinicForm.register('phone')} />
+                    <Input {...clinicForm.register('phone')} placeholder="+221 33 821 00 00" />
+                    {clinicForm.formState.errors.phone && (
+                      <p className="text-xs text-red-500">{clinicForm.formState.errors.phone.message}</p>
+                    )}
                   </div>
                   <div className="space-y-1.5">
                     <Label>{t('labelEmail')}</Label>
                     <Input type="email" {...clinicForm.register('email')} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>{t('labelNinea')}</Label>
+                    <Input {...clinicForm.register('ninea')} placeholder="0012345678" />
+                    <p className="text-xs text-gray-400">{t('nineaHint')}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>{t('labelRc')}</Label>
+                    <Input {...clinicForm.register('rc_number')} placeholder="SN-DKR-2024-A-12345" />
+                    <p className="text-xs text-gray-400">{t('rcHint')}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">

@@ -7,6 +7,7 @@ import {
   ArrowLeft, UserRound, Phone, Mail, MapPin, AlertCircle,
   Droplets, Calendar, Stethoscope, Receipt, Clock, Pencil,
   Pill, FlaskConical, History, MessageCircle, Activity,
+  CreditCard, ShieldCheck,
 } from 'lucide-react'
 import { Topbar } from '@/components/layout/Topbar'
 import { Badge } from '@/components/ui/badge'
@@ -287,6 +288,12 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                       <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" /><span>{patient.address}</span>
                     </div>
                   )}
+                  {patient.cni && (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <CreditCard className="h-3.5 w-3.5 shrink-0" />
+                      <span className="font-mono text-xs">{t('cniLabel')} {patient.cni}</span>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -328,6 +335,40 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                 )}
               </CardContent>
             </Card>
+
+            {patient.insurance_payer_type && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-emerald-600" /> {t('cardInsurance')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-500">{t('insurancePayerLabel')}</span>
+                    <Badge variant="secondary">{t(`payer_${patient.insurance_payer_type}`)}</Badge>
+                  </div>
+                  {patient.insurance_provider && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500">{t('insuranceProviderLabel')}</span>
+                      <span className="font-medium text-gray-900">{patient.insurance_provider}</span>
+                    </div>
+                  )}
+                  {patient.insurance_policy_number && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500">{t('insurancePolicyLabel')}</span>
+                      <span className="font-mono text-xs">{patient.insurance_policy_number}</span>
+                    </div>
+                  )}
+                  {patient.insurance_coverage_percent != null && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500">{t('insuranceCoverageLabel')}</span>
+                      <span className="font-semibold text-emerald-700">{Number(patient.insurance_coverage_percent)}%</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {(patient.emergency_contact || patient.emergency_phone) && (
               <Card>

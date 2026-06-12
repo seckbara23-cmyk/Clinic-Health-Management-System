@@ -25,6 +25,9 @@ export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'cancelled' | 'refun
 export type PrescriptionStatus = 'active' | 'dispensed' | 'expired' | 'cancelled'
 export type LabRequestStatus = 'ordered' | 'collected' | 'processing' | 'resulted' | 'cancelled'
 export type LabRequestType = 'blood' | 'urine' | 'imaging' | 'biopsy' | 'microbiology' | 'other'
+// Senegal third-party payers: IPM (Institution de Prévoyance Maladie),
+// mutuelle de santé, CNSS, IPRES, private insurer.
+export type InsurancePayerType = 'ipm' | 'mutuelle' | 'cnss' | 'ipres' | 'private' | 'other'
 
 export interface Clinic {
   id: string
@@ -32,6 +35,8 @@ export interface Clinic {
   location: string
   phone: string | null
   email: string | null
+  ninea: string | null
+  rc_number: string | null
   logo_url: string | null
   subscription_plan: SubscriptionPlan
   subscription_status: SubscriptionStatus
@@ -90,6 +95,11 @@ export interface Patient {
   emergency_phone: string | null
   blood_type: BloodType | null
   allergies: string[] | null
+  cni: string | null
+  insurance_payer_type: InsurancePayerType | null
+  insurance_provider: string | null
+  insurance_policy_number: string | null
+  insurance_coverage_percent: number | null
   notes: string | null
   created_by: string | null
   created_at: string
@@ -190,6 +200,10 @@ export interface Invoice {
   discount_amount: number
   total_amount: number
   amount_paid: number
+  insurance_share: number
+  patient_share: number   // generated: total_amount - insurance_share
+  payer_type: InsurancePayerType | null
+  payer_name: string | null
   currency: string
   status: InvoiceStatus
   payment_method: PaymentMethod | null

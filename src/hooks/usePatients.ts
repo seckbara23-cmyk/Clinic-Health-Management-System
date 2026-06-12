@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { useClinic } from '@/context/ClinicContext'
+import { toStoredPhone } from '@/lib/phone'
 import type { Patient } from '@/types/database'
 import { toast } from 'sonner'
 
@@ -15,10 +16,13 @@ export function usePatients(search?: string, page = 0) {
     enabled: !!clinic?.id,
     staleTime: 30_000,
     queryFn: async () => {
+      // The edit dialog resets its form from a row of this list, so every
+      // editable column must be selected here — a missing column would be
+      // saved back as null and wipe the value.
       let q = supabase
         .from('patients')
         .select(
-          'id, full_name, patient_number, phone, email, date_of_birth, gender, blood_type, created_at',
+          'id, full_name, patient_number, phone, email, date_of_birth, gender, blood_type, created_at, address, emergency_contact, emergency_phone, notes, cni, insurance_payer_type, insurance_provider, insurance_policy_number, insurance_coverage_percent',
           { count: 'exact' }
         )
         .eq('clinic_id', clinic!.id)
@@ -63,6 +67,11 @@ interface PatientInsertInput {
   address?: string | null
   emergency_contact?: string | null
   emergency_phone?: string | null
+  cni?: string | null
+  insurance_payer_type?: string | null
+  insurance_provider?: string | null
+  insurance_policy_number?: string | null
+  insurance_coverage_percent?: number | null
   notes?: string | null
 }
 
@@ -77,14 +86,19 @@ export function useCreatePatient() {
         .from('patients')
         .insert({
           full_name: input.full_name,
-          phone: input.phone ?? null,
+          phone: toStoredPhone(input.phone),
           email: input.email ?? null,
           date_of_birth: input.date_of_birth ?? null,
           gender: input.gender ?? null,
           blood_type: input.blood_type ?? null,
           address: input.address ?? null,
           emergency_contact: input.emergency_contact ?? null,
-          emergency_phone: input.emergency_phone ?? null,
+          emergency_phone: toStoredPhone(input.emergency_phone),
+          cni: input.cni?.trim() || null,
+          insurance_payer_type: input.insurance_payer_type ?? null,
+          insurance_provider: input.insurance_provider?.trim() || null,
+          insurance_policy_number: input.insurance_policy_number?.trim() || null,
+          insurance_coverage_percent: input.insurance_coverage_percent ?? null,
           notes: input.notes ?? null,
           clinic_id: clinic!.id,
           created_by: profile!.id,
@@ -113,14 +127,19 @@ export function useUpdatePatient() {
         .from('patients')
         .update({
           full_name: input.full_name,
-          phone: input.phone ?? null,
+          phone: toStoredPhone(input.phone),
           email: input.email ?? null,
           date_of_birth: input.date_of_birth ?? null,
           gender: input.gender ?? null,
           blood_type: input.blood_type ?? null,
           address: input.address ?? null,
           emergency_contact: input.emergency_contact ?? null,
-          emergency_phone: input.emergency_phone ?? null,
+          emergency_phone: toStoredPhone(input.emergency_phone),
+          cni: input.cni?.trim() || null,
+          insurance_payer_type: input.insurance_payer_type ?? null,
+          insurance_provider: input.insurance_provider?.trim() || null,
+          insurance_policy_number: input.insurance_policy_number?.trim() || null,
+          insurance_coverage_percent: input.insurance_coverage_percent ?? null,
           notes: input.notes ?? null,
         })
         .eq('id', id)
