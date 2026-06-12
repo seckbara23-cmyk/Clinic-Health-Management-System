@@ -60,3 +60,14 @@ export function toStoredPhone(raw: string | null | undefined): string | null {
   if (!trimmed) return null
   return normalizePhone(trimmed) ?? trimmed
 }
+
+/**
+ * E.164 form for telephony providers (no spaces): "+221771234567".
+ * Returns null when the number isn't a valid, sendable number — callers
+ * MUST treat null as "cannot send" (skip the SMS), never as an empty string.
+ */
+export function toE164(raw: string | null | undefined): string | null {
+  const normalized = normalizePhone(raw)
+  if (!normalized) return null
+  return normalized.replace(/\s/g, '')
+}

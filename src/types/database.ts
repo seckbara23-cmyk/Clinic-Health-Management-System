@@ -29,6 +29,18 @@ export type LabRequestType = 'blood' | 'urine' | 'imaging' | 'biopsy' | 'microbi
 // mutuelle de santé, CNSS, IPRES, private insurer.
 export type InsurancePayerType = 'ipm' | 'mutuelle' | 'cnss' | 'ipres' | 'private' | 'other'
 
+// ─── SMS reminders ──────────────────────────────────────────────
+export type SmsProviderId = 'orange_sms' | 'twilio'
+export type SmsReminderType = 'appointment_24h' | 'appointment_same_day' | 'manual'
+export type SmsStatus =
+  | 'queued'     // enqueued, awaiting dispatch
+  | 'sending'    // claimed by a dispatch worker
+  | 'sent'       // accepted by a provider
+  | 'delivered'  // provider delivery receipt confirmed (Phase 2)
+  | 'failed'     // exhausted retries / non-retryable error
+  | 'cancelled'  // cancelled before send
+  | 'skipped'    // intentionally not sent (opt-out, no phone, etc.)
+
 export interface Clinic {
   id: string
   name: string
@@ -37,6 +49,10 @@ export interface Clinic {
   email: string | null
   ninea: string | null
   rc_number: string | null
+  sms_reminders_enabled: boolean
+  reminder_24h_enabled: boolean
+  reminder_same_day_enabled: boolean
+  sms_sender_id: string | null
   logo_url: string | null
   subscription_plan: SubscriptionPlan
   subscription_status: SubscriptionStatus
@@ -100,6 +116,8 @@ export interface Patient {
   insurance_provider: string | null
   insurance_policy_number: string | null
   insurance_coverage_percent: number | null
+  sms_opt_in: boolean
+  sms_opt_out_at: string | null
   notes: string | null
   created_by: string | null
   created_at: string
@@ -119,6 +137,7 @@ export interface Appointment {
   queue_number: number | null
   arrived_at: string | null
   called_at: string | null
+  last_reminder_sent_at: string | null
   notes: string | null
   created_by: string | null
   created_at: string
@@ -233,6 +252,47 @@ export interface PaymentEvent {
   payload: Record<string, unknown> | null
   received_at: string
   created_at: string
+}
+
+export interface SmsMessage {
+  id: string
+  clinic_id: string
+  patient_id: string | null
+  appointment_id: string | null
+  reminder_type: SmsReminderType
+  to_phone: string
+  body: string
+  status: SmsStatus
+  provider: SmsProviderId | null
+  provider_message_id: string | null
+  attempts: number
+  max_attempts: number
+  segments: number | null
+  cost_amount: number | null
+  cost_currency: string | null
+  scheduled_for: string
+  next_attempt_at: string
+  queued_at: string
+  sent_at: string | null
+  delivered_at: string | null
+  failed_at: string | null
+  last_error: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+  patient?: Patient
+}
+
+export interface SmsDeliveryEvent {
+  id: string
+  clinic_id: string
+  sms_message_id: string
+  provider: SmsProviderId | null
+  event_type: 'queued' | 'dispatch_attempt' | 'accepted' | 'delivery_receipt' | 'failed'
+  provider_ref: string | null
+  status: string | null
+  payload: Record<string, unknown> | null
+  received_at: string
 }
 
 export interface LabRequest {

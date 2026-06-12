@@ -15,6 +15,10 @@ export type Database = {
           email: string | null
           ninea: string | null
           rc_number: string | null
+          sms_reminders_enabled: boolean
+          reminder_24h_enabled: boolean
+          reminder_same_day_enabled: boolean
+          sms_sender_id: string | null
           logo_url: string | null
           subscription_plan: string
           subscription_status: string
@@ -29,6 +33,10 @@ export type Database = {
           email?: string | null
           ninea?: string | null
           rc_number?: string | null
+          sms_reminders_enabled?: boolean
+          reminder_24h_enabled?: boolean
+          reminder_same_day_enabled?: boolean
+          sms_sender_id?: string | null
           logo_url?: string | null
           subscription_plan?: string
           subscription_status?: string
@@ -43,6 +51,10 @@ export type Database = {
           email?: string | null
           ninea?: string | null
           rc_number?: string | null
+          sms_reminders_enabled?: boolean
+          reminder_24h_enabled?: boolean
+          reminder_same_day_enabled?: boolean
+          sms_sender_id?: string | null
           logo_url?: string | null
           subscription_plan?: string
           subscription_status?: string
@@ -110,6 +122,8 @@ export type Database = {
           insurance_provider: string | null
           insurance_policy_number: string | null
           insurance_coverage_percent: number | null
+          sms_opt_in: boolean
+          sms_opt_out_at: string | null
           notes: string | null
           created_by: string | null
           created_at: string
@@ -134,6 +148,8 @@ export type Database = {
           insurance_provider?: string | null
           insurance_policy_number?: string | null
           insurance_coverage_percent?: number | null
+          sms_opt_in?: boolean
+          sms_opt_out_at?: string | null
           notes?: string | null
           created_by?: string | null
           created_at?: string
@@ -158,6 +174,8 @@ export type Database = {
           insurance_provider?: string | null
           insurance_policy_number?: string | null
           insurance_coverage_percent?: number | null
+          sms_opt_in?: boolean
+          sms_opt_out_at?: string | null
           notes?: string | null
           created_by?: string | null
           created_at?: string
@@ -177,6 +195,7 @@ export type Database = {
           status: string
           priority: string
           queue_number: number | null
+          last_reminder_sent_at: string | null
           notes: string | null
           created_by: string | null
           created_at: string
@@ -193,6 +212,7 @@ export type Database = {
           status?: string
           priority?: string
           queue_number?: number | null
+          last_reminder_sent_at?: string | null
           notes?: string | null
           created_by?: string | null
           created_at?: string
@@ -209,6 +229,7 @@ export type Database = {
           status?: string
           priority?: string
           queue_number?: number | null
+          last_reminder_sent_at?: string | null
           notes?: string | null
           created_by?: string | null
           created_at?: string
@@ -484,12 +505,133 @@ export type Database = {
         }
         Relationships: []
       }
+      sms_messages: {
+        Row: {
+          id: string
+          clinic_id: string
+          patient_id: string | null
+          appointment_id: string | null
+          reminder_type: string
+          to_phone: string
+          body: string
+          status: string
+          provider: string | null
+          provider_message_id: string | null
+          attempts: number
+          max_attempts: number
+          segments: number | null
+          cost_amount: number | null
+          cost_currency: string | null
+          scheduled_for: string
+          next_attempt_at: string
+          queued_at: string
+          sent_at: string | null
+          delivered_at: string | null
+          failed_at: string | null
+          last_error: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          clinic_id: string
+          patient_id?: string | null
+          appointment_id?: string | null
+          reminder_type: string
+          to_phone: string
+          body: string
+          status?: string
+          provider?: string | null
+          provider_message_id?: string | null
+          attempts?: number
+          max_attempts?: number
+          segments?: number | null
+          cost_amount?: number | null
+          cost_currency?: string | null
+          scheduled_for?: string
+          next_attempt_at?: string
+          queued_at?: string
+          sent_at?: string | null
+          delivered_at?: string | null
+          failed_at?: string | null
+          last_error?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          clinic_id?: string
+          patient_id?: string | null
+          appointment_id?: string | null
+          reminder_type?: string
+          to_phone?: string
+          body?: string
+          status?: string
+          provider?: string | null
+          provider_message_id?: string | null
+          attempts?: number
+          max_attempts?: number
+          segments?: number | null
+          cost_amount?: number | null
+          cost_currency?: string | null
+          scheduled_for?: string
+          next_attempt_at?: string
+          queued_at?: string
+          sent_at?: string | null
+          delivered_at?: string | null
+          failed_at?: string | null
+          last_error?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sms_delivery_events: {
+        Row: {
+          id: string
+          clinic_id: string
+          sms_message_id: string
+          provider: string | null
+          event_type: string
+          provider_ref: string | null
+          status: string | null
+          payload: Json | null
+          received_at: string
+        }
+        Insert: {
+          id?: string
+          clinic_id: string
+          sms_message_id: string
+          provider?: string | null
+          event_type: string
+          provider_ref?: string | null
+          status?: string | null
+          payload?: Json | null
+          received_at?: string
+        }
+        Update: {
+          id?: string
+          clinic_id?: string
+          sms_message_id?: string
+          provider?: string | null
+          event_type?: string
+          provider_ref?: string | null
+          status?: string | null
+          payload?: Json | null
+          received_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: {
       get_clinic_id: { Args: Record<PropertyKey, never>; Returns: string }
       is_super_admin: { Args: Record<PropertyKey, never>; Returns: boolean }
       get_user_role: { Args: Record<PropertyKey, never>; Returns: string }
+      claim_sms_batch: { Args: { p_limit?: number }; Returns: Database['public']['Tables']['sms_messages']['Row'][] }
     }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
