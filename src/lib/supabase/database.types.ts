@@ -69,7 +69,7 @@ export type Database = {
           clinic_id: string | null
           full_name: string
           email: string
-          role: 'super_admin' | 'admin' | 'doctor' | 'receptionist' | 'nurse' | 'cashier' | 'lab_technician'
+          role: 'super_admin' | 'admin' | 'doctor' | 'receptionist' | 'nurse' | 'cashier' | 'lab_technician' | 'pharmacist'
           phone: string | null
           avatar_url: string | null
           is_active: boolean
@@ -661,6 +661,225 @@ export type Database = {
         }
         Relationships: []
       }
+      clinic_medication_inventory: {
+        Row: {
+          id: string
+          clinic_id: string
+          medication_id: string
+          stock_quantity: number
+          reorder_level: number
+          selling_price: number
+          purchase_price: number
+          supplier: string | null
+          is_active: boolean
+          deleted_at: string | null
+          deleted_by: string | null
+          deletion_reason: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          clinic_id: string
+          medication_id: string
+          stock_quantity?: number
+          reorder_level?: number
+          selling_price?: number
+          purchase_price?: number
+          supplier?: string | null
+          is_active?: boolean
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          clinic_id?: string
+          medication_id?: string
+          stock_quantity?: number
+          reorder_level?: number
+          selling_price?: number
+          purchase_price?: number
+          supplier?: string | null
+          is_active?: boolean
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      medication_batches: {
+        Row: {
+          id: string
+          clinic_id: string
+          inventory_id: string
+          batch_number: string | null
+          expiry_date: string | null
+          quantity_received: number
+          quantity_remaining: number
+          purchase_price: number | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deletion_reason: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          clinic_id: string
+          inventory_id: string
+          batch_number?: string | null
+          expiry_date?: string | null
+          quantity_received?: number
+          quantity_remaining?: number
+          purchase_price?: number | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          clinic_id?: string
+          inventory_id?: string
+          batch_number?: string | null
+          expiry_date?: string | null
+          quantity_received?: number
+          quantity_remaining?: number
+          purchase_price?: number | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      stock_movements: {
+        Row: {
+          id: string
+          clinic_id: string
+          inventory_id: string | null
+          batch_id: string | null
+          medication_id: string | null
+          movement_type: string
+          quantity_change: number
+          reference_type: string | null
+          reference_id: string | null
+          notes: string | null
+          performed_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          clinic_id: string
+          inventory_id?: string | null
+          batch_id?: string | null
+          medication_id?: string | null
+          movement_type: string
+          quantity_change: number
+          reference_type?: string | null
+          reference_id?: string | null
+          notes?: string | null
+          performed_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          clinic_id?: string
+          inventory_id?: string | null
+          batch_id?: string | null
+          medication_id?: string | null
+          movement_type?: string
+          quantity_change?: number
+          reference_type?: string | null
+          reference_id?: string | null
+          notes?: string | null
+          performed_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      medication_dispensings: {
+        Row: {
+          id: string
+          clinic_id: string
+          prescription_id: string
+          patient_id: string
+          prescription_line_index: number
+          medication_id: string | null
+          inventory_id: string | null
+          medication_name: string
+          quantity_prescribed: number
+          quantity_dispensed: number
+          unit_selling_price: number
+          status: string
+          substitution_notes: string | null
+          unavailable_reason: string | null
+          dispensed_by: string | null
+          dispensed_at: string | null
+          invoice_id: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deletion_reason: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          clinic_id: string
+          prescription_id: string
+          patient_id: string
+          prescription_line_index: number
+          medication_id?: string | null
+          inventory_id?: string | null
+          medication_name: string
+          quantity_prescribed?: number
+          quantity_dispensed?: number
+          unit_selling_price?: number
+          status: string
+          substitution_notes?: string | null
+          unavailable_reason?: string | null
+          dispensed_by?: string | null
+          dispensed_at?: string | null
+          invoice_id?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          clinic_id?: string
+          prescription_id?: string
+          patient_id?: string
+          prescription_line_index?: number
+          medication_id?: string | null
+          inventory_id?: string | null
+          medication_name?: string
+          quantity_prescribed?: number
+          quantity_dispensed?: number
+          unit_selling_price?: number
+          status?: string
+          substitution_notes?: string | null
+          unavailable_reason?: string | null
+          dispensed_by?: string | null
+          dispensed_at?: string | null
+          invoice_id?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       medications: {
         Row: {
           id: string
@@ -965,6 +1184,26 @@ export type Database = {
           date_of_birth: string | null
           gender: string | null
         }[]
+      }
+      receive_stock: {
+        Args: { p_inventory_id: string; p_batch_number: string | null; p_expiry_date: string | null; p_quantity: number; p_purchase_price?: number | null }
+        Returns: string
+      }
+      adjust_stock: {
+        Args: { p_batch_id: string; p_movement_type: string; p_quantity_change: number; p_notes?: string | null }
+        Returns: undefined
+      }
+      dispense_medication: {
+        Args: {
+          p_prescription_id: string; p_line_index: number; p_medication_id: string | null; p_inventory_id: string | null
+          p_medication_name: string; p_quantity_prescribed: number; p_quantity_dispensed: number
+          p_substitution_notes?: string | null; p_unavailable_reason?: string | null
+        }
+        Returns: string
+      }
+      generate_dispensing_invoice: {
+        Args: { p_prescription_id: string }
+        Returns: string
       }
     }
     Enums: Record<string, never>

@@ -36,6 +36,7 @@ const roleColors: Record<string, string> = {
   nurse:         'bg-pink-100 text-pink-700',
   cashier:       'bg-orange-100 text-orange-700',
   lab_technician:'bg-cyan-100 text-cyan-700',
+  pharmacist:    'bg-lime-100 text-lime-700',
 }
 
 export default function AdminUsersPage() {
@@ -55,11 +56,12 @@ export default function AdminUsersPage() {
     nurse:        t('roleNurse'),
     cashier:      t('roleCashier'),
     lab_technician: t('roleLabTechnician'),
+    pharmacist:   t('rolePharmacist'),
   }
 
   const inviteSchema = z.object({
     email:      z.string().email(t('zodEmailInvalid')),
-    role:       z.enum(['admin', 'doctor', 'receptionist', 'nurse', 'cashier', 'lab_technician']),
+    role:       z.enum(['admin', 'doctor', 'receptionist', 'nurse', 'cashier', 'lab_technician', 'pharmacist']),
     clinic_id:  z.string().min(1, t('zodClinicRequired')),
   })
   type InviteFormData = z.infer<typeof inviteSchema>
@@ -301,6 +303,7 @@ export default function AdminUsersPage() {
                   <SelectItem value="nurse">{t('roleNurse')}</SelectItem>
                   <SelectItem value="cashier">{t('roleCashier')}</SelectItem>
                   <SelectItem value="lab_technician">{t('roleLabTechnician')}</SelectItem>
+                  <SelectItem value="pharmacist">{t('rolePharmacist')}</SelectItem>
                 </SelectContent>
               </Select>
               {errors.role && <p className="text-xs text-red-500">{errors.role.message}</p>}

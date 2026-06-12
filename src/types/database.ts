@@ -1,6 +1,6 @@
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
 
-export type Role = 'super_admin' | 'admin' | 'doctor' | 'receptionist' | 'nurse' | 'cashier' | 'lab_technician'
+export type Role = 'super_admin' | 'admin' | 'doctor' | 'receptionist' | 'nurse' | 'cashier' | 'lab_technician' | 'pharmacist'
 export type SubscriptionPlan = 'free' | 'basic' | 'pro' | 'enterprise'
 export type SubscriptionStatus = 'active' | 'suspended' | 'cancelled'
 export type ClinicStatus = 'pending' | 'active' | 'rejected' | 'suspended' | 'inactive' | 'archived'
@@ -22,7 +22,7 @@ export type AppointmentPriority = 'normal' | 'urgent' | 'emergency'
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'partial' | 'overdue' | 'cancelled'
 export type PaymentMethod = 'cash' | 'card' | 'mobile_money' | 'insurance' | 'other' | 'wave' | 'orange_money'
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'cancelled' | 'refunded'
-export type PrescriptionStatus = 'active' | 'dispensed' | 'expired' | 'cancelled'
+export type PrescriptionStatus = 'active' | 'partially_dispensed' | 'dispensed' | 'expired' | 'cancelled'
 export type LabRequestStatus = 'ordered' | 'collected' | 'processing' | 'resulted' | 'cancelled'
 export type LabRequestType = 'blood' | 'urine' | 'imaging' | 'biopsy' | 'microbiology' | 'other'
 // Senegal third-party payers: IPM (Institution de Prévoyance Maladie),
@@ -222,6 +222,84 @@ export interface CatalogMedication {
   strength: string | null
   dosage_form: string | null
   is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+// ─── Pharmacy: inventory + dispensing (Phase 5B) ────────────────
+export type StockMovementType = 'received' | 'dispensed' | 'adjustment' | 'expired' | 'damaged' | 'returned'
+export type DispensingStatus = 'dispensed' | 'partial' | 'unavailable'
+
+export interface ClinicMedicationInventory {
+  id: string
+  clinic_id: string
+  medication_id: string
+  stock_quantity: number       // maintained = sum of batch quantity_remaining
+  reorder_level: number
+  selling_price: number
+  purchase_price: number
+  supplier: string | null
+  is_active: boolean
+  deleted_at: string | null
+  deleted_by: string | null
+  deletion_reason: string | null
+  created_at: string
+  updated_at: string
+  medication?: CatalogMedication
+}
+
+export interface MedicationBatch {
+  id: string
+  clinic_id: string
+  inventory_id: string
+  batch_number: string | null
+  expiry_date: string | null
+  quantity_received: number
+  quantity_remaining: number
+  purchase_price: number | null
+  deleted_at: string | null
+  deleted_by: string | null
+  deletion_reason: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface StockMovement {
+  id: string
+  clinic_id: string
+  inventory_id: string | null
+  batch_id: string | null
+  medication_id: string | null
+  movement_type: StockMovementType
+  quantity_change: number
+  reference_type: string | null
+  reference_id: string | null
+  notes: string | null
+  performed_by: string | null
+  created_at: string
+}
+
+export interface MedicationDispensing {
+  id: string
+  clinic_id: string
+  prescription_id: string
+  patient_id: string
+  prescription_line_index: number
+  medication_id: string | null
+  inventory_id: string | null
+  medication_name: string
+  quantity_prescribed: number
+  quantity_dispensed: number
+  unit_selling_price: number
+  status: DispensingStatus
+  substitution_notes: string | null
+  unavailable_reason: string | null
+  dispensed_by: string | null
+  dispensed_at: string | null
+  invoice_id: string | null
+  deleted_at: string | null
+  deleted_by: string | null
+  deletion_reason: string | null
   created_at: string
   updated_at: string
 }

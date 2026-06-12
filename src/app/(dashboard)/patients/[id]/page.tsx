@@ -24,6 +24,7 @@ import { useConsultations, useCreateConsultation } from '@/hooks/useConsultation
 import { useInvoices } from '@/hooks/useInvoices'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
 import { useLabOrders } from '@/hooks/useLab'
+import { useDispensings } from '@/hooks/usePharmacy'
 import { useDoctors } from '@/hooks/useDoctors'
 import { useLatestPatientVitals } from '@/hooks/useVitals'
 import { useClinic } from '@/context/ClinicContext'
@@ -44,7 +45,7 @@ const invStatusColors: Record<string, string> = {
   overdue: 'bg-red-100 text-red-700', cancelled: 'bg-gray-100 text-gray-400',
 }
 const rxStatusColors: Record<string, string> = {
-  active: 'bg-emerald-100 text-emerald-700', dispensed: 'bg-blue-100 text-blue-700',
+  active: 'bg-emerald-100 text-emerald-700', partially_dispensed: 'bg-amber-100 text-amber-700', dispensed: 'bg-blue-100 text-blue-700',
   expired: 'bg-gray-100 text-gray-500', cancelled: 'bg-red-100 text-red-500',
 }
 const labStatusColors: Record<string, string> = {
@@ -86,8 +87,9 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
     cancelled: t('invStatusCancelled'),
   }
   const rxStatusLabels: Record<string, string> = {
-    active:    t('rxStatusActive'),
-    dispensed: t('rxStatusDispensed'),
+    active:               t('rxStatusActive'),
+    partially_dispensed:  t('rxStatusPartiallyDispensed'),
+    dispensed:            t('rxStatusDispensed'),
     expired:   t('rxStatusExpired'),
     cancelled: t('rxStatusCancelled'),
   }
@@ -109,6 +111,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
   const { data: patient, isLoading } = usePatient(id)
   useEffect(() => { logRecordView('patient', id) }, [id])
   const { data: latestVitals } = useLatestPatientVitals(id)
+  const { data: dispensingHistory } = useDispensings({ patientId: id })
   const { data: patientAppointments } = useAppointments(undefined, id)
   const { data: consultations } = useConsultations(id)
   const { data: patientInvoices } = useInvoices(undefined, id)
@@ -396,6 +399,30 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                       <Phone className="h-3.5 w-3.5" /> {patient.emergency_phone}
                     </a>
                   )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Dispensing history */}
+            {(dispensingHistory?.length ?? 0) > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Pill className="h-4 w-4 text-lime-600" /> {t('cardDispensing')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm space-y-2">
+                  {dispensingHistory!.slice(0, 8).map(d => (
+                    <div key={d.id} className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{d.medication_name}</p>
+                        <p className="text-xs text-gray-400">{formatDate(d.dispensed_at ?? d.created_at)}</p>
+                      </div>
+                      {d.status === 'unavailable'
+                        ? <Badge variant="outline" className="shrink-0 text-xs text-red-600 border-red-200">{t('dispUnavailable')}</Badge>
+                        : <span className="shrink-0 font-semibold text-emerald-700">×{d.quantity_dispensed}</span>}
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             )}

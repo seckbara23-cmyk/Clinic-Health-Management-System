@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Users, CalendarDays, Receipt,
   Settings, LogOut, Stethoscope, ShieldCheck,
-  Building2, ChevronRight, ClipboardList, Pill, FlaskConical, BarChart2, Inbox, X, CreditCard, TestTube,
+  Building2, ChevronRight, ClipboardList, Pill, FlaskConical, BarChart2, Inbox, X, CreditCard, TestTube, Package, PackageSearch,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useClinic } from '@/context/ClinicContext'
@@ -39,6 +39,12 @@ const navItems: NavItem[] = [
     roles: ['super_admin', 'admin', 'doctor', 'nurse', 'lab_technician'] },
   { href: '/lab-catalog',   labelKey: 'labCatalog',    icon: TestTube,
     roles: ['super_admin', 'admin'] },
+  { href: '/pharmacy',          labelKey: 'pharmacy',          icon: Pill,
+    roles: ['super_admin', 'admin', 'pharmacist'] },
+  { href: '/pharmacy/inventory', labelKey: 'pharmacyInventory', icon: Package,
+    roles: ['super_admin', 'admin', 'pharmacist'] },
+  { href: '/pharmacy/reports',   labelKey: 'pharmacyReports',   icon: PackageSearch,
+    roles: ['super_admin', 'admin', 'pharmacist'] },
   { href: '/billing',       labelKey: 'billing',       icon: Receipt,
     roles: ['super_admin', 'admin', 'receptionist', 'cashier', 'doctor'] },
   { href: '/analytics',     labelKey: 'analytics',     icon: BarChart2,
