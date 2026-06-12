@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useForm, useFieldArray, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Plus, Loader2, Pill, Trash2, Pencil, Printer, CheckCircle, Download } from 'lucide-react'
@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { usePrescriptions, useCreatePrescription, useUpdatePrescription } from '@/hooks/usePrescriptions'
+import { useMedications } from '@/hooks/useMedications'
 import { useConsultations } from '@/hooks/useConsultations'
 import { useClinic } from '@/context/ClinicContext'
 import { useFormatters } from '@/hooks/useFormatters'
@@ -22,7 +23,7 @@ import { cn } from '@/lib/utils'
 import { openPrescriptionPDF } from '@/lib/pdf'
 import { logRecordView } from '@/lib/audit-client'
 import { useTranslations } from 'next-intl'
-import type { Prescription, Medication, PrescriptionStatus } from '@/types/database'
+import type { Prescription, Medication, PrescriptionStatus, CatalogMedication } from '@/types/database'
 
 const statusColors: Record<PrescriptionStatus, string> = {
   active:    'bg-emerald-100 text-emerald-700',
@@ -34,6 +35,11 @@ const statusColors: Record<PrescriptionStatus, string> = {
 type PrescriptionRow = Prescription & {
   patient: { id: string; full_name: string; patient_number: string }
   doctor: { id: string; full_name: string }
+}
+
+const EMPTY_MED = {
+  name: '', dosage: '', frequency: '', duration: '', instructions: '',
+  medication_id: null as string | null, strength: null as string | null, dosage_form: null as string | null,
 }
 
 export default function PrescriptionsPage() {
@@ -57,6 +63,10 @@ export default function PrescriptionsPage() {
     frequency:    z.string().min(1, t('labelMedFrequency')),
     duration:     z.string().min(1, t('labelMedDuration')),
     instructions: z.string().optional(),
+    // Catalog link — set when picked from the formulary, null for free text.
+    medication_id: z.string().nullable().optional(),
+    strength:      z.string().nullable().optional(),
+    dosage_form:   z.string().nullable().optional(),
   })
 
   const createSchema = z.object({
@@ -76,9 +86,12 @@ export default function PrescriptionsPage() {
 
   const form = useForm<CreateForm>({
     resolver: zodResolver(createSchema),
-    defaultValues: { medications: [{ name: '', dosage: '', frequency: '', duration: '', instructions: '' }] },
+    defaultValues: { medications: [{ ...EMPTY_MED }] },
   })
   const { fields, append, remove } = useFieldArray({ control: form.control, name: 'medications' })
+  // useWatch (not form.watch) keeps live medication values without the
+  // React-Compiler "incompatible library" warning.
+  const watchedMeds = useWatch({ control: form.control, name: 'medications' })
 
   async function onSubmit(data: CreateForm) {
     const consult = consultations?.find(c => c.id === data.consultation_id)
@@ -91,7 +104,7 @@ export default function PrescriptionsPage() {
       valid_until: data.valid_until ?? null,
     })
     setCreateOpen(false)
-    form.reset({ medications: [{ name: '', dosage: '', frequency: '', duration: '', instructions: '' }] })
+    form.reset({ medications: [{ ...EMPTY_MED }] })
   }
 
   async function markDispensed(rx: PrescriptionRow) {
@@ -105,7 +118,7 @@ export default function PrescriptionsPage() {
       <div className="flex-1 p-6 space-y-4">
         <div className="flex justify-end">
           {canCreate && (
-            <Button onClick={() => { form.reset({ medications: [{ name: '', dosage: '', frequency: '', duration: '' }] }); setCreateOpen(true) }}>
+            <Button onClick={() => { form.reset({ medications: [{ ...EMPTY_MED }] }); setCreateOpen(true) }}>
               <Plus className="h-4 w-4" /> {t('newPrescription')}
             </Button>
           )}
@@ -234,7 +247,7 @@ export default function PrescriptionsPage() {
                 <Label>{t('labelMedications')}</Label>
                 <Button
                   type="button" variant="outline" size="sm"
-                  onClick={() => append({ name: '', dosage: '', frequency: '', duration: '', instructions: '' })}
+                  onClick={() => append({ ...EMPTY_MED })}
                 >
                   <Plus className="h-3.5 w-3.5" /> {t('addMedication')}
                 </Button>
@@ -253,9 +266,32 @@ export default function PrescriptionsPage() {
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
+                    <div className="col-span-2 space-y-1">
                       <Label className="text-xs">{t('labelMedName')}</Label>
-                      <Input {...form.register(`medications.${idx}.name`)} placeholder={t('medNamePlaceholder')} className="h-8 text-sm" />
+                      <MedicationCombobox
+                        value={watchedMeds?.[idx]?.name ?? ''}
+                        strength={watchedMeds?.[idx]?.strength ?? null}
+                        dosageForm={watchedMeds?.[idx]?.dosage_form ?? null}
+                        fromCatalog={!!watchedMeds?.[idx]?.medication_id}
+                        placeholder={t('medNamePlaceholder')}
+                        catalogLabel={t('medFromCatalog')}
+                        customLabel={t('medCustom')}
+                        onChange={(name) => {
+                          form.setValue(`medications.${idx}.name`, name, { shouldValidate: true })
+                          form.setValue(`medications.${idx}.medication_id`, null)
+                          form.setValue(`medications.${idx}.strength`, null)
+                          form.setValue(`medications.${idx}.dosage_form`, null)
+                        }}
+                        onPick={(med) => {
+                          form.setValue(`medications.${idx}.name`, med.name, { shouldValidate: true })
+                          form.setValue(`medications.${idx}.medication_id`, med.id)
+                          form.setValue(`medications.${idx}.strength`, med.strength)
+                          form.setValue(`medications.${idx}.dosage_form`, med.dosage_form)
+                        }}
+                      />
+                      {form.formState.errors.medications?.[idx]?.name && (
+                        <p className="text-xs text-red-500">{form.formState.errors.medications[idx]?.name?.message}</p>
+                      )}
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">{t('labelMedDosage')}</Label>
@@ -353,7 +389,10 @@ function PrescriptionPrintDialog({ rx, onClose }: { rx: PrescriptionRow; onClose
           <div className="space-y-3 border-t pt-3">
             {rx.medications.map((m, i) => (
               <div key={i} className="rounded-md bg-gray-50 p-3">
-                <p className="font-semibold">{i + 1}. {m.name} — {m.dosage}</p>
+                <p className="font-semibold">
+                  {i + 1}. {m.name} — {m.dosage}
+                  {m.dosage_form && <span className="ml-2 text-xs font-normal text-gray-400">({m.dosage_form})</span>}
+                </p>
                 <p className="text-gray-600">{m.frequency} {m.duration}</p>
                 {m.instructions && <p className="text-xs text-gray-400 italic">{m.instructions}</p>}
               </div>
@@ -374,5 +413,65 @@ function PrescriptionPrintDialog({ rx, onClose }: { rx: PrescriptionRow; onClose
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+// Searchable medication picker over the formulary (migration 029), with a
+// free-text fallback for custom medicines. Picking a catalog item snapshots
+// its strength/dosage_form onto the prescription; typing freely clears them.
+function MedicationCombobox({
+  value, strength, dosageForm, fromCatalog, placeholder, catalogLabel, customLabel, onChange, onPick,
+}: {
+  value: string
+  strength: string | null
+  dosageForm: string | null
+  fromCatalog: boolean
+  placeholder: string
+  catalogLabel: string
+  customLabel: string
+  onChange: (name: string) => void
+  onPick: (med: CatalogMedication) => void
+}) {
+  // Controlled directly by the form field value (no internal mirror state) so
+  // typing = free text and picking = catalog selection, both via callbacks.
+  const [open, setOpen] = useState(false)
+  const { data: results } = useMedications(value)
+
+  return (
+    <div className="relative">
+      <Input
+        value={value}
+        placeholder={placeholder}
+        className="h-8 text-sm"
+        autoComplete="off"
+        onChange={e => { onChange(e.target.value); setOpen(true) }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+      />
+      {open && value.trim().length >= 2 && (results?.length ?? 0) > 0 && (
+        <div className="absolute z-50 mt-1 w-full max-h-56 overflow-y-auto rounded-md border bg-white shadow-lg">
+          {results!.map(med => (
+            <button
+              key={med.id}
+              type="button"
+              className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => { onPick(med); setOpen(false) }}
+            >
+              <span className="truncate">{med.name}</span>
+              {med.dosage_form && <span className="shrink-0 text-xs text-gray-400">{med.dosage_form}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+      {(fromCatalog || strength || dosageForm) && (
+        <p className="mt-1 flex items-center gap-2 text-xs text-gray-400">
+          {[strength, dosageForm].filter(Boolean).join(' · ')}
+          <span className={cn('rounded px-1.5 py-0.5 text-[10px]', fromCatalog ? 'bg-teal-50 text-teal-600' : 'bg-gray-100 text-gray-400')}>
+            {fromCatalog ? catalogLabel : customLabel}
+          </span>
+        </p>
+      )}
+    </div>
   )
 }

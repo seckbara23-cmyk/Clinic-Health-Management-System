@@ -208,6 +208,22 @@ export interface Medication {
   frequency: string
   duration: string
   instructions?: string
+  // Catalog link (optional — free-text entries leave these null). Snapshots so
+  // the prescription stays correct even if the catalog later changes.
+  medication_id?: string | null
+  strength?: string | null
+  dosage_form?: string | null
+}
+
+// Reference formulary row (migration 029). Global, not clinic-scoped.
+export interface CatalogMedication {
+  id: string
+  name: string
+  strength: string | null
+  dosage_form: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
 }
 
 export interface Prescription {

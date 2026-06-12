@@ -193,7 +193,7 @@ ${baseStyles}
 
   ${prescription.medications.map((m, i) => `
   <div class="med-card">
-    <div class="med-name">${i + 1}. ${m.name} — ${m.dosage}</div>
+    <div class="med-name">${i + 1}. ${m.name} — ${m.dosage}${m.dosage_form ? ` <span style="font-weight:normal;color:#888;font-size:13px">(${m.dosage_form})</span>` : ''}</div>
     <div class="med-detail">${m.frequency} pendant ${m.duration}</div>
     ${m.instructions ? `<div class="med-detail" style="font-style:italic;color:#888">${m.instructions}</div>` : ''}
   </div>`).join('')}
