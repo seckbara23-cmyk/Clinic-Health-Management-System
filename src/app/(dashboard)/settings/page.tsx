@@ -29,6 +29,10 @@ export default function SettingsPage() {
     email: z.string().email().optional().or(z.literal('')).nullable(),
     ninea: z.string().optional().nullable(),
     rc_number: z.string().optional().nullable(),
+    sms_reminders_enabled: z.boolean().optional(),
+    reminder_24h_enabled: z.boolean().optional(),
+    reminder_same_day_enabled: z.boolean().optional(),
+    sms_sender_id: z.string().optional().nullable(),
   })
   type ClinicFormData = z.infer<typeof clinicSchema>
 
@@ -44,6 +48,10 @@ export default function SettingsPage() {
       name: clinic?.name ?? '', location: clinic?.location ?? '',
       phone: clinic?.phone ?? '', email: clinic?.email ?? '',
       ninea: clinic?.ninea ?? '', rc_number: clinic?.rc_number ?? '',
+      sms_reminders_enabled: clinic?.sms_reminders_enabled ?? false,
+      reminder_24h_enabled: clinic?.reminder_24h_enabled ?? true,
+      reminder_same_day_enabled: clinic?.reminder_same_day_enabled ?? true,
+      sms_sender_id: clinic?.sms_sender_id ?? '',
     },
   })
 
@@ -61,6 +69,10 @@ export default function SettingsPage() {
       email: data.email ?? null,
       ninea: data.ninea?.trim() || null,
       rc_number: data.rc_number?.trim() || null,
+      sms_reminders_enabled: data.sms_reminders_enabled ?? false,
+      reminder_24h_enabled: data.reminder_24h_enabled ?? true,
+      reminder_same_day_enabled: data.reminder_same_day_enabled ?? true,
+      sms_sender_id: data.sms_sender_id?.trim() || null,
     }).eq('id', clinic.id)
     if (error) { toast.error(error.message); return }
     toast.success(t('clinicSaved'))
@@ -164,6 +176,36 @@ export default function SettingsPage() {
                     <Label>{t('labelRc')}</Label>
                     <Input {...clinicForm.register('rc_number')} placeholder="SN-DKR-2024-A-12345" />
                     <p className="text-xs text-gray-400">{t('rcHint')}</p>
+                  </div>
+
+                  {/* SMS appointment reminders */}
+                  <div className="col-span-2 border-t pt-4 space-y-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('smsSection')}</p>
+                    <label className="flex items-start gap-2.5 cursor-pointer">
+                      <input type="checkbox" className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                        {...clinicForm.register('sms_reminders_enabled')} />
+                      <span className="text-sm">
+                        <span className="font-medium">{t('labelSmsReminders')}</span>
+                        <span className="block text-xs text-gray-500">{t('smsRemindersHint')}</span>
+                      </span>
+                    </label>
+                    <div className="pl-7 space-y-2">
+                      <label className="flex items-center gap-2.5 cursor-pointer text-sm">
+                        <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                          {...clinicForm.register('reminder_24h_enabled')} />
+                        {t('labelReminder24h')}
+                      </label>
+                      <label className="flex items-center gap-2.5 cursor-pointer text-sm">
+                        <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                          {...clinicForm.register('reminder_same_day_enabled')} />
+                        {t('labelReminderSameDay')}
+                      </label>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>{t('labelSmsSender')}</Label>
+                      <Input {...clinicForm.register('sms_sender_id')} placeholder="CLINIQUE" maxLength={11} />
+                      <p className="text-xs text-gray-400">{t('smsSenderHint')}</p>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">

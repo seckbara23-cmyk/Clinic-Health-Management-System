@@ -22,7 +22,7 @@ export function usePatients(search?: string, page = 0) {
       let q = supabase
         .from('patients')
         .select(
-          'id, full_name, patient_number, phone, email, date_of_birth, gender, blood_type, created_at, address, emergency_contact, emergency_phone, notes, cni, insurance_payer_type, insurance_provider, insurance_policy_number, insurance_coverage_percent',
+          'id, full_name, patient_number, phone, email, date_of_birth, gender, blood_type, created_at, address, emergency_contact, emergency_phone, notes, cni, insurance_payer_type, insurance_provider, insurance_policy_number, insurance_coverage_percent, sms_opt_in, sms_opt_out_at',
           { count: 'exact' }
         )
         .eq('clinic_id', clinic!.id)
@@ -72,6 +72,7 @@ interface PatientInsertInput {
   insurance_provider?: string | null
   insurance_policy_number?: string | null
   insurance_coverage_percent?: number | null
+  sms_opt_in?: boolean | null
   notes?: string | null
 }
 
@@ -99,6 +100,8 @@ export function useCreatePatient() {
           insurance_provider: input.insurance_provider?.trim() || null,
           insurance_policy_number: input.insurance_policy_number?.trim() || null,
           insurance_coverage_percent: input.insurance_coverage_percent ?? null,
+          sms_opt_in: input.sms_opt_in ?? true,
+          sms_opt_out_at: input.sms_opt_in === false ? new Date().toISOString() : null,
           notes: input.notes ?? null,
           clinic_id: clinic!.id,
           created_by: profile!.id,
@@ -140,6 +143,8 @@ export function useUpdatePatient() {
           insurance_provider: input.insurance_provider?.trim() || null,
           insurance_policy_number: input.insurance_policy_number?.trim() || null,
           insurance_coverage_percent: input.insurance_coverage_percent ?? null,
+          sms_opt_in: input.sms_opt_in ?? true,
+          sms_opt_out_at: input.sms_opt_in === false ? new Date().toISOString() : null,
           notes: input.notes ?? null,
         })
         .eq('id', id)

@@ -46,6 +46,7 @@ export default function PatientsPage() {
     insurance_provider: z.string().optional().nullable(),
     insurance_policy_number: z.string().optional().nullable(),
     insurance_coverage_percent: z.number().min(0, t('zodCoverageRange')).max(100, t('zodCoverageRange')).optional().nullable(),
+    sms_opt_in: z.boolean().optional(),
     notes: z.string().optional().nullable(),
   })
   type PatientFormData = z.infer<typeof patientSchema>
@@ -65,7 +66,7 @@ export default function PatientsPage() {
 
   useEffect(() => { setPage(0) }, [search])
 
-  const openCreate = useCallback(() => { setEditId(null); reset(); setOpen(true) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const openCreate = useCallback(() => { setEditId(null); reset({ sms_opt_in: true }); setOpen(true) }, []) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     window.addEventListener('fab:create-patient', openCreate)
     return () => window.removeEventListener('fab:create-patient', openCreate)
@@ -102,6 +103,7 @@ export default function PatientsPage() {
       insurance_provider: p.insurance_provider,
       insurance_policy_number: p.insurance_policy_number,
       insurance_coverage_percent: p.insurance_coverage_percent,
+      sms_opt_in: p.sms_opt_in ?? true,
       notes: p.notes,
     })
     setOpen(true)
@@ -375,6 +377,17 @@ export default function PatientsPage() {
                 <Label>{t('labelCNI')}</Label>
                 <Input {...register('cni')} placeholder="1 234 5678 90123" />
               </div>
+              <label className="col-span-2 flex items-start gap-2.5 rounded-lg border p-3 cursor-pointer hover:bg-gray-50">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                  {...register('sms_opt_in')}
+                />
+                <span className="text-sm">
+                  <span className="font-medium">{t('labelSmsOptIn')}</span>
+                  <span className="block text-xs text-gray-500">{t('smsOptInHint')}</span>
+                </span>
+              </label>
               <div className="space-y-1.5">
                 <Label>{t('labelDOB')}</Label>
                 <Input type="date" {...register('date_of_birth')} />

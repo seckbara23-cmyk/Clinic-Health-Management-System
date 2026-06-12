@@ -202,7 +202,9 @@
     "payerCnss": "CNSS",
     "payerIpres": "IPRES",
     "payerPrivate": "Assurance privée",
-    "payerOther": "Autre"
+    "payerOther": "Autre",
+    "labelSmsOptIn": "Rappels SMS autorisés",
+    "smsOptInHint": "Le patient accepte de recevoir des rappels de rendez-vous par SMS."
   },
   "queue": {
     "title": "Salle d''attente",
@@ -254,6 +256,8 @@
     "statInProgress": "En cours",
     "statDone": "Terminés",
     "btnAddToQueue": "Mettre en file",
+    "btnResendSms": "Renvoyer le rappel SMS",
+    "reminderSentAt": "Dernier rappel envoyé le {time}",
     "btnStart": "Démarrer",
     "btnComplete": "Terminer",
     "cancelTitle": "Annuler le rendez-vous",
@@ -603,7 +607,14 @@
     "labelNinea": "NINEA",
     "nineaHint": "Numéro d''identification national des entreprises — affiché sur les factures",
     "labelRc": "Registre du commerce (RC)",
-    "rcHint": "Numéro RCCM de la clinique — affiché sur les factures"
+    "rcHint": "Numéro RCCM de la clinique — affiché sur les factures",
+    "smsSection": "Rappels SMS de rendez-vous",
+    "labelSmsReminders": "Activer les rappels SMS",
+    "smsRemindersHint": "Envoyer automatiquement des rappels aux patients ayant accepté les SMS.",
+    "labelReminder24h": "Rappel 24 h avant",
+    "labelReminderSameDay": "Rappel le jour même (3 h avant)",
+    "labelSmsSender": "Nom d''expéditeur SMS",
+    "smsSenderHint": "Nom court affiché comme expéditeur (max 11 caractères), si pris en charge par l''opérateur."
   },
   "adminClinics": {
     "title": "Gestion des Cliniques",

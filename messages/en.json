@@ -202,7 +202,9 @@
     "payerCnss": "CNSS",
     "payerIpres": "IPRES",
     "payerPrivate": "Private insurance",
-    "payerOther": "Other"
+    "payerOther": "Other",
+    "labelSmsOptIn": "SMS reminders allowed",
+    "smsOptInHint": "The patient agrees to receive appointment reminders by SMS."
   },
   "queue": {
     "title": "Waiting Room",
@@ -254,6 +256,8 @@
     "statInProgress": "In progress",
     "statDone": "Done",
     "btnAddToQueue": "Add to queue",
+    "btnResendSms": "Resend SMS reminder",
+    "reminderSentAt": "Last reminder sent {time}",
     "btnStart": "Start",
     "btnComplete": "Complete",
     "cancelTitle": "Cancel appointment",
@@ -603,7 +607,14 @@
     "labelNinea": "NINEA",
     "nineaHint": "National business identification number — shown on invoices",
     "labelRc": "Trade register (RC)",
-    "rcHint": "Clinic RCCM number — shown on invoices"
+    "rcHint": "Clinic RCCM number — shown on invoices",
+    "smsSection": "SMS appointment reminders",
+    "labelSmsReminders": "Enable SMS reminders",
+    "smsRemindersHint": "Automatically send reminders to patients who opted in to SMS.",
+    "labelReminder24h": "Reminder 24h before",
+    "labelReminderSameDay": "Same-day reminder (3h before)",
+    "labelSmsSender": "SMS sender name",
+    "smsSenderHint": "Short name shown as the sender (max 11 chars), if supported by the carrier."
   },
   "adminClinics": {
     "title": "Clinic Management",

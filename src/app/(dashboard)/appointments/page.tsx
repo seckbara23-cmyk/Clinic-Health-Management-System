@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Plus, Loader2, CalendarDays, Clock, ChevronLeft, ChevronRight, Pencil, X, List, AlertTriangle, RefreshCw } from 'lucide-react'
+import { Plus, Loader2, CalendarDays, Clock, ChevronLeft, ChevronRight, Pencil, X, List, AlertTriangle, RefreshCw, MessageSquare } from 'lucide-react'
 import { Topbar } from '@/components/layout/Topbar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,6 +19,7 @@ import {
   useUpdateAppointmentStatus,
   useUpdateAppointment,
 } from '@/hooks/useAppointments'
+import { useResendReminder } from '@/hooks/useSmsReminders'
 import { usePatients } from '@/hooks/usePatients'
 import { useDoctors } from '@/hooks/useDoctors'
 import { useFormatters } from '@/hooks/useFormatters'
@@ -105,6 +106,7 @@ export default function AppointmentsPage() {
   const createMutation = useCreateAppointment()
   const statusMutation = useUpdateAppointmentStatus()
   const updateMutation = useUpdateAppointment()
+  const resendReminder = useResendReminder()
 
   const openNewAppt = useCallback(() => { createForm.reset({ duration_min: 30, priority: 'normal' }); setCreateOpen(true) }, []) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -355,6 +357,21 @@ export default function AppointmentsPage() {
                       <Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700"
                         onClick={() => statusMutation.mutate({ id: appt.id, status: 'completed' })}>
                         {t('btnComplete')}
+                      </Button>
+                    )}
+                    {appt.status === 'scheduled' && (
+                      <Button
+                        size="sm" variant="ghost"
+                        className="h-7 w-7 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                        title={appt.last_reminder_sent_at
+                          ? t('reminderSentAt', { time: formatDate(appt.last_reminder_sent_at) })
+                          : t('btnResendSms')}
+                        disabled={resendReminder.isPending && resendReminder.variables === appt.id}
+                        onClick={() => resendReminder.mutate(appt.id)}
+                      >
+                        {resendReminder.isPending && resendReminder.variables === appt.id
+                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          : <MessageSquare className="h-3.5 w-3.5" />}
                       </Button>
                     )}
                     {canEdit && (
