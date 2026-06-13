@@ -18,9 +18,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { usePatients, useCreatePatient, useUpdatePatient, usePatientDeletionCounts } from '@/hooks/usePatients'
+import { usePatients, useCreatePatient, useUpdatePatient, useUpdatePatientDemographics, usePatientDeletionCounts } from '@/hooks/usePatients'
 import { useSoftDeleteRecord, useRestoreRecord } from '@/hooks/useCompliance'
+import { useOnlineStatus } from '@/hooks/useOnlineStatus'
 import { useClinic } from '@/context/ClinicContext'
+import { toast } from 'sonner'
 import { useFormatters } from '@/hooks/useFormatters'
 import { age } from '@/lib/utils'
 import { isValidPhone } from '@/lib/phone'
@@ -88,6 +90,8 @@ export default function PatientsPage() {
   const totalPages = Math.ceil(totalPatients / 25)
   const createMutation = useCreatePatient()
   const updateMutation = useUpdatePatient()
+  const demographics = useUpdatePatientDemographics()
+  const isOnline = useOnlineStatus()
   const softDelete = useSoftDeleteRecord()
   const restore = useRestoreRecord()
   const { data: deletionCounts, isLoading: countsLoading } = usePatientDeletionCounts(deletePatientId)
@@ -126,7 +130,17 @@ export default function PatientsPage() {
 
   async function onSubmit(data: PatientFormData) {
     if (editId) {
-      await updateMutation.mutateAsync({ id: editId, ...data, blood_type: (data.blood_type ?? null) as BloodType | null })
+      if (!isOnline) {
+        // Offline: queue a basic-demographics update only. Insurance/consent
+        // edits require a connection (toast informs the user).
+        await demographics.mutateAsync({
+          id: editId, full_name: data.full_name, phone: data.phone, email: data.email,
+          address: data.address, date_of_birth: data.date_of_birth, gender: data.gender,
+        })
+        toast.message(t('offlineDemographicsNote'))
+      } else {
+        await updateMutation.mutateAsync({ id: editId, ...data, blood_type: (data.blood_type ?? null) as BloodType | null })
+      }
     } else {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await createMutation.mutateAsync(data as any)

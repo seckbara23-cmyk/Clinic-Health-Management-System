@@ -20,7 +20,7 @@ import {
   useUpdateAppointment,
 } from '@/hooks/useAppointments'
 import { useResendReminder } from '@/hooks/useSmsReminders'
-import { usePatients } from '@/hooks/usePatients'
+import { usePatientIdentities } from '@/hooks/usePatients'
 import { useDoctors } from '@/hooks/useDoctors'
 import { useFormatters } from '@/hooks/useFormatters'
 import { cn } from '@/lib/utils'
@@ -100,8 +100,7 @@ export default function AppointmentsPage() {
 
   const { data: appointments, isLoading, isError, refetch } = useAppointments(viewMode === 'list' ? date : undefined)
   const { data: weekAppts, isLoading: weekLoading } = useWeekAppointments(weekStart)
-  const { data: patientsResult } = usePatients()
-  const patients = patientsResult?.data
+  const { data: patients } = usePatientIdentities()
   const { data: doctors } = useDoctors()
   const createMutation = useCreateAppointment()
   const statusMutation = useUpdateAppointmentStatus()

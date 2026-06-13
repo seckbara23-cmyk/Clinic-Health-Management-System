@@ -247,6 +247,17 @@
     "nearExpiryEmpty": "Aucun lot proche de la péremption.",
     "expired": "Périmé"
   },
+  "offline": {
+    "title": "Vous êtes hors ligne",
+    "description": "Cette page n'est pas disponible hors ligne. Vérifiez votre connexion et réessayez.",
+    "retry": "Réessayer"
+  },
+  "offlineBanner": {
+    "offline": "Hors ligne",
+    "offlineWithQueue": "Hors ligne — {count} action(s) en attente",
+    "syncing": "Synchronisation… {count} action(s)",
+    "retry": "Réessayer"
+  },
   "bottomNav": {
     "home": "Accueil",
     "patients": "Patients",
@@ -381,6 +392,7 @@
     "payerIpres": "IPRES",
     "payerPrivate": "Assurance privée",
     "payerOther": "Autre",
+    "offlineDemographicsNote": "Enregistré hors ligne. L''assurance et le consentement nécessitent une connexion.",
     "labelSmsOptIn": "Rappels SMS autorisés",
     "smsOptInHint": "Le patient accepte de recevoir des rappels de rendez-vous par SMS.",
     "showDeleted": "Afficher supprimés",

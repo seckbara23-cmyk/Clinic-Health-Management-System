@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { FloatingActionButton } from '@/components/layout/FloatingActionButton'
+import { ConnectionBanner } from '@/components/offline/ConnectionBanner'
 import { SidebarProvider } from '@/context/SidebarContext'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -47,6 +48,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <SidebarProvider>
+      <ConnectionBanner />
       <div className="flex h-screen overflow-hidden">
         <Sidebar />
         <main className="flex-1 overflow-y-auto min-w-0 pb-16 md:pb-0">

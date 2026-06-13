@@ -247,6 +247,17 @@
     "nearExpiryEmpty": "No batches near expiry.",
     "expired": "Expired"
   },
+  "offline": {
+    "title": "You are offline",
+    "description": "This page isn't available offline. Check your connection and try again.",
+    "retry": "Retry"
+  },
+  "offlineBanner": {
+    "offline": "Offline",
+    "offlineWithQueue": "Offline — {count} action(s) pending",
+    "syncing": "Syncing… {count} action(s)",
+    "retry": "Retry"
+  },
   "bottomNav": {
     "home": "Home",
     "patients": "Patients",
@@ -381,6 +392,7 @@
     "payerIpres": "IPRES",
     "payerPrivate": "Private insurance",
     "payerOther": "Other",
+    "offlineDemographicsNote": "Saved offline. Insurance and consent require a connection.",
     "labelSmsOptIn": "SMS reminders allowed",
     "smsOptInHint": "The patient agrees to receive appointment reminders by SMS.",
     "showDeleted": "Show deleted",

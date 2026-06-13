@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { useClinic } from '@/context/ClinicContext'
 import type { Appointment } from '@/types/database'
+import type { CreateAppointmentVars, AppointmentStatusVars, CheckInVars, CallVars } from '@/lib/offline/mutation-defaults'
 import { toast } from 'sonner'
 
 export function useAppointments(date?: string, patientId?: string) {
@@ -76,62 +77,57 @@ interface CreateAppointmentInput {
   notes: string | null
 }
 
+// These four are OFFLINE-QUEUEABLE. They declare a `mutationKey` whose
+// self-contained `mutationFn` is registered in mutation-defaults.ts (so a
+// paused mutation can replay after a reload). The hooks inject clinic_id /
+// created_by / a client-generated id into the variables, keeping the public
+// input shape unchanged for callers.
 export function useCreateAppointment() {
   const qc = useQueryClient()
   const { clinic, profile } = useClinic()
-  const supabase = createClient()
-
-  return useMutation({
-    mutationFn: async (input: CreateAppointmentInput) => {
-      const { data, error } = await supabase
-        .from('appointments')
-        .insert({
-          patient_id: input.patient_id,
-          doctor_id: input.doctor_id,
-          title: input.title,
-          scheduled_at: input.scheduled_at,
-          duration_min: input.duration_min,
-          status: input.status,
-          priority: input.priority,
-          notes: input.notes,
-          clinic_id: clinic!.id,
-          created_by: profile!.id,
-        })
-        .select()
-        .single()
-      if (error) throw error
-      return data
-    },
+  const buildVars = (input: CreateAppointmentInput) => ({
+    id: crypto.randomUUID(),               // client id → idempotent replay (no dupes)
+    clinic_id: clinic!.id,
+    created_by: profile!.id,
+    patient_id: input.patient_id,
+    doctor_id: input.doctor_id,
+    title: input.title,
+    scheduled_at: input.scheduled_at,
+    duration_min: input.duration_min,
+    status: input.status,
+    priority: input.priority,
+    notes: input.notes,
+  })
+  const m = useMutation<unknown, Error, CreateAppointmentVars>({
+    mutationKey: ['appointment.create'],
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['appointments', clinic?.id] })
       toast.success('Rendez-vous créé')
     },
     onError: (e: Error) => toast.error(e.message),
   })
+  return {
+    ...m,
+    mutate: (input: CreateAppointmentInput) => m.mutate(buildVars(input)),
+    mutateAsync: (input: CreateAppointmentInput) => m.mutateAsync(buildVars(input)),
+  }
 }
 
 export function useUpdateAppointmentStatus() {
   const qc = useQueryClient()
   const { clinic } = useClinic()
-  const supabase = createClient()
-
-  return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: Appointment['status'] }) => {
-      const { data, error } = await supabase
-        .from('appointments')
-        .update({ status })
-        .eq('id', id)
-        .eq('clinic_id', clinic!.id)
-        .select()
-        .single()
-      if (error) throw error
-      return data
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['appointments', clinic?.id] })
-    },
+  const m = useMutation<unknown, Error, AppointmentStatusVars>({
+    mutationKey: ['appointment.status'],
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['appointments', clinic?.id] }) },
     onError: (e: Error) => toast.error(e.message),
   })
+  return {
+    ...m,
+    mutate: (input: { id: string; status: Appointment['status'] }) =>
+      m.mutate({ id: input.id, clinic_id: clinic!.id, status: input.status }),
+    mutateAsync: (input: { id: string; status: Appointment['status'] }) =>
+      m.mutateAsync({ id: input.id, clinic_id: clinic!.id, status: input.status }),
+  }
 }
 
 interface UpdateAppointmentInput {
@@ -147,53 +143,37 @@ interface UpdateAppointmentInput {
 export function useCheckInPatient() {
   const qc = useQueryClient()
   const { clinic } = useClinic()
-  const supabase = createClient()
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { data, error } = await supabase
-        .from('appointments')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .update({ status: 'waiting', arrived_at: new Date().toISOString() } as any)
-        .eq('id', id)
-        .eq('clinic_id', clinic!.id)
-        .select()
-        .single()
-      if (error) throw error
-      return data
-    },
+  const m = useMutation<unknown, Error, CheckInVars>({
+    mutationKey: ['patient.checkin'],
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['appointments', clinic?.id] })
       toast.success('Patient enregistré — en salle d\'attente')
     },
     onError: (e: Error) => toast.error(e.message),
   })
+  return {
+    ...m,
+    mutate: (id: string) => m.mutate({ id, clinic_id: clinic!.id, at: new Date().toISOString() }),
+    mutateAsync: (id: string) => m.mutateAsync({ id, clinic_id: clinic!.id, at: new Date().toISOString() }),
+  }
 }
 
 export function useCallPatient() {
   const qc = useQueryClient()
   const { clinic } = useClinic()
-  const supabase = createClient()
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { data, error } = await supabase
-        .from('appointments')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .update({ status: 'called', called_at: new Date().toISOString() } as any)
-        .eq('id', id)
-        .eq('clinic_id', clinic!.id)
-        .select()
-        .single()
-      if (error) throw error
-      return data
-    },
+  const m = useMutation<unknown, Error, CallVars>({
+    mutationKey: ['patient.call'],
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['appointments', clinic?.id] })
       toast.success('Patient appelé')
     },
     onError: (e: Error) => toast.error(e.message),
   })
+  return {
+    ...m,
+    mutate: (id: string) => m.mutate({ id, clinic_id: clinic!.id, at: new Date().toISOString() }),
+    mutateAsync: (id: string) => m.mutateAsync({ id, clinic_id: clinic!.id, at: new Date().toISOString() }),
+  }
 }
 
 export function useUpdateAppointment() {

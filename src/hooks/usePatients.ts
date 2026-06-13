@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useClinic } from '@/context/ClinicContext'
 import { toStoredPhone } from '@/lib/phone'
 import type { Patient } from '@/types/database'
+import type { DemographicsVars } from '@/lib/offline/mutation-defaults'
 import { toast } from 'sonner'
 
 export const PATIENTS_PAGE_SIZE = 25
@@ -39,6 +40,38 @@ export function usePatients(search?: string, page = 0, includeDeleted = false) {
       const { data, error, count } = await q
       if (error) throw error
       return { data: data as Patient[], total: count ?? 0 }
+    },
+  })
+}
+
+// Minimal patient identity — the ONLY patient data persisted offline (no
+// allergies/insurance/notes/CNI). queryKey root 'patient-identity' is on the
+// offline allowlist; used by offline-capable screens (e.g. appointment picker).
+export interface PatientIdentity {
+  id: string
+  full_name: string
+  patient_number: string
+  phone: string | null
+  gender: string | null
+  date_of_birth: string | null
+}
+
+export function usePatientIdentities() {
+  const { clinic } = useClinic()
+  const supabase = createClient()
+  return useQuery({
+    queryKey: ['patient-identity', clinic?.id],
+    enabled: !!clinic?.id,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('patients')
+        .select('id, full_name, patient_number, phone, gender, date_of_birth')
+        .eq('clinic_id', clinic!.id)
+        .is('deleted_at', null)
+        .order('full_name', { ascending: true })
+      if (error) throw error
+      return data as PatientIdentity[]
     },
   })
 }
@@ -220,3 +253,45 @@ export function usePatientDeletionCounts(patientId: string | null) {
 // useSoftDeleteRecord({ entity: 'patient', id, reason }) from
 // '@/hooks/useCompliance' instead of a hard delete. Hard deletes are blocked
 // at the RLS layer (migration 027) so no medical history can be erased.
+
+// Offline-queueable BASIC demographics update (mutationKey 'patient.demographics',
+// replayable fn in mutation-defaults.ts). Used when offline to amend identity
+// fields only — never insurance/consent (those require a connection).
+interface DemographicsInput {
+  id: string
+  full_name: string
+  phone?: string | null
+  email?: string | null
+  address?: string | null
+  date_of_birth?: string | null
+  gender?: string | null
+}
+
+export function useUpdatePatientDemographics() {
+  const qc = useQueryClient()
+  const { clinic } = useClinic()
+  const buildVars = (input: DemographicsInput) => ({
+    id: input.id,
+    clinic_id: clinic!.id,
+    full_name: input.full_name,
+    phone: toStoredPhone(input.phone),
+    email: input.email ?? null,
+    address: input.address ?? null,
+    date_of_birth: input.date_of_birth ?? null,
+    gender: input.gender ?? null,
+  })
+  const m = useMutation<unknown, Error, DemographicsVars>({
+    mutationKey: ['patient.demographics'],
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['patients', clinic?.id] })
+      qc.invalidateQueries({ queryKey: ['patient-identity', clinic?.id] })
+      toast.success('Données patient enregistrées')
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+  return {
+    ...m,
+    mutate: (input: DemographicsInput) => m.mutate(buildVars(input)),
+    mutateAsync: (input: DemographicsInput) => m.mutateAsync(buildVars(input)),
+  }
+}

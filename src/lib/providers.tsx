@@ -1,21 +1,38 @@
 'use client'
 
-import { QueryClientProvider } from '@tanstack/react-query'
+import { useState } from 'react'
+import { onlineManager } from '@tanstack/react-query'
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { Toaster } from 'sonner'
 import { getQueryClient } from './query-client'
+import { persistOptions } from '@/lib/offline/persister'
+import { registerOfflineMutationDefaults } from '@/lib/offline/mutation-defaults'
 import { ClinicProvider } from '@/context/ClinicContext'
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const queryClient = getQueryClient()
+  // Register replayable mutation defaults before hydration so paused mutations
+  // restored from IndexedDB can resume with a valid mutationFn.
+  const [queryClient] = useState(() => {
+    const qc = getQueryClient()
+    registerOfflineMutationDefaults(qc)
+    return qc
+  })
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={persistOptions}
+      onSuccess={() => {
+        // After the cache is restored, replay any queued offline mutations.
+        if (onlineManager.isOnline()) void queryClient.resumePausedMutations()
+      }}
+    >
       <ClinicProvider>
         {children}
         <Toaster richColors position="top-right" />
         <ReactQueryDevtools initialIsOpen={false} />
       </ClinicProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   )
 }
