@@ -60,3 +60,50 @@ export async function runCopilot(ctx: AIContext, message?: string): Promise<Copi
     },
   }
 }
+
+export interface InsightsResult {
+  /** Per-tool results so the UI can render one insight card each (with its own
+      citation + warnings). */
+  results: AIToolResult[]
+  /** Aggregate response — used for the panel's overall confidence/warnings. */
+  response: StructuredAIResponse
+  meta: {
+    toolsUsed: string[]
+    dataCategories: string[]
+    provider: string
+  }
+}
+
+/**
+ * Embedded page intelligence (Phase 2). Same read-only, RLS-scoped, role-gated
+ * path as runCopilot but message-less and returns the per-tool results so each
+ * page can render compact insight cards. No writes, no external calls.
+ */
+export async function runInsights(ctx: AIContext): Promise<InsightsResult> {
+  const db = await createClient()
+
+  const tools = selectToolsForContext(ctx)
+  const results: AIToolResult[] = []
+  for (const tool of tools) {
+    try {
+      results.push(await tool.run(db, ctx))
+    } catch (err) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.error(`[ai] insight tool ${tool.id} failed`, err)
+      }
+    }
+  }
+
+  const provider = getProvider()
+  const response = await provider.complete({ context: ctx, toolResults: results })
+
+  return {
+    results,
+    response,
+    meta: {
+      toolsUsed: results.map((r) => r.toolId),
+      dataCategories: [...new Set(results.map((r) => r.dataCategory))],
+      provider: provider.id,
+    },
+  }
+}

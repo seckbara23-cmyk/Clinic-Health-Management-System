@@ -28,6 +28,7 @@ import { useDispensings } from '@/hooks/usePharmacy'
 import { useDoctors } from '@/hooks/useDoctors'
 import { useLatestPatientVitals } from '@/hooks/useVitals'
 import { useClinic } from '@/context/ClinicContext'
+import { InsightsPanel } from '@/components/ai/InsightsPanel'
 import { useFormatters } from '@/hooks/useFormatters'
 import { age, cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -243,6 +244,9 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
         <Link href="/patients" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800">
           <ArrowLeft className="h-4 w-4" /> {t('backLink')}
         </Link>
+
+        {/* Embedded AI insights (read-only; hidden when AI flags are off) */}
+        <InsightsPanel variant="patient" />
 
         <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
           {/* Left column — patient info */}

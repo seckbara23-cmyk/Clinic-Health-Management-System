@@ -17,6 +17,9 @@
     "disclaimer": "Suggestions uniquement — aucun diagnostic ; vous confirmez toute action.",
     "empty": "Choisissez une suggestion ou posez une question sur les données accessibles.",
     "error": "Une erreur s'est produite. Veuillez réessayer.",
+    "insightsDashboard": "Briefing du jour",
+    "insightsPatient": "Résumé du patient",
+    "needsAttention": "À surveiller",
     "suggestions": {
       "reception_copilot:queue": "Résumer la file d'attente du jour",
       "reception_copilot:waiting": "Qui attend en ce moment ?",

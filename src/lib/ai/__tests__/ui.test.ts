@@ -1,4 +1,5 @@
-import { confidenceVariant, warningVariant, parsePageContext, AI_UI_ENABLED } from '../ui'
+import { confidenceVariant, warningVariant, parsePageContext, summarizeInsights, AI_UI_ENABLED } from '../ui'
+import type { AIToolResult } from '../types'
 
 describe('AI UI helpers', () => {
   it('AI_UI_ENABLED is off by default', () => {
@@ -33,5 +34,17 @@ describe('AI UI helpers', () => {
     expect(parsePageContext('/patients').patientId).toBeUndefined()
     expect(parsePageContext('/patients/new').patientId).toBeUndefined()
     expect(parsePageContext('/queue').page).toBe('/queue')
+  })
+
+  it('summarizeInsights counts cards and flags criticals', () => {
+    const base = (warnings: AIToolResult['warnings']): AIToolResult => ({
+      toolId: 't', category: 'lab', dataCategory: 'labs', count: 1, rows: [],
+      citation: { source: 'Lab' }, warnings,
+    })
+    expect(summarizeInsights([])).toEqual({ count: 0, hasCritical: false })
+    expect(summarizeInsights([base([]), base([{ level: 'warning', message: 'x' }])]))
+      .toEqual({ count: 2, hasCritical: false })
+    expect(summarizeInsights([base([{ level: 'critical', message: 'x' }])]))
+      .toEqual({ count: 1, hasCritical: true })
   })
 })

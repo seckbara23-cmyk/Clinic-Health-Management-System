@@ -12,6 +12,7 @@ import { useClinic } from '@/context/ClinicContext'
 import { useFormatters } from '@/hooks/useFormatters'
 import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
+import { InsightsPanel } from '@/components/ai/InsightsPanel'
 
 export default function DashboardPage() {
   const { clinic, profile } = useClinic()
@@ -169,6 +170,9 @@ export default function DashboardPage() {
             </p>
           </div>
         </section>
+
+        {/* Embedded AI insights (read-only; hidden when AI flags are off) */}
+        <InsightsPanel variant="dashboard" />
 
         {/* Stat cards */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

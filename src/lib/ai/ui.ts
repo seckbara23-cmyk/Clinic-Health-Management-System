@@ -3,7 +3,7 @@
 // are verified via build + production smoke; jsdom component tests are a
 // follow-up since the jest project is node-only).
 
-import type { AIConfidenceLevel, AIWarningLevel } from './types'
+import type { AIConfidenceLevel, AIToolResult, AIWarningLevel } from './types'
 
 /**
  * Client visibility flag. The server route still enforces AI_ENABLED — this only
@@ -32,6 +32,14 @@ export function warningVariant(level: AIWarningLevel): 'destructive' | 'warning'
       return 'warning'
     default:
       return 'info'
+  }
+}
+
+/** Header summary for an embedded insight panel: card count + any critical flag. */
+export function summarizeInsights(results: AIToolResult[]): { count: number; hasCritical: boolean } {
+  return {
+    count: results.length,
+    hasCritical: results.some((r) => (r.warnings ?? []).some((w) => w.level === 'critical')),
   }
 }
 

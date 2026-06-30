@@ -17,6 +17,9 @@
     "disclaimer": "Drafts only — no diagnoses; you confirm all actions.",
     "empty": "Pick a suggestion or ask about data you can access.",
     "error": "Something went wrong. Please try again.",
+    "insightsDashboard": "Daily briefing",
+    "insightsPatient": "Patient summary",
+    "needsAttention": "Needs attention",
     "suggestions": {
       "reception_copilot:queue": "Summarize today's queue",
       "reception_copilot:waiting": "Who is waiting now?",
