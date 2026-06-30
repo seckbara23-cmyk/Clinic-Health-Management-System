@@ -14,17 +14,9 @@ import { LocaleSwitcher } from '@/components/LocaleSwitcher'
 
 type FormData = { email: string; password: string }
 
-// Race a promise against a timeout; rejects with Error('TIMEOUT') if ms elapses first.
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error('TIMEOUT')), ms)
-    ),
-  ])
-}
-
-// Map Supabase error messages to translated keys.
+// Map Supabase error messages to translated keys. For unrecognized errors we
+// surface the ACTUAL Supabase message (appended to the friendly text) rather
+// than hiding it behind a generic string — no masking.
 function translateAuthError(message: string, t: (k: string) => string): string {
   const m = message.toLowerCase()
   if (m.includes('invalid login credentials') || m.includes('invalid email or password')) {
@@ -34,7 +26,7 @@ function translateAuthError(message: string, t: (k: string) => string): string {
   if (m.includes('too many requests') || m.includes('rate limit') || m.includes('over_request_rate_limit')) {
     return t('errorTooManyRequests')
   }
-  return t('errorGeneric')
+  return `${t('errorGeneric')} (${message})`
 }
 
 export default function LoginPage() {
@@ -57,10 +49,11 @@ export default function LoginPage() {
   async function onSubmit(data: FormData) {
     setServerError(null)
     try {
-      const { error } = await withTimeout(
-        supabase.auth.signInWithPassword(data),
-        15_000
-      )
+      // No artificial timeout: await the real auth call so its result/error is
+      // never masked. The browser client is now a singleton (see
+      // lib/supabase/client.ts), which removes the auth-lock contention that
+      // previously made this call hang and trip the old 15s timeout.
+      const { error } = await supabase.auth.signInWithPassword(data)
       if (error) {
         if (process.env.NODE_ENV !== 'production') {
           console.error('[Login] signInWithPassword error:', {
@@ -75,8 +68,11 @@ export default function LoginPage() {
       // Navigation only — no router.refresh() to avoid RSC cache race with push
       router.push('/dashboard')
     } catch (err) {
-      const isTimeout = err instanceof Error && err.message === 'TIMEOUT'
-      setServerError(isTimeout ? t('errorTimeout') : t('errorNetwork'))
+      // Surface the real failure (network/exception), not a fabricated timeout.
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[Login] signInWithPassword threw:', err)
+      }
+      setServerError(err instanceof Error ? `${t('errorNetwork')} (${err.message})` : t('errorNetwork'))
     }
   }
 
