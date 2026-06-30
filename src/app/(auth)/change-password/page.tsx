@@ -51,11 +51,31 @@ export default function ChangePasswordPage() {
     path: ['confirm'],
   })
 
+  // Gate the form on a LOCAL session check, not getUser(). getUser() makes a
+  // network round-trip that can hang in a must_change_password session (the
+  // restricted JWT stalls on token refresh) — with no timeout that left the
+  // page spinning forever. getSession() reads the session from the cookie and
+  // cannot hang. The real auth check still happens server-side in the API
+  // route (getUser), so this does not weaken security. A safety timeout
+  // guarantees the spinner always resolves.
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) { router.replace('/login'); return }
+    let settled = false
+    const finish = (action: 'form' | 'login') => {
+      if (settled) return
+      settled = true
+      if (action === 'login') { router.replace('/login'); return }
       setChecking(false)
-    })
+    }
+
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => finish(session ? 'form' : 'login'))
+      // On any error, show the form rather than spin — the API enforces auth
+      // and returns 401 (handled as errorSessionExpired) if the session is bad.
+      .catch(() => finish('form'))
+
+    // Safety net: never spin forever, whatever happens to the auth check.
+    const tid = setTimeout(() => finish('form'), 4000)
+    return () => clearTimeout(tid)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
