@@ -186,3 +186,19 @@ export interface AIProvider {
   /** Compose a structured response from already-authorized tool results. */
   complete(input: AIProviderCompleteInput): Promise<StructuredAIResponse>
 }
+
+// ── Tools ─────────────────────────────────────────────────────────
+// A tool is metadata + a run() that executes a single read-only query. The
+// client is INJECTED by the context builder (the user's RLS session) — tools
+// never import a Supabase client themselves, so RLS is always in force and the
+// tools stay unit-testable with a stub. Importing the service-role client
+// anywhere under src/lib/ai is forbidden and guard-tested.
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/lib/supabase/database.types'
+
+/** Anon-key client bound to the caller's cookies → all queries run under RLS. */
+export type RlsClient = SupabaseClient<Database>
+
+export interface AITool extends AIToolMetadata {
+  run(db: RlsClient, ctx: AIContext): Promise<AIToolResult>
+}
