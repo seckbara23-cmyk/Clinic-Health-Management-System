@@ -1,4 +1,40 @@
 {
+  "copilot": {
+    "title": "Copilote Clinique",
+    "subtitle": "Assistant en lecture seule",
+    "open": "Ouvrir le copilote",
+    "close": "Fermer",
+    "placeholder": "Posez une question sur les données de votre clinique…",
+    "send": "Envoyer",
+    "thinking": "Réflexion…",
+    "suggestionsTitle": "Suggestions",
+    "sources": "Sources",
+    "confidence": "Confiance",
+    "confidenceHigh": "Élevée",
+    "confidenceMedium": "Moyenne",
+    "confidenceLow": "Faible",
+    "basedOn": "Basé sur",
+    "disclaimer": "Suggestions uniquement — aucun diagnostic ; vous confirmez toute action.",
+    "empty": "Choisissez une suggestion ou posez une question sur les données accessibles.",
+    "error": "Une erreur s'est produite. Veuillez réessayer.",
+    "suggestions": {
+      "reception_copilot:queue": "Résumer la file d'attente du jour",
+      "reception_copilot:waiting": "Qui attend en ce moment ?",
+      "doctor_copilot:history": "Résumer l'historique de ce patient",
+      "doctor_copilot:labs": "Des résultats de laboratoire critiques ?",
+      "doctor_copilot:pending_labs": "Afficher les demandes de laboratoire en attente",
+      "nurse_copilot:queue": "Résumer la file d'attente du jour",
+      "nurse_copilot:history": "Résumer l'historique de ce patient",
+      "laboratory_copilot:pending": "Afficher les demandes en attente",
+      "laboratory_copilot:critical": "Des résultats critiques ?",
+      "pharmacy_copilot:low_stock": "Quels médicaments sont en stock faible ?",
+      "pharmacy_copilot:expiry": "Qu'est-ce qui est proche de la péremption ?",
+      "cashier_copilot:unpaid": "Afficher les factures impayées",
+      "administrator_copilot:activity": "Résumer l'activité de la clinique aujourd'hui",
+      "administrator_copilot:queue": "Résumer la file d'attente du jour",
+      "administrator_copilot:unpaid": "Afficher les factures impayées"
+    }
+  },
   "auth": {
     "login": {
       "title": "Bienvenue !",

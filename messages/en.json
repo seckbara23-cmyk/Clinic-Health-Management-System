@@ -1,4 +1,40 @@
 {
+  "copilot": {
+    "title": "Clinic Copilot",
+    "subtitle": "Read-only assistant",
+    "open": "Open Copilot",
+    "close": "Close",
+    "placeholder": "Ask about your clinic data…",
+    "send": "Send",
+    "thinking": "Thinking…",
+    "suggestionsTitle": "Suggestions",
+    "sources": "Sources",
+    "confidence": "Confidence",
+    "confidenceHigh": "High",
+    "confidenceMedium": "Medium",
+    "confidenceLow": "Low",
+    "basedOn": "Based on",
+    "disclaimer": "Drafts only — no diagnoses; you confirm all actions.",
+    "empty": "Pick a suggestion or ask about data you can access.",
+    "error": "Something went wrong. Please try again.",
+    "suggestions": {
+      "reception_copilot:queue": "Summarize today's queue",
+      "reception_copilot:waiting": "Who is waiting now?",
+      "doctor_copilot:history": "Summarize this patient's history",
+      "doctor_copilot:labs": "Any critical lab results?",
+      "doctor_copilot:pending_labs": "Show pending lab orders",
+      "nurse_copilot:queue": "Summarize today's queue",
+      "nurse_copilot:history": "Summarize this patient's history",
+      "laboratory_copilot:pending": "Show pending lab orders",
+      "laboratory_copilot:critical": "Any critical results?",
+      "pharmacy_copilot:low_stock": "Which medicines are low stock?",
+      "pharmacy_copilot:expiry": "What is near expiry?",
+      "cashier_copilot:unpaid": "Show unpaid invoices",
+      "administrator_copilot:activity": "Summarize today's clinic activity",
+      "administrator_copilot:queue": "Summarize today's queue",
+      "administrator_copilot:unpaid": "Show unpaid invoices"
+    }
+  },
   "auth": {
     "login": {
       "title": "Welcome!",
