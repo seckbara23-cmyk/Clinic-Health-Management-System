@@ -29,7 +29,10 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Routes that do not require authentication
-  const publicRoutes = ['/login', '/signup', '/accept-invite', '/forgot-password', '/reset-password']
+  // '/offline' is the service worker's navigation fallback (precached by
+  // public/sw.js); it must render without auth so the SW can cache it and serve
+  // it to logged-out or pre-auth visitors when the network is down.
+  const publicRoutes = ['/login', '/signup', '/accept-invite', '/forgot-password', '/reset-password', '/offline']
   const isPublicRoute      = publicRoutes.some(r => pathname.startsWith(r))
   // API routes return JSON — never redirect them to an HTML page; let the
   // route handler return its own 401/403 so callers get proper HTTP codes.
