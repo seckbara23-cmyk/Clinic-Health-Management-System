@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Users, CalendarDays, TrendingUp, Clock, Activity, ArrowUpRight, Stethoscope, AlertCircle, Wrench } from 'lucide-react'
+import { Users, CalendarDays, TrendingUp, Clock, Activity, ArrowUpRight, Stethoscope, AlertCircle, Wrench, Building2 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Topbar } from '@/components/layout/Topbar'
 import { Badge } from '@/components/ui/badge'
@@ -113,18 +113,62 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Welcome banner */}
-        <div className="flex items-center gap-3 rounded-xl border bg-white p-4 shadow-sm">
-          <div aria-hidden="true" className="flex w-1 self-stretch flex-col rounded-full overflow-hidden shrink-0">
-            <div className="flex-1 bg-[#009E60]" />
-            <div className="flex-1 bg-[#FDEF42]" />
-            <div className="flex-1 bg-[#E31B23]" />
+        {/* ── Tenant hero banner — the clinic's identity is the centerpiece ──
+            Everything is dynamic (clinic + profile from context); no new data
+            fetch, no new dependency. Only the dashboard header changed. */}
+        <section className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-teal-50 via-emerald-50 to-cyan-50 shadow-sm">
+          {/* Soft abstract shapes */}
+          <div aria-hidden="true" className="pointer-events-none absolute -top-24 -right-16 h-64 w-64 rounded-full bg-teal-200/40 blur-3xl" />
+          <div aria-hidden="true" className="pointer-events-none absolute -bottom-28 -left-16 h-64 w-64 rounded-full bg-cyan-200/40 blur-3xl" />
+          {/* Very light medical cross pattern (inline SVG, no asset/dependency) */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 opacity-[0.04]"
+            style={{
+              backgroundImage:
+                "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M18 8h4v8h8v4h-8v8h-4v-8h-8v-4h8z' fill='%230d9488'/%3E%3C/svg%3E\")",
+              backgroundSize: '40px 40px',
+            }}
+          />
+          {/* Soft hospital illustration watermark (hidden on small screens) */}
+          <Building2
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-8 top-1/2 hidden h-72 w-72 -translate-y-1/2 text-teal-600/[0.06] lg:block"
+            strokeWidth={1}
+          />
+
+          <div className="relative z-10 mx-auto flex max-w-3xl flex-col items-center px-6 py-10 text-center md:py-14">
+            {/* Greeting (above the tenant name) */}
+            <p className="text-sm font-medium text-teal-800 sm:text-base">
+              {t('heroGreeting', { name: profile?.full_name ?? '' })}
+            </p>
+
+            {/* Connected-to label */}
+            <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-teal-600/80 sm:text-xs">
+              {t('heroConnectedTo')}
+            </p>
+
+            {/* Tenant name — centered, uppercase, bold, very large, responsive,
+                in the brand colour so it reads as THIS clinic's software. */}
+            <h1 className="mt-2 break-words text-3xl font-extrabold uppercase leading-tight tracking-tight text-teal-700 sm:text-4xl md:text-5xl lg:text-6xl">
+              {clinic?.name ?? t('welcomeTitle')}
+            </h1>
+
+            {/* Centered circular hospital icon, framed by a soft divider */}
+            <div className="mt-6 flex w-full items-center justify-center gap-4">
+              <span aria-hidden="true" className="h-px w-12 bg-teal-300/70 sm:w-24" />
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-teal-700 text-white shadow-md shadow-teal-900/20">
+                <Building2 className="h-6 w-6" />
+              </span>
+              <span aria-hidden="true" className="h-px w-12 bg-teal-300/70 sm:w-24" />
+            </div>
+
+            {/* Tagline */}
+            <p className="mt-6 max-w-xl text-sm leading-relaxed text-gray-600 sm:text-base">
+              {t('heroTagline')}
+            </p>
           </div>
-          <div>
-            <h2 className="text-base font-semibold text-gray-900">{t('welcomeTitle')}</h2>
-            <p className="text-sm text-gray-500 mt-0.5">{t('welcomeSubtitle')}</p>
-          </div>
-        </div>
+        </section>
 
         {/* Stat cards */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
