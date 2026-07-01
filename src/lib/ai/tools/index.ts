@@ -28,6 +28,16 @@ import {
   getPatientOutstanding,
   getPatientFollowups,
 } from './extra'
+import {
+  getWaitingTimeSummary,
+  getLongWaitingPatients,
+  getCalledNotSeen,
+  getLateArrivals,
+  getNoShowRisks,
+  getTomorrowAppointmentPrep,
+  getDoctorWorkloadSummary,
+  getOverbookedSlots,
+} from './scheduling'
 
 export const ALL_TOOLS: AITool[] = [
   getTodayQueue,
@@ -48,6 +58,15 @@ export const ALL_TOOLS: AITool[] = [
   getPayerSplit,
   getPatientOutstanding,
   getPatientFollowups,
+  // Layer 2C — queue & appointment intelligence
+  getWaitingTimeSummary,
+  getLongWaitingPatients,
+  getCalledNotSeen,
+  getLateArrivals,
+  getNoShowRisks,
+  getTomorrowAppointmentPrep,
+  getDoctorWorkloadSummary,
+  getOverbookedSlots,
 ]
 
 export function getTool(id: string): AITool | undefined {

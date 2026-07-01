@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { AI_UI_ENABLED, confidenceVariant, warningVariant, summarizeInsights } from '@/lib/ai/ui'
 import { useInsights } from '@/hooks/useInsights'
 
-type Variant = 'dashboard' | 'patient' | 'pharmacy' | 'lab' | 'billing'
+type Variant = 'dashboard' | 'patient' | 'pharmacy' | 'lab' | 'billing' | 'queue' | 'appointments'
 
 // Which tool categories each page panel runs. Dashboard is a cross-cutting
 // briefing (no filter); the others are page-specific.
@@ -16,6 +16,8 @@ const VARIANT_CATEGORIES: Record<Variant, string[] | undefined> = {
   pharmacy: ['pharmacy'],
   lab: ['lab'],
   billing: ['billing'],
+  queue: ['queue'],
+  appointments: ['appointments'],
 }
 
 const VARIANT_TITLE_KEY: Record<Variant, string> = {
@@ -24,6 +26,8 @@ const VARIANT_TITLE_KEY: Record<Variant, string> = {
   pharmacy: 'insightsPharmacy',
   lab: 'insightsLab',
   billing: 'insightsBilling',
+  queue: 'insightsQueue',
+  appointments: 'insightsAppointments',
 }
 
 // Embedded, read-only AI insight panel (Phase 2). Renders one compact card per

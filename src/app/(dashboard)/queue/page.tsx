@@ -18,6 +18,7 @@ import { useFormatters } from '@/hooks/useFormatters'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
+import { InsightsPanel } from '@/components/ai/InsightsPanel'
 import type { Appointment, AppointmentStatus } from '@/types/database'
 
 const today = new Date().toISOString().split('T')[0]
@@ -132,6 +133,8 @@ export default function QueuePage() {
       />
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
+
+        <InsightsPanel variant="queue" />
 
         {/* Stats strip */}
         <div className="flex flex-wrap gap-3">

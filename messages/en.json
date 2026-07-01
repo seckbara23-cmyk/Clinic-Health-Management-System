@@ -22,6 +22,8 @@
     "insightsPharmacy": "Pharmacy insights",
     "insightsLab": "Laboratory insights",
     "insightsBilling": "Billing insights",
+    "insightsQueue": "Queue insights",
+    "insightsAppointments": "Appointment insights",
     "needsAttention": "Needs attention",
     "suggestions": {
       "reception_copilot:queue": "Summarize today's queue",

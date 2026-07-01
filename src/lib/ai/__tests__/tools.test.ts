@@ -42,6 +42,33 @@ describe('tool registry & selection', () => {
     }
   })
 
+  it('queue & appointment tools are read-only, categorised, and exclude super_admin', () => {
+    const queueIds = ['get_waiting_time_summary', 'get_long_waiting_patients', 'get_called_not_seen']
+    const apptIds = [
+      'get_late_arrivals', 'get_no_show_risks', 'get_tomorrow_appointment_prep',
+      'get_doctor_workload_summary', 'get_overbooked_slots',
+    ]
+    for (const id of [...queueIds, ...apptIds]) {
+      const tool = getTool(id)
+      expect(tool).toBeDefined()
+      expect(tool!.writesData).toBe(false)
+      expect(tool!.roles).not.toContain('super_admin')
+    }
+    for (const id of queueIds) expect(getTool(id)!.category).toBe('queue')
+    for (const id of apptIds) expect(getTool(id)!.category).toBe('appointments')
+  })
+
+  it('scheduling tools go to front-desk/clinical roles, not pharmacy/lab/cashier', () => {
+    const recIds = toolsForRole('receptionist').map((t) => t.id)
+    expect(recIds).toContain('get_waiting_time_summary')
+    expect(recIds).toContain('get_no_show_risks')
+    for (const role of ['pharmacist', 'cashier', 'lab_technician'] as const) {
+      const ids = toolsForRole(role).map((t) => t.id)
+      expect(ids).not.toContain('get_waiting_time_summary')
+      expect(ids).not.toContain('get_overbooked_slots')
+    }
+  })
+
   it('lab_technician cannot access patient-history tools', () => {
     const ids = toolsForRole('lab_technician').map((t) => t.id)
     expect(ids).not.toContain('get_patient_consultations')

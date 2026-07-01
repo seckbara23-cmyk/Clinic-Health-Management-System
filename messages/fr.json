@@ -22,6 +22,8 @@
     "insightsPharmacy": "Aperçus pharmacie",
     "insightsLab": "Aperçus laboratoire",
     "insightsBilling": "Aperçus facturation",
+    "insightsQueue": "Aperçus file d'attente",
+    "insightsAppointments": "Aperçus rendez-vous",
     "needsAttention": "À surveiller",
     "suggestions": {
       "reception_copilot:queue": "Résumer la file d'attente du jour",

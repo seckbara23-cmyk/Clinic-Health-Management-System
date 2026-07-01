@@ -1,6 +1,7 @@
 import { getLowStock, getNearExpiry } from '../tools/pharmacy'
 import { getUnpaidInvoices } from '../tools/billing'
 import { getTodayQueue, getPatientConsultations } from '../tools/clinical'
+import { getWaitingTimeSummary, getNoShowRisks } from '../tools/scheduling'
 import type { AIContext, RlsClient } from '../types'
 
 // Minimal chainable Supabase stub: every filter method returns the builder,
@@ -85,6 +86,32 @@ describe('tool execution (RLS client injected)', () => {
     expect(res.count).toBe(2)
     expect(res.dataCategory).toBe('consultations')
     expect(res.citation.date).toBe('2026-06-15')
+  })
+
+  it('get_waiting_time_summary cites appointments and counts waiting patients', async () => {
+    const db = makeDb({
+      appointments: [
+        { arrived_at: '2026-07-01T08:00:00Z', status: 'waiting' },
+        { arrived_at: '2026-07-01T08:30:00Z', status: 'called' },
+      ],
+    })
+    const res = await getWaitingTimeSummary.run(db, ctx)
+    expect(res.citation.entity).toBe('appointments')
+    expect(res.dataCategory).toBe('waiting_time')
+    expect(res.count).toBe(2)
+  })
+
+  it('get_no_show_risks flags only patients with >= 2 no-shows, with a citation', async () => {
+    const db = makeDb({
+      appointments: [
+        { patient_id: 'p1', patient: { full_name: 'A' } },
+        { patient_id: 'p1', patient: { full_name: 'A' } },
+        { patient_id: 'p2', patient: { full_name: 'B' } },
+      ],
+    })
+    const res = await getNoShowRisks.run(db, ctx)
+    expect(res.count).toBe(1)
+    expect(res.citation.source).toBe('Appointments')
   })
 
   it('propagates a query error as a thrown Error', async () => {

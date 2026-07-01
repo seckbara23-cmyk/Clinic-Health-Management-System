@@ -25,6 +25,7 @@ import { useDoctors } from '@/hooks/useDoctors'
 import { useFormatters } from '@/hooks/useFormatters'
 import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
+import { InsightsPanel } from '@/components/ai/InsightsPanel'
 import type { Appointment, AppointmentPriority } from '@/types/database'
 
 const statusColors: Record<string, string> = {
@@ -189,6 +190,7 @@ export default function AppointmentsPage() {
       <Topbar title={t('title')} />
 
       <div className="flex-1 p-4 md:p-6 space-y-4">
+        <InsightsPanel variant="appointments" />
         {/* Date nav + view toggle */}
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="icon" onClick={prevDay}><ChevronLeft className="h-4 w-4" /></Button>
