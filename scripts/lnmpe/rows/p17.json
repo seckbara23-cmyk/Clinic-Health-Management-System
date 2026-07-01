@@ -1,0 +1,28 @@
+{
+  "page": 17,
+  "rows": [
+    { "n": 891, "class": "Médicaments gériatriques - Antiparkinsonien", "dci": "Lévodopa/bensérazide chlorhydrate", "strength": "50mg/12,5mg", "form": "comprimé", "reference": "Modopar" },
+    { "n": 892, "class": "Médicaments gériatriques - Antiparkinsonien", "dci": "Lévodopa/bensérazide chlorhydrate", "strength": "100mg/25mg", "form": "comprimé", "reference": "Modopar" },
+    { "n": 893, "class": "Médicaments gériatriques - Antiparkinsonien", "dci": "Lévodopa/bensérazide chlorhydrate", "strength": "200mg/50mg", "form": "comprimé", "reference": "Modopar" },
+    { "n": 894, "class": "Médicaments gériatriques - Anticholinestérasiques / démence", "dci": "Donépézil chlorhydrate", "strength": "5mg", "form": "comprimé", "reference": "Aricept" },
+    { "n": 895, "class": "Médicaments gériatriques - Anticholinestérasiques / démence", "dci": "Donépézil chlorhydrate", "strength": "10mg", "form": "comprimé", "reference": "Aricept" },
+    { "n": 896, "class": "Médicaments gériatriques - Neurologie", "dci": "Piracétam", "strength": "800mg", "form": "comprimé", "reference": "Nootropyl" },
+    { "n": 897, "class": "Médicaments gériatriques - Neurologie", "dci": "Pyridostigmine", "strength": "60mg", "form": "comprimé", "reference": "Mestinon" },
+    { "n": 898, "class": "Médicaments gériatriques - Neurologie", "dci": "Sumatriptan", "strength": "6mg/0,5ml", "form": "injectable", "reference": "Imigran" },
+    { "n": 899, "class": "Produits de sevrage du tabac - Substituts nicotiniques", "dci": "Comprimé nicotinique", "strength": "2mg", "form": "orale sublinguale", "reference": null },
+    { "n": 900, "class": "Produits de sevrage du tabac - Substituts nicotiniques", "dci": "Gomme nicotinique", "strength": "2mg", "form": "gomme à mâcher", "reference": "Nicorette Gomme" },
+    { "n": 901, "class": "Produits de sevrage du tabac - Substituts nicotiniques", "dci": "Gomme nicotinique", "strength": "4mg", "form": "gomme à mâcher", "reference": "Nicorette Gomme" },
+    { "n": 902, "class": "Produits de sevrage du tabac - Substituts nicotiniques", "dci": "Pastille nicotinique", "strength": "2mg", "form": "pastille à sucer", "reference": "Nicopassa" },
+    { "n": 903, "class": "Produits de sevrage du tabac - Substituts nicotiniques", "dci": "Pastille nicotinique", "strength": "4mg", "form": "pastille à sucer", "reference": null },
+    { "n": 904, "class": "Produits de sevrage du tabac - Substituts nicotiniques", "dci": "Patch nicotinique transdermique 16h", "strength": "10mg et 15mg", "form": "transdermique (timbre sur peau)", "reference": "Nicopatch" },
+    { "n": 905, "class": "Produits de sevrage du tabac - Substituts nicotiniques", "dci": "Patch nicotinique transdermique 24h", "strength": "7mg et 14mg", "form": "transdermique (timbre sur peau)", "reference": "Nicopatch" },
+    { "n": 906, "class": "Produits de contraste", "dci": "Acide gadotérique", "strength": "0,5mmol/ml", "form": "injectable", "reference": "Dotarem" },
+    { "n": 907, "class": "Produits de contraste", "dci": "Amidotrizoate sodium et méglumine", "strength": null, "form": "solution buvable et injectable", "reference": "Gastrografine" },
+    { "n": 908, "class": "Produits de contraste", "dci": "Iobitridol", "strength": "300mg", "form": "injectable", "reference": "Xenetix" },
+    { "n": 909, "class": "Produits de contraste", "dci": "Iobitridol", "strength": "350mg", "form": "injectable", "reference": "Xenetix" },
+    { "n": 910, "class": "Produits de contraste", "dci": "Iohexol", "strength": "300mg", "form": "injectable", "reference": "Omnipaque" },
+    { "n": 911, "class": "Produits de contraste", "dci": "Iohexol", "strength": "350mg", "form": "injectable", "reference": "Omnipaque" },
+    { "n": 912, "class": "Produits de contraste", "dci": "Iopamidol", "strength": "300mg", "form": "injectable", "reference": "Pamiscan" },
+    { "n": 913, "class": "Produits de contraste", "dci": "Iopamidol", "strength": "350mg", "form": "injectable", "reference": "Pamiscan" }
+  ]
+}

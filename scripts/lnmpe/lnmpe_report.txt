@@ -1,0 +1,44 @@
+LNMPE 2025 — extraction & catalog validation report
+====================================================
+Source PDF                         : public/files/LNMPE-2025.pdf
+Total items in LNMPE (highest N°)  : 1033
+Medication rows transcribed (OCR'd): 821
+  → unique medications UPSERTED    : 800
+  → duplicate rows collapsed       : 15
+  → uncertain OCR rows             : 5
+  → skipped (no strength/form)     : 6
+Non-medication rows excluded (devices/consumables): 212
+
+Uncertain OCR rows (corrected to the standard DCI/brand):
+  - #2 Amoxicilline 250mg — printed 'Amoxicillicine' — OCR/typo, standard DCI is Amoxicilline
+  - #14 Benzathine benzylpénicilline 2,4 MUI — brand printed 'Extenlliline' — standard is Extencilline
+  - #271 Erythropoïétine 5000UI/0,5ml — strength partly obscured in scan
+  - #378 Noradrénaline 2mg/ml — strength printed '2ml/ml' — read as 2mg/ml
+  - #405 Eosine aqueuse 2% — strength printed '0,02' — read as 2%
+
+Duplicates dropped:
+  - #246 Diazépam 10mg/2ml injectable
+  - #268 Déféroxamine 500mg injectable
+  - #376 Hydrocortisone 100mg injectable
+  - #377 Hydrocortisone 500mg injectable
+  - #391 Griséofulvine 250mg comprimé
+  - #392 Griséofulvine 500mg comprimé
+  - #394 Terbinafine 250mg comprimé
+  - #412 Povidone iodée 10% solution
+  - #466 Salbutamol 0,5mg injectable
+  - #468 Salbutamol 2mg comprimé
+  - #486 Lidocaïne 2% injectable
+  - #650 Bendamustine 2,5mg injectable
+  - #727 Oxaliplatine 100mg injectable
+  - #840 Cyclophosphamide 500mg injectable
+  - #846 Furosémide 500mg comprimé
+
+Skipped rows:
+  - #409 Oxyde de zinc — non-medication (no strength/form)
+  - #451 Kit SRO/Zinc — non-medication (no strength/form)
+  - #760 ASPE — non-medication (no strength/form)
+  - #761 ATPE — non-medication (no strength/form)
+  - #763 F100 — non-medication (no strength/form)
+  - #764 F75 — non-medication (no strength/form)
+
+Migration written: supabase/032_lnmpe_2025_medication_catalog.sql

@@ -1,0 +1,450 @@
+{
+  "page": 1,
+  "rows": [
+    {
+      "n": 1,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Amikacine",
+      "strength": "500mg",
+      "form": "injectable",
+      "reference": "Amiklin"
+    },
+    {
+      "n": 2,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Amoxicilline",
+      "strength": "250mg",
+      "form": "comprimé dispersible",
+      "reference": "Clamoxyl",
+      "uncertain": true,
+      "note": "printed 'Amoxicillicine' — OCR/typo, standard DCI is Amoxicilline"
+    },
+    {
+      "n": 3,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Amoxicilline",
+      "strength": "500mg",
+      "form": "gélule/comprimé",
+      "reference": "Clamoxyl"
+    },
+    {
+      "n": 4,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Amoxicilline",
+      "strength": "1g",
+      "form": "comprimé",
+      "reference": "Clamoxyl"
+    },
+    {
+      "n": 5,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Amoxicilline",
+      "strength": "250mg",
+      "form": "suspension buvable",
+      "reference": "Clamoxyl"
+    },
+    {
+      "n": 6,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Amoxicilline",
+      "strength": "125mg/5ml",
+      "form": "sirop",
+      "reference": "Clamoxyl"
+    },
+    {
+      "n": 7,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Amoxicilline + Acide Clavulanique",
+      "strength": "100mg/12,5mg/ml",
+      "form": "sirop",
+      "reference": "Augmentin"
+    },
+    {
+      "n": 8,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Amoxicilline + Acide Clavulanique",
+      "strength": "500mg/62,5mg",
+      "form": "sachet/comprimé",
+      "reference": "Augmentin"
+    },
+    {
+      "n": 9,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Amoxicilline + Acide Clavulanique",
+      "strength": "1000mg/125mg",
+      "form": "sachet",
+      "reference": "Augmentin"
+    },
+    {
+      "n": 10,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Amoxicilline + Acide Clavulanique",
+      "strength": "500mg/50mg",
+      "form": "injectable",
+      "reference": "Augmentin"
+    },
+    {
+      "n": 11,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Amoxicilline + Acide Clavulanique",
+      "strength": "1000mg/200mg",
+      "form": "injectable",
+      "reference": "Clavusun"
+    },
+    {
+      "n": 12,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Ampicilline",
+      "strength": "1g",
+      "form": "injectable",
+      "reference": "Totapen"
+    },
+    {
+      "n": 13,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Azithromycine",
+      "strength": "500mg",
+      "form": "comprimé",
+      "reference": "Zithromax"
+    },
+    {
+      "n": 14,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Benzathine benzylpénicilline",
+      "strength": "2,4 MUI",
+      "form": "injectable",
+      "reference": "Extencilline",
+      "uncertain": true,
+      "note": "brand printed 'Extenlliline' — standard is Extencilline"
+    },
+    {
+      "n": 15,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Benzathine benzylpénicilline",
+      "strength": "1,2 MUI",
+      "form": "injectable",
+      "reference": "Extencilline"
+    },
+    {
+      "n": 16,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Benzylpénicilline",
+      "strength": "1 MUI",
+      "form": "injectable",
+      "reference": "PéniG"
+    },
+    {
+      "n": 17,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Céfazoline",
+      "strength": "1g",
+      "form": "injectable",
+      "reference": "Céfacidal"
+    },
+    {
+      "n": 18,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Céfixime",
+      "strength": "200mg",
+      "form": "comprimé",
+      "reference": "Oroken"
+    },
+    {
+      "n": 19,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Céfixime",
+      "strength": "100mg/5ml",
+      "form": "suspension buvable",
+      "reference": "Oroken"
+    },
+    {
+      "n": 20,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Céfotaxime",
+      "strength": "1g",
+      "form": "injectable",
+      "reference": "Claforan"
+    },
+    {
+      "n": 21,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Ceftriaxone",
+      "strength": "1g",
+      "form": "injectable",
+      "reference": "Rocéphine"
+    },
+    {
+      "n": 22,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Ceftriaxone",
+      "strength": "2g",
+      "form": "injectable",
+      "reference": null
+    },
+    {
+      "n": 23,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Céfuroxime",
+      "strength": "750mg",
+      "form": "injectable",
+      "reference": "Zinnat"
+    },
+    {
+      "n": 24,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Ciprofloxacine",
+      "strength": "250mg",
+      "form": "comprimé",
+      "reference": "Cifran"
+    },
+    {
+      "n": 25,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Ciprofloxacine",
+      "strength": "500mg",
+      "form": "comprimé",
+      "reference": "Cifran"
+    },
+    {
+      "n": 26,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Ciprofloxacine",
+      "strength": "200mg",
+      "form": "injectable",
+      "reference": "Ciproxin"
+    },
+    {
+      "n": 27,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Ciprofloxacine",
+      "strength": "100mg",
+      "form": "injectable",
+      "reference": "Ciproxin"
+    },
+    {
+      "n": 28,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Ciprofloxacine",
+      "strength": "500mg",
+      "form": "injectable",
+      "reference": "Ciproxin"
+    },
+    {
+      "n": 29,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Doxycycline",
+      "strength": "100mg",
+      "form": "comprimé",
+      "reference": "Vibra"
+    },
+    {
+      "n": 30,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Erythromycine",
+      "strength": "500mg",
+      "form": "comprimé",
+      "reference": "Ery"
+    },
+    {
+      "n": 31,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Flucloxacilline",
+      "strength": "250mg/5ml",
+      "form": "suspension buvable",
+      "reference": "Staphypen"
+    },
+    {
+      "n": 32,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Flucloxacilline",
+      "strength": "500mg",
+      "form": "comprimé",
+      "reference": "Staphypen"
+    },
+    {
+      "n": 33,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Flucloxacilline",
+      "strength": "125mg/5ml",
+      "form": "suspension buvable",
+      "reference": "Staphypen"
+    },
+    {
+      "n": 34,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Gentamicine",
+      "strength": "80mg/2ml",
+      "form": "injectable",
+      "reference": "Gentalline"
+    },
+    {
+      "n": 35,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Imipénème + Cilastatine",
+      "strength": "250mg/250mg",
+      "form": "injectable",
+      "reference": "Bacqure"
+    },
+    {
+      "n": 36,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Imipénème + Cilastatine",
+      "strength": "500mg/500mg",
+      "form": "injectable",
+      "reference": "Bacqure"
+    },
+    {
+      "n": 37,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Phénoxyméthylpénicilline",
+      "strength": "1000000 UI",
+      "form": "comprimé",
+      "reference": "Ospen"
+    },
+    {
+      "n": 38,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Sulfaméthoxazole + Triméthoprime",
+      "strength": "400mg/80mg",
+      "form": "comprimé",
+      "reference": "Bactrim"
+    },
+    {
+      "n": 39,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Sulfaméthoxazole + Triméthoprime",
+      "strength": "200mg/40mg",
+      "form": "suspension buvable",
+      "reference": "Bactrim"
+    },
+    {
+      "n": 40,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Sulfaméthoxazole + Triméthoprime",
+      "strength": "800mg/160mg",
+      "form": "comprimé",
+      "reference": "Bactrim"
+    },
+    {
+      "n": 41,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Thiamphénicol",
+      "strength": "750mg",
+      "form": "injectable",
+      "reference": "Thiophénicol"
+    },
+    {
+      "n": 42,
+      "page": 1,
+      "class": "Anti-bactériens",
+      "dci": "Vancomycine",
+      "strength": "500mg",
+      "form": "injectable",
+      "reference": "Vanco"
+    },
+    {
+      "n": 43,
+      "page": 1,
+      "class": "Antituberculeux (1ère ligne, adulte)",
+      "dci": "Isoniazide",
+      "strength": "300mg",
+      "form": "comprimé",
+      "reference": "Rimifon"
+    },
+    {
+      "n": 44,
+      "page": 1,
+      "class": "Antituberculeux (1ère ligne, adulte)",
+      "dci": "Rifampicine + Isoniazide",
+      "strength": "150mg/75mg",
+      "form": "comprimé",
+      "reference": "Riniazide"
+    },
+    {
+      "n": 45,
+      "page": 1,
+      "class": "Antituberculeux (1ère ligne, adulte)",
+      "dci": "Rifampicine + Isoniazide + Pyrazinamide + Ethambutol",
+      "strength": "150mg/75mg/400mg/275mg",
+      "form": "comprimé",
+      "reference": "Erip-K4"
+    },
+    {
+      "n": 46,
+      "page": 1,
+      "class": "Antituberculeux (1ère ligne, adulte)",
+      "dci": "Rifapentine + Isoniazide",
+      "strength": "300mg/300mg",
+      "form": "comprimé",
+      "reference": "Rimifon"
+    },
+    {
+      "n": 47,
+      "page": 1,
+      "class": "Antituberculeux (1ère ligne, pédiatrique)",
+      "dci": "Ethambutol",
+      "strength": "100mg",
+      "form": "comprimé dispersible",
+      "reference": "Dexambutol"
+    },
+    {
+      "n": 48,
+      "page": 1,
+      "class": "Antituberculeux (1ère ligne, pédiatrique)",
+      "dci": "Isoniazide",
+      "strength": "100mg",
+      "form": "comprimé dispersible",
+      "reference": "Rimifon"
+    },
+    {
+      "n": 49,
+      "page": 1,
+      "class": "Antituberculeux (1ère ligne, pédiatrique)",
+      "dci": "Rifampicine + Isoniazide",
+      "strength": "75mg/50mg",
+      "form": "comprimé dispersible",
+      "reference": "Fixcom 2"
+    }
+  ]
+}

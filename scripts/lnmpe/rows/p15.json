@@ -1,0 +1,11 @@
+{
+  "page": 15,
+  "rows": [
+    { "n": 781, "class": "Contraceptifs hormonaux simples", "dci": "Anneau vaginal à progestérone", "strength": "2g", "form": "anneau vaginal", "reference": "Anneau vaginal progestatif AVP" },
+    { "n": 782, "class": "Contraceptifs hormonaux simples", "dci": "Etonogestrel", "strength": "68mg", "form": "implant (1 bâtonnet)", "reference": "NXT Implanon" },
+    { "n": 783, "class": "Contraceptifs hormonaux simples", "dci": "Lévonorgestrel", "strength": "0,75mg", "form": "comprimé", "reference": "Norlevo" },
+    { "n": 784, "class": "Contraceptifs hormonaux simples", "dci": "Lévonorgestrel", "strength": "1,5mg", "form": "comprimé", "reference": "Norlevo" },
+    { "n": 785, "class": "Contraceptifs hormonaux simples", "dci": "Lévonorgestrel", "strength": "0,03mg", "form": "comprimé", "reference": "Microlut" },
+    { "n": 786, "class": "Contraceptifs hormonaux simples", "dci": "Lévonorgestrel", "strength": "2x 0,75mg", "form": "implant (2 bâtonnets)", "reference": "Jadelle" }
+  ]
+}
