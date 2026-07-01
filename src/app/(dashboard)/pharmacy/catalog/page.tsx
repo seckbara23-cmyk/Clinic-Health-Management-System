@@ -1,7 +1,12 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Pill, Search, Layers, CheckCircle2, BookMarked, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import * as SheetPrimitive from '@radix-ui/react-dialog'
+import {
+  Pill, Search, Layers, CheckCircle2, BookMarked, X, Package, ClipboardList, Boxes,
+  Plus, FileText, Loader2, AlertTriangle,
+} from 'lucide-react'
 import { Topbar } from '@/components/layout/Topbar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,9 +16,11 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useMedicationCatalog } from '@/hooks/useMedications'
+import { useMedicationCatalog, useMedicationUsage } from '@/hooks/useMedications'
+import { useClinic } from '@/context/ClinicContext'
 import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
+import type { CatalogMedication } from '@/types/database'
 
 const ALL = '__all__'
 
@@ -26,6 +33,7 @@ export default function MedicationCatalogPage() {
   const [formFilter, setFormFilter] = useState(ALL)
   const [sourceFilter, setSourceFilter] = useState(ALL)
   const [statusFilter, setStatusFilter] = useState(ALL) // ALL | active | inactive
+  const [selected, setSelected] = useState<CatalogMedication | null>(null)
 
   const rows = useMemo(() => meds ?? [], [meds])
 
@@ -216,7 +224,13 @@ export default function MedicationCatalogPage() {
                   </TableHeader>
                   <TableBody>
                     {filtered.map(m => (
-                      <TableRow key={m.id} className={m.is_active ? undefined : 'opacity-60'}>
+                      <TableRow
+                        key={m.id}
+                        tabIndex={0}
+                        onClick={() => setSelected(m)}
+                        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(m) } }}
+                        className={cn('cursor-pointer transition-colors hover:bg-gray-50 focus:bg-gray-50 focus:outline-none', !m.is_active && 'opacity-60')}
+                      >
                         <TableCell className="font-medium">{m.name}</TableCell>
                         <TableCell className="text-sm text-gray-500">{m.strength ?? '—'}</TableCell>
                         <TableCell className="text-sm text-gray-500">{m.dosage_form ?? '—'}</TableCell>
@@ -240,6 +254,170 @@ export default function MedicationCatalogPage() {
           </CardContent>
         </Card>
       </div>
+
+      {selected && <MedicationDetailDrawer medication={selected} onClose={() => setSelected(null)} />}
     </div>
+  )
+}
+
+// ─── Read-only detail drawer ────────────────────────────────────────
+function MedicationDetailDrawer({ medication, onClose }: { medication: CatalogMedication; onClose: () => void }) {
+  const t = useTranslations('medicationCatalog')
+  const router = useRouter()
+  const { profile } = useClinic()
+  const role = profile?.role ?? ''
+  const canManageStock = ['admin', 'pharmacist', 'super_admin'].includes(role)
+  const canPrescribe = ['doctor', 'admin', 'super_admin'].includes(role)
+
+  const { data: usage, isLoading, isError } = useMedicationUsage(medication.id)
+
+  function goToInventory() {
+    router.push(`/pharmacy/inventory?add=${medication.id}&name=${encodeURIComponent(medication.name)}`)
+  }
+  function goToPrescription() {
+    const p = new URLSearchParams({ rxmed: medication.id, name: medication.name })
+    if (medication.strength) p.set('strength', medication.strength)
+    if (medication.dosage_form) p.set('form', medication.dosage_form)
+    router.push(`/prescriptions?${p.toString()}`)
+  }
+
+  const details: Array<{ label: string; value: React.ReactNode }> = [
+    { label: t('colStrength'), value: medication.strength ?? '—' },
+    { label: t('colForm'), value: medication.dosage_form ?? '—' },
+    { label: t('colClass'), value: medication.therapeutic_class ?? '—' },
+    {
+      label: t('colSource'),
+      value: medication.source
+        ? <Badge variant="outline" className="text-indigo-700 border-indigo-200">{medication.source}</Badge>
+        : '—',
+    },
+    {
+      label: t('colStatus'),
+      value: medication.is_active
+        ? <Badge variant="secondary" className="text-emerald-700">{t('active')}</Badge>
+        : <Badge variant="outline" className="text-gray-500">{t('inactive')}</Badge>,
+    },
+    {
+      label: t('normalizedName'),
+      value: medication.normalized_name
+        ? <span className="break-all font-mono text-xs text-gray-500">{medication.normalized_name}</span>
+        : '—',
+    },
+  ]
+
+  return (
+    <SheetPrimitive.Root open onOpenChange={o => { if (!o) onClose() }}>
+      <SheetPrimitive.Portal>
+        <SheetPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <SheetPrimitive.Content className="fixed inset-y-0 right-0 z-50 flex h-full w-full max-w-md flex-col border-l bg-white shadow-xl duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right">
+          {/* Header */}
+          <div className="flex items-start gap-3 border-b p-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700">
+              <Pill className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <SheetPrimitive.Title className="text-base font-semibold leading-tight text-gray-900">{medication.name}</SheetPrimitive.Title>
+              <SheetPrimitive.Description className="mt-0.5 text-xs text-gray-500">{t('drawerSubtitle')}</SheetPrimitive.Description>
+            </div>
+            <SheetPrimitive.Close className="rounded-md p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600">
+              <X className="h-4 w-4" />
+              <span className="sr-only">{t('close')}</span>
+            </SheetPrimitive.Close>
+          </div>
+
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            {/* Details */}
+            <section>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{t('sectionDetails')}</h3>
+              <dl className="divide-y rounded-lg border">
+                {details.map(d => (
+                  <div key={d.label} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                    <dt className="text-sm text-gray-500">{d.label}</dt>
+                    <dd className="min-w-0 text-right text-sm font-medium text-gray-900">{d.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+
+            {/* Usage context */}
+            <section>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{t('sectionUsage')}</h3>
+
+              {isLoading && (
+                <div className="flex items-center justify-center gap-2 rounded-lg border py-8 text-sm text-gray-400">
+                  <Loader2 className="h-4 w-4 animate-spin" /> {t('usageLoading')}
+                </div>
+              )}
+
+              {isError && (
+                <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-700">
+                  <AlertTriangle className="h-4 w-4 shrink-0" /> {t('usageError')}
+                </div>
+              )}
+
+              {!isLoading && !isError && usage && (
+                <div className="space-y-2">
+                  {/* Stock */}
+                  <div className="flex items-center gap-3 rounded-lg border p-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700">
+                      <Package className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-900">{t('usageInStock')}</p>
+                      {usage.inInventory
+                        ? <p className="text-xs text-gray-500">{t('usageStockQty', { qty: usage.stockQuantity ?? 0 })}</p>
+                        : <p className="text-xs text-gray-400">{t('usageNotStocked')}</p>}
+                    </div>
+                    {usage.inInventory
+                      ? <Badge variant="secondary" className="shrink-0 text-emerald-700">{t('yes')}</Badge>
+                      : <Badge variant="outline" className="shrink-0 text-gray-500">{t('no')}</Badge>}
+                  </div>
+
+                  {/* Prescriptions */}
+                  <div className="flex items-center gap-3 rounded-lg border p-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-700">
+                      <ClipboardList className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-900">{t('usagePrescriptions')}</p>
+                      <p className="text-xs text-gray-500">{t('usagePrescriptionsHelp')}</p>
+                    </div>
+                    <span className="shrink-0 text-lg font-bold text-gray-900">{usage.prescriptionCount}</span>
+                  </div>
+
+                  {/* Recent dispensings */}
+                  <div className="flex items-center gap-3 rounded-lg border p-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700">
+                      <Boxes className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-900">{t('usageDispensings')}</p>
+                      <p className="text-xs text-gray-500">{t('usageDispensingsHelp')}</p>
+                    </div>
+                    <span className="shrink-0 text-lg font-bold text-gray-900">{usage.recentDispensingCount}</span>
+                  </div>
+                </div>
+              )}
+            </section>
+          </div>
+
+          {/* Footer — quick actions */}
+          <div className="border-t p-4 space-y-2">
+            {canManageStock && (
+              <Button variant="outline" className="w-full justify-start" onClick={goToInventory}>
+                <Plus className="h-4 w-4" /> {t('actionAddStock')}
+              </Button>
+            )}
+            {canPrescribe && (
+              <Button variant="outline" className="w-full justify-start" onClick={goToPrescription}>
+                <FileText className="h-4 w-4" /> {t('actionUseInRx')}
+              </Button>
+            )}
+            <Button variant="ghost" className="w-full" onClick={onClose}>{t('close')}</Button>
+          </div>
+        </SheetPrimitive.Content>
+      </SheetPrimitive.Portal>
+    </SheetPrimitive.Root>
   )
 }

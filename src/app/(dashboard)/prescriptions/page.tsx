@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm, useFieldArray, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -94,6 +94,26 @@ export default function PrescriptionsPage() {
   // useWatch (not form.watch) keeps live medication values without the
   // React-Compiler "incompatible library" warning.
   const watchedMeds = useWatch({ control: form.control, name: 'medications' })
+
+  // Deep-link from the medication catalog: /prescriptions?rxmed=<id>&name=&strength=&form=.
+  // Opens the create dialog with the medication prefilled as the first line; the
+  // clinician still picks the consultation and completes posology. No logic change.
+  const handledDeepLink = useRef(false)
+  useEffect(() => {
+    if (handledDeepLink.current || typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const rxMed = params.get('rxmed')
+    if (!rxMed) return
+    const name = params.get('name') ?? ''
+    const strength = params.get('strength')
+    const dosage_form = params.get('form')
+    handledDeepLink.current = true
+    window.history.replaceState(null, '', window.location.pathname)
+    if (!canCreate) return
+    form.reset({ medications: [{ ...EMPTY_MED, name, medication_id: rxMed, strength, dosage_form }] })
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot deep-link sync from the URL
+    setCreateOpen(true)
+  }, [canCreate, form])
 
   async function onSubmit(data: CreateForm) {
     const consult = consultations?.find(c => c.id === data.consultation_id)

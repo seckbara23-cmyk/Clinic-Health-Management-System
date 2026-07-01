@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Plus, Loader2, Package, Pencil, Boxes, History } from 'lucide-react'
 import { Topbar } from '@/components/layout/Topbar'
 import { Button } from '@/components/ui/button'
@@ -30,10 +30,32 @@ export default function InventoryPage() {
 
   const [editOpen, setEditOpen] = useState(false)
   const [editLine, setEditLine] = useState<ClinicMedicationInventory | null>(null)
+  const [initialMed, setInitialMed] = useState<{ id: string; name: string } | null>(null)
   const [batchTarget, setBatchTarget] = useState<ClinicMedicationInventory | null>(null)
   const [movementsTarget, setMovementsTarget] = useState<ClinicMedicationInventory | null>(null)
 
   const { data: inventory, isLoading } = useInventory(true)
+
+  // Deep-link preselect from the medication catalog: /pharmacy/inventory?add=<id>&name=<name>.
+  // If the medication is already stocked, open its existing line for editing; otherwise
+  // open the add dialog with it preselected. Read-only convenience — no inventory logic change.
+  const handledDeepLink = useRef(false)
+  useEffect(() => {
+    if (handledDeepLink.current || typeof window === 'undefined' || isLoading) return
+    const params = new URLSearchParams(window.location.search)
+    const addId = params.get('add')
+    if (!addId) return
+    const name = params.get('name') ?? ''
+    handledDeepLink.current = true
+    window.history.replaceState(null, '', window.location.pathname)
+    if (!canManage) return
+    const existing = inventory?.find(l => l.medication_id === addId)
+    /* eslint-disable react-hooks/set-state-in-effect -- one-shot deep-link sync from the URL */
+    if (existing) { setEditLine(existing); setInitialMed(null) }
+    else { setEditLine(null); setInitialMed({ id: addId, name }) }
+    setEditOpen(true)
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [inventory, isLoading, canManage])
 
   return (
     <div className="flex flex-col h-full">
@@ -41,7 +63,7 @@ export default function InventoryPage() {
       <div className="flex-1 p-4 md:p-6 space-y-4">
         {canManage && (
           <div className="flex justify-end">
-            <Button onClick={() => { setEditLine(null); setEditOpen(true) }}>
+            <Button onClick={() => { setEditLine(null); setInitialMed(null); setEditOpen(true) }}>
               <Plus className="h-4 w-4" /> {t('addItem')}
             </Button>
           </div>
@@ -111,7 +133,7 @@ export default function InventoryPage() {
         </Card>
       </div>
 
-      {editOpen && <InventoryEditDialog line={editLine} existing={inventory ?? []} onClose={() => setEditOpen(false)} />}
+      {editOpen && <InventoryEditDialog line={editLine} initialMedication={initialMed} existing={inventory ?? []} onClose={() => { setEditOpen(false); setInitialMed(null) }} />}
       {batchTarget && <BatchDialog line={batchTarget} canManage={canManage} onClose={() => setBatchTarget(null)} />}
       {movementsTarget && <MovementsDialog line={movementsTarget} onClose={() => setMovementsTarget(null)} />}
     </div>
@@ -119,11 +141,11 @@ export default function InventoryPage() {
 }
 
 // ─── Inventory add/edit ─────────────────────────────────────────
-function InventoryEditDialog({ line, existing, onClose }: { line: ClinicMedicationInventory | null; existing: ClinicMedicationInventory[]; onClose: () => void }) {
+function InventoryEditDialog({ line, initialMedication, existing, onClose }: { line: ClinicMedicationInventory | null; initialMedication?: { id: string; name: string } | null; existing: ClinicMedicationInventory[]; onClose: () => void }) {
   const t = useTranslations('pharmacy')
   const upsert = useUpsertInventory()
-  const [medication, setMedication] = useState<{ id: string; name: string } | null>(line?.medication ? { id: line.medication.id, name: line.medication.name } : null)
-  const [medQuery, setMedQuery] = useState(line?.medication?.name ?? '')
+  const [medication, setMedication] = useState<{ id: string; name: string } | null>(line?.medication ? { id: line.medication.id, name: line.medication.name } : (initialMedication ?? null))
+  const [medQuery, setMedQuery] = useState(line?.medication?.name ?? initialMedication?.name ?? '')
   const [medOpen, setMedOpen] = useState(false)
   const { data: medResults } = useMedications(medQuery)
   const [reorder, setReorder] = useState(String(line?.reorder_level ?? 0))

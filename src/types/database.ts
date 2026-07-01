@@ -225,6 +225,7 @@ export interface CatalogMedication {
   dosage_form: string | null
   therapeutic_class?: string | null
   source?: string | null
+  normalized_name?: string | null
   is_active: boolean
   created_at: string
   updated_at: string
