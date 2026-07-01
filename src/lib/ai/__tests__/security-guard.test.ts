@@ -47,6 +47,15 @@ describe('AI security guard (static)', () => {
     }
   })
 
+  it('performs NO write mutations anywhere in the AI lib (read-only)', () => {
+    for (const f of files) {
+      const src = readFileSync(f, 'utf8')
+      for (const write of ['.insert(', '.update(', '.delete(', '.upsert(']) {
+        expect(src.includes(write)).toBe(false)
+      }
+    }
+  })
+
   it('makes no raw external network calls in the core (deterministic provider)', () => {
     const provider = readFileSync(join(AI_ROOT, 'providers', 'deterministic.ts'), 'utf8')
     expect(provider).not.toMatch(/fetch\(/)

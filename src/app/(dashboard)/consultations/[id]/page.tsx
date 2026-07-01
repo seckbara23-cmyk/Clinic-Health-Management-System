@@ -25,6 +25,7 @@ import { useFormatters } from '@/hooks/useFormatters'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
+import { DraftLauncher } from '@/components/ai/DraftLauncher'
 
 const schema = z.object({
   chief_complaint: z.string().optional().nullable(),
@@ -223,6 +224,9 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 md:p-6">
+        <div className="mx-auto max-w-5xl mb-4 md:mb-6">
+          <DraftLauncher patientId={consultation.patient_id} consultationId={id} />
+        </div>
         <div className="mx-auto max-w-5xl grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
 
           {/* Left: patient / appointment / doctor cards */}

@@ -202,3 +202,51 @@ export type RlsClient = SupabaseClient<Database>
 export interface AITool extends AIToolMetadata {
   run(db: RlsClient, ctx: AIContext): Promise<AIToolResult>
 }
+
+// ── Assisted drafting (Layer 3) ───────────────────────────────────
+// Drafts are DETERMINISTIC templates composed from existing RLS-scoped data.
+// They are never saved by the AI — the clinician reviews, edits and saves via
+// the normal flows. No diagnosis or treatment content is generated.
+export type DraftType = 'consultation' | 'prescription' | 'follow_up' | 'referral' | 'certificate'
+
+export interface DraftSection {
+  key: string
+  label: string
+  content: string
+  editable: boolean
+}
+
+export interface StructuredDraft {
+  type: DraftType
+  title: string
+  /** Always the mandatory review notice. */
+  disclaimer: string
+  sections: DraftSection[]
+  warnings: AIWarning[]
+  citations: Citation[]
+  confidence: AIConfidence
+  /** ISO timestamp, stamped server-side. */
+  generatedAt: string
+  isDraft: true
+}
+
+/** Existing structured data gathered (under RLS) to compose a draft. */
+export interface DraftData {
+  patient?: {
+    fullName: string
+    patientNumber?: string | null
+    dateOfBirth?: string | null
+    gender?: string | null
+    allergies?: string | null
+    bloodType?: string | null
+  }
+  activeMedications: string[]
+  recentConsultationCount: number
+  lastConsultationDate?: string
+  pendingLabCount: number
+  clinicName?: string
+  doctorName?: string
+  /** Optional clinician-provided context — echoed only, never acted on. */
+  diagnosis?: string
+  appointmentReason?: string
+}
