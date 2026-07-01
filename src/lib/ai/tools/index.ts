@@ -19,6 +19,15 @@ import {
   getPatientPrescriptions,
   getPatientLabResults,
 } from './clinical'
+import {
+  getFrequentlyDispensedToday,
+  getUrgentLabOrders,
+  getUnreviewedLabResults,
+  getOverdueBalances,
+  getPayerSplit,
+  getPatientOutstanding,
+  getPatientFollowups,
+} from './extra'
 
 export const ALL_TOOLS: AITool[] = [
   getTodayQueue,
@@ -31,6 +40,14 @@ export const ALL_TOOLS: AITool[] = [
   getPatientPrescriptions,
   getPatientLabResults,
   getClinicActivitySummary,
+  // Phase 2 expansion
+  getFrequentlyDispensedToday,
+  getUrgentLabOrders,
+  getUnreviewedLabResults,
+  getOverdueBalances,
+  getPayerSplit,
+  getPatientOutstanding,
+  getPatientFollowups,
 ]
 
 export function getTool(id: string): AITool | undefined {

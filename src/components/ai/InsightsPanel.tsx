@@ -6,7 +6,25 @@ import { Badge } from '@/components/ui/badge'
 import { AI_UI_ENABLED, confidenceVariant, warningVariant, summarizeInsights } from '@/lib/ai/ui'
 import { useInsights } from '@/hooks/useInsights'
 
-type Variant = 'dashboard' | 'patient'
+type Variant = 'dashboard' | 'patient' | 'pharmacy' | 'lab' | 'billing'
+
+// Which tool categories each page panel runs. Dashboard is a cross-cutting
+// briefing (no filter); the others are page-specific.
+const VARIANT_CATEGORIES: Record<Variant, string[] | undefined> = {
+  dashboard: undefined,
+  patient: ['patient'],
+  pharmacy: ['pharmacy'],
+  lab: ['lab'],
+  billing: ['billing'],
+}
+
+const VARIANT_TITLE_KEY: Record<Variant, string> = {
+  dashboard: 'insightsDashboard',
+  patient: 'insightsPatient',
+  pharmacy: 'insightsPharmacy',
+  lab: 'insightsLab',
+  billing: 'insightsBilling',
+}
 
 // Embedded, read-only AI insight panel (Phase 2). Renders one compact card per
 // tool result — each with its source/citation — plus an overall confidence
@@ -14,7 +32,7 @@ type Variant = 'dashboard' | 'patient'
 // caller's role yields no insights for this page (respects RLS + role gating).
 export function InsightsPanel({ variant }: { variant: Variant }) {
   const t = useTranslations('copilot')
-  const { data, isLoading, isError } = useInsights()
+  const { data, isLoading, isError } = useInsights(VARIANT_CATEGORIES[variant])
 
   if (!AI_UI_ENABLED) return null
   if (isLoading || isError) return null
@@ -22,7 +40,7 @@ export function InsightsPanel({ variant }: { variant: Variant }) {
   const results = data?.results ?? []
   if (results.length === 0) return null
 
-  const title = variant === 'patient' ? t('insightsPatient') : t('insightsDashboard')
+  const title = t(VARIANT_TITLE_KEY[variant])
   const { hasCritical } = summarizeInsights(results)
   const confidence = data!.response.confidence
 

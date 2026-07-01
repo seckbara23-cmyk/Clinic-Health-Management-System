@@ -13,7 +13,7 @@
 // is unit-tested separately.
 
 import { createClient } from '@/lib/supabase/server'
-import type { AIContext, AIToolResult, StructuredAIResponse } from './types'
+import type { AIContext, AIToolCategory, AIToolResult, StructuredAIResponse } from './types'
 import { selectToolsForContext } from './tools'
 import { skillForRole } from './skills'
 import { getProvider } from './dispatch'
@@ -79,10 +79,18 @@ export interface InsightsResult {
  * path as runCopilot but message-less and returns the per-tool results so each
  * page can render compact insight cards. No writes, no external calls.
  */
-export async function runInsights(ctx: AIContext): Promise<InsightsResult> {
+export async function runInsights(
+  ctx: AIContext,
+  categories?: AIToolCategory[],
+): Promise<InsightsResult> {
   const db = await createClient()
 
-  const tools = selectToolsForContext(ctx)
+  // Role + entity-context gated, then optionally narrowed to a page's categories
+  // (e.g. the pharmacy panel only runs pharmacy tools). RLS remains the backstop.
+  let tools = selectToolsForContext(ctx)
+  if (categories && categories.length > 0) {
+    tools = tools.filter((t) => categories.includes(t.category))
+  }
   const results: AIToolResult[] = []
   for (const tool of tools) {
     try {

@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/rate-limit'
 import { AI_ENABLED } from '@/lib/ai/config'
 import { runInsights } from '@/lib/ai/context'
 import { buildAIContext, type AIChatBody } from '@/lib/ai/request'
+import type { AIToolCategory } from '@/lib/ai/types'
 
 export const dynamic = 'force-dynamic'
+
+const VALID_CATEGORIES: AIToolCategory[] = [
+  'queue', 'appointments', 'patient', 'lab', 'pharmacy', 'billing', 'analytics',
+]
 
 // POST /api/ai/insights — embedded page intelligence (read-only, Phase 2).
 // body: { page?, patientId?, ... } (entity context only; role/clinic come from
@@ -16,6 +22,9 @@ export async function POST(req: NextRequest) {
   if (!AI_ENABLED) {
     return NextResponse.json({ error: 'AI disabled' }, { status: 404 })
   }
+
+  const limited = await rateLimit(req, 'ai-insights')
+  if (limited) return limited
 
   const supabase = await createClient()
   const {
@@ -33,12 +42,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Profil ou clinique introuvable' }, { status: 403 })
   }
 
-  const body = ((await req.json().catch(() => ({}))) ?? {}) as AIChatBody
+  const body = ((await req.json().catch(() => ({}))) ?? {}) as AIChatBody & { categories?: unknown }
   const ctx = buildAIContext(
     { id: profile.id, role: profile.role, clinic_id: profile.clinic_id },
     body,
   )
 
-  const { results, response, meta } = await runInsights(ctx)
+  // Optional page-category filter (validated against the known set).
+  const categories = Array.isArray(body.categories)
+    ? (body.categories.filter(
+        (c): c is AIToolCategory => typeof c === 'string' && (VALID_CATEGORIES as string[]).includes(c),
+      ))
+    : undefined
+
+  const { results, response, meta } = await runInsights(ctx, categories)
   return NextResponse.json({ results, response, meta })
 }

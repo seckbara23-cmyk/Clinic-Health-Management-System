@@ -17,13 +17,29 @@ describe('tool registry & selection', () => {
 
   it('pharmacist is limited to pharmacy tools', () => {
     expect(toolsForRole('pharmacist').map((t) => t.id).sort()).toEqual([
+      'get_frequently_dispensed_today',
       'get_low_stock',
       'get_near_expiry',
     ])
   })
 
   it('cashier is limited to billing tools', () => {
-    expect(toolsForRole('cashier').map((t) => t.id)).toEqual(['get_unpaid_invoices'])
+    expect(toolsForRole('cashier').map((t) => t.id).sort()).toEqual([
+      'get_overdue_balances',
+      'get_payer_split',
+      'get_unpaid_invoices',
+    ])
+  })
+
+  it('all pharmacy/lab/billing tools stay read-only and role-scoped (no super_admin)', () => {
+    for (const id of [
+      'get_frequently_dispensed_today', 'get_urgent_lab_orders', 'get_unreviewed_lab_results',
+      'get_overdue_balances', 'get_payer_split', 'get_patient_outstanding', 'get_patient_followups',
+    ]) {
+      const tool = getTool(id)
+      expect(tool?.writesData).toBe(false)
+      expect(tool?.roles).not.toContain('super_admin')
+    }
   })
 
   it('lab_technician cannot access patient-history tools', () => {

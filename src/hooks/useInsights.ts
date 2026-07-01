@@ -14,11 +14,11 @@ export interface InsightsResponse {
 // Fetches embedded insights for the current page. Disabled (no network) when
 // the AI UI flag is off. Role/clinic are resolved server-side; we only send the
 // page/entity context derived from the route.
-export function useInsights() {
+export function useInsights(categories?: string[]) {
   const pathname = usePathname()
   const ctx = parsePageContext(pathname)
   return useQuery<InsightsResponse>({
-    queryKey: ['ai-insights', pathname],
+    queryKey: ['ai-insights', pathname, categories?.join(',') ?? 'all'],
     enabled: AI_UI_ENABLED,
     staleTime: 60_000,
     retry: false,
@@ -26,7 +26,7 @@ export function useInsights() {
       const res = await fetch('/api/ai/insights', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(ctx),
+        body: JSON.stringify({ ...ctx, categories }),
       })
       if (!res.ok) throw new Error(`insights ${res.status}`)
       return (await res.json()) as InsightsResponse

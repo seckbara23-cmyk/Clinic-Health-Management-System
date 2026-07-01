@@ -8,15 +8,22 @@ import { NextResponse } from 'next/server'
 // functional in development and during Upstash outages. Set these env vars in
 // production to activate enforcement.
 
-export type RateLimitEndpoint = 'clinic-requests' | 'signup' | 'change-password' | 'ai-chat'
+export type RateLimitEndpoint =
+  | 'clinic-requests'
+  | 'signup'
+  | 'change-password'
+  | 'ai-chat'
+  | 'ai-insights'
 
 // Per-endpoint limits (requests per sliding 1-hour window).
 // Override the request count via env vars if needed.
 const LIMITS: Record<RateLimitEndpoint, { requests: number }> = {
-  'clinic-requests': { requests: Number(process.env.RATE_LIMIT_CLINIC_REQUESTS  ?? '5')  },
-  'signup':          { requests: Number(process.env.RATE_LIMIT_SIGNUP           ?? '10') },
-  'change-password': { requests: Number(process.env.RATE_LIMIT_CHANGE_PASSWORD  ?? '10') },
-  'ai-chat':         { requests: Number(process.env.RATE_LIMIT_AI_CHAT          ?? '60') },
+  'clinic-requests': { requests: Number(process.env.RATE_LIMIT_CLINIC_REQUESTS  ?? '5')   },
+  'signup':          { requests: Number(process.env.RATE_LIMIT_SIGNUP           ?? '10')  },
+  'change-password': { requests: Number(process.env.RATE_LIMIT_CHANGE_PASSWORD  ?? '10')  },
+  'ai-chat':         { requests: Number(process.env.RATE_LIMIT_AI_CHAT          ?? '60')  },
+  // Insights fire on page load, so the ceiling is higher than chat.
+  'ai-insights':     { requests: Number(process.env.RATE_LIMIT_AI_INSIGHTS      ?? '240') },
 }
 
 function getClientIp(req: NextRequest): string {

@@ -19,6 +19,9 @@
     "error": "Something went wrong. Please try again.",
     "insightsDashboard": "Daily briefing",
     "insightsPatient": "Patient summary",
+    "insightsPharmacy": "Pharmacy insights",
+    "insightsLab": "Laboratory insights",
+    "insightsBilling": "Billing insights",
     "needsAttention": "Needs attention",
     "suggestions": {
       "reception_copilot:queue": "Summarize today's queue",

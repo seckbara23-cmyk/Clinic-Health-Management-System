@@ -15,6 +15,7 @@ import { useInventory, useDispensings, useDispense, useGenerateDispensingInvoice
 import { useFormatters } from '@/hooks/useFormatters'
 import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
+import { InsightsPanel } from '@/components/ai/InsightsPanel'
 import type { Prescription, Medication, ClinicMedicationInventory, MedicationDispensing } from '@/types/database'
 
 type RxRow = Prescription & { patient?: { full_name?: string; patient_number?: string }; doctor?: { full_name?: string } }
@@ -40,6 +41,7 @@ export default function PharmacyPage() {
     <div className="flex flex-col h-full">
       <Topbar title={t('dispensingTitle')} description={t('dispensingSubtitle')} />
       <div className="flex-1 p-4 md:p-6 space-y-4">
+        <InsightsPanel variant="pharmacy" />
         <Card>
           <CardContent className="p-0">
             {isLoading && <div className="flex items-center justify-center h-32"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>}

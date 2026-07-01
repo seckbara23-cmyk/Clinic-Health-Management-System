@@ -24,6 +24,7 @@ import { logRecordView } from '@/lib/audit-client'
 import { openLabResultPDF } from '@/lib/pdf'
 import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
+import { InsightsPanel } from '@/components/ai/InsightsPanel'
 import type { LabOrder, LabOrderItem, LabOrderStatus, LabResultFlag, AppointmentPriority } from '@/types/database'
 
 const statusColors: Record<LabOrderStatus, string> = {
@@ -111,6 +112,7 @@ export default function LabOrdersPage() {
     <div className="flex flex-col h-full">
       <Topbar title={t('title')} description={t('subtitle')} />
       <div className="flex-1 p-4 md:p-6 space-y-4">
+        <InsightsPanel variant="lab" />
         {canCreate && (
           <div className="flex justify-end">
             <Button onClick={() => { resetCreate(); setCreateOpen(true) }}>

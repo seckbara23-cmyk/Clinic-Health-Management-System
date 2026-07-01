@@ -24,6 +24,7 @@ import { useFormatters } from '@/hooks/useFormatters'
 import { cn } from '@/lib/utils'
 import { PAYMENT_PROVIDERS } from '@/lib/payments/config'
 import { useTranslations } from 'next-intl'
+import { InsightsPanel } from '@/components/ai/InsightsPanel'
 import type { Invoice, PaymentMethod } from '@/types/database'
 
 const lineItemSchema = z.object({
@@ -190,6 +191,7 @@ export default function BillingPage() {
       <Topbar title={t('title')} description={t('subtitle')} />
 
       <div className="flex-1 p-4 md:p-6 space-y-4">
+        <InsightsPanel variant="billing" />
         {/* Online payments pilot notice */}
         <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
           <div className="flex items-start gap-3">

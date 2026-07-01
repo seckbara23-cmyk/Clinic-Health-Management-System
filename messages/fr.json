@@ -19,6 +19,9 @@
     "error": "Une erreur s'est produite. Veuillez réessayer.",
     "insightsDashboard": "Briefing du jour",
     "insightsPatient": "Résumé du patient",
+    "insightsPharmacy": "Aperçus pharmacie",
+    "insightsLab": "Aperçus laboratoire",
+    "insightsBilling": "Aperçus facturation",
     "needsAttention": "À surveiller",
     "suggestions": {
       "reception_copilot:queue": "Résumer la file d'attente du jour",
