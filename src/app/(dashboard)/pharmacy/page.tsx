@@ -1,17 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { Loader2, Pill, Eye, CheckCircle2, Receipt } from 'lucide-react'
+import Link from 'next/link'
+import { Loader2, Pill, Eye, CheckCircle2, Receipt, Package, CalendarClock, ClipboardList, ArrowUpRight, Plus, FileBarChart } from 'lucide-react'
 import { Topbar } from '@/components/layout/Topbar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { EmptyState } from '@/components/ui/empty-state'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
-import { useInventory, useDispensings, useDispense, useGenerateDispensingInvoice } from '@/hooks/usePharmacy'
+import { useInventory, useDispensings, useDispense, useGenerateDispensingInvoice, useLowStock, useNearExpiry } from '@/hooks/usePharmacy'
 import { useFormatters } from '@/hooks/useFormatters'
 import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
@@ -30,6 +30,10 @@ export default function PharmacyPage() {
   const t = useTranslations('pharmacy')
   const { formatDate } = useFormatters()
   const { data: prescriptions, isLoading } = usePrescriptions()
+  // Existing hooks only — no new queries beyond these reused ones.
+  const { data: dispensings } = useDispensings()
+  const { data: lowStock } = useLowStock()
+  const { data: nearExpiry } = useNearExpiry()
   const [target, setTarget] = useState<RxRow | null>(null)
 
   const queue = (prescriptions as RxRow[] | undefined)?.filter(rx => ['active', 'partially_dispensed'].includes(rx.status)) ?? []
@@ -37,41 +41,151 @@ export default function PharmacyPage() {
     active: t('rxActive'), partially_dispensed: t('rxPartial'), dispensed: t('rxDispensed'),
   }
 
+  const today = new Date().toISOString().slice(0, 10)
+  const dispensedToday = (dispensings ?? []).filter(
+    d => ['dispensed', 'partial'].includes(d.status) && d.quantity_dispensed > 0 && (d.dispensed_at ?? d.created_at)?.slice(0, 10) === today,
+  ).length
+  const lowStockCount = lowStock?.length ?? 0
+  const nearExpiryCount = nearExpiry?.length ?? 0
+
+  const kpis = [
+    { label: t('kpiToDispense'),     value: queue.length,     icon: Pill,         color: 'text-teal-700',   bg: 'bg-teal-50' },
+    { label: t('kpiDispensedToday'), value: dispensedToday,   icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { label: t('kpiLowStock'),       value: lowStockCount,    icon: Package,      color: 'text-amber-700',  bg: 'bg-amber-50' },
+    { label: t('kpiNearExpiry'),     value: nearExpiryCount,  icon: CalendarClock, color: 'text-rose-600',   bg: 'bg-rose-50' },
+  ]
+
+  const watchItems = [
+    { label: t('watchLowStock'),  href: '/pharmacy/reports',   icon: Package,        badge: lowStockCount || undefined },
+    { label: t('watchNearExpiry'),href: '/pharmacy/reports',   icon: CalendarClock,  badge: nearExpiryCount || undefined },
+    { label: t('watchAddStock'),  href: '/pharmacy/inventory', icon: Plus },
+    { label: t('watchReports'),   href: '/pharmacy/reports',   icon: FileBarChart },
+  ]
+
   return (
     <div className="flex flex-col h-full">
       <Topbar title={t('dispensingTitle')} description={t('dispensingSubtitle')} />
-      <div className="flex-1 p-4 md:p-6 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6">
+
+        {/* Hero */}
+        <section className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-teal-50 via-emerald-50 to-cyan-50 p-5 shadow-sm md:p-6">
+          <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-12 h-48 w-48 rounded-full bg-teal-200/30 blur-3xl" />
+          <div className="relative z-10 flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-700 text-white shadow-md shadow-teal-900/20">
+                <Pill className="h-5 w-5" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-gray-900">{t('heroTitle')}</h1>
+                <p className="text-sm font-semibold text-teal-700">{t('heroSubtitle')}</p>
+                <p className="mt-1 max-w-md text-xs leading-relaxed text-gray-500">{t('heroHelper')}</p>
+              </div>
+            </div>
+            <Badge variant="secondary" className="shrink-0 bg-white/70 text-teal-800">
+              {t('pillToDispense', { count: queue.length })}
+            </Badge>
+          </div>
+        </section>
+
+        {/* KPI cards */}
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {kpis.map(kpi => (
+            <Card key={kpi.label}>
+              <CardContent className="flex items-center gap-3 p-4">
+                <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-lg', kpi.bg)}>
+                  <kpi.icon className={cn('h-5 w-5', kpi.color)} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xl font-bold text-gray-900">{kpi.value}</p>
+                  <p className="truncate text-xs text-gray-500">{kpi.label}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* AI insights (below hero/KPIs, above the list) */}
         <InsightsPanel variant="pharmacy" />
-        <Card>
-          <CardContent className="p-0">
-            {isLoading && <div className="flex items-center justify-center h-32"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>}
-            {!isLoading && queue.length === 0 && (
-              <EmptyState icon={Pill} title={t('queueEmptyTitle')} description={t('queueEmptyDesc')} />
-            )}
-            {!isLoading && queue.length > 0 && (
-              <div className="divide-y">
-                {queue.map(rx => (
-                  <div key={rx.id} className="flex items-center justify-between gap-3 p-4">
-                    <div className="min-w-0">
-                      <p className="font-medium truncate">{rx.patient?.full_name ?? '—'}</p>
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5 text-xs text-gray-500">
-                        <span>{rx.medications.length} {t('medsUnit')}</span>
-                        <span>· {formatDate(rx.created_at)}</span>
-                        {rx.doctor?.full_name && <span>· Dr. {rx.doctor.full_name}</span>}
-                      </div>
+
+        {/* Main: dispensing list + À surveiller */}
+        <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <Card>
+              <CardContent className="p-0">
+                {isLoading && <div className="flex h-32 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>}
+
+                {!isLoading && queue.length === 0 && (
+                  <div className="flex flex-col items-center justify-center gap-4 px-6 py-14 text-center">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-50">
+                      <Pill className="h-7 w-7 text-teal-600" />
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-medium', statusColors[rx.status])}>{statusLabels[rx.status]}</span>
-                      <Button size="sm" variant="outline" className="h-8" onClick={() => setTarget(rx)}>
-                        <Eye className="h-3.5 w-3.5 mr-1" /> {t('dispense')}
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900">{t('queueEmptyTitle')}</h3>
+                      <p className="mx-auto mt-1 max-w-sm text-sm text-gray-500">{t('queueEmptyDesc')}</p>
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      <Button variant="outline" asChild>
+                        <Link href="/prescriptions">{t('ctaViewPrescriptions')}</Link>
+                      </Button>
+                      <Button className="bg-teal-700 hover:bg-teal-800" asChild>
+                        <Link href="/pharmacy/inventory">{t('ctaManageStock')}</Link>
                       </Button>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                )}
+
+                {!isLoading && queue.length > 0 && (
+                  <div className="divide-y">
+                    {queue.map(rx => (
+                      <div key={rx.id} className="flex items-center justify-between gap-3 p-4">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{rx.patient?.full_name ?? '—'}</p>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500">
+                            <span>{rx.medications.length} {t('medsUnit')}</span>
+                            <span>· {formatDate(rx.created_at)}</span>
+                            {rx.doctor?.full_name && <span>· Dr. {rx.doctor.full_name}</span>}
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-medium', statusColors[rx.status])}>{statusLabels[rx.status]}</span>
+                          <Button size="sm" variant="outline" className="h-8" onClick={() => setTarget(rx)}>
+                            <Eye className="mr-1 h-3.5 w-3.5" /> {t('dispense')}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* À surveiller */}
+          <div className="lg:col-span-1">
+            <Card>
+              <CardContent className="p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4 text-teal-600" />
+                  <h2 className="text-sm font-semibold text-gray-900">{t('watchTitle')}</h2>
+                </div>
+                <div className="space-y-1.5">
+                  {watchItems.map(item => (
+                    <Link
+                      key={item.label}
+                      href={item.href}
+                      className="flex items-center gap-3 rounded-lg border p-3 text-sm transition-colors hover:bg-gray-50"
+                    >
+                      <item.icon className="h-4 w-4 shrink-0 text-gray-500" />
+                      <span className="min-w-0 flex-1 leading-tight">{item.label}</span>
+                      {item.badge != null && <Badge variant="warning">{item.badge}</Badge>}
+                      <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                    </Link>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
 
       {target && <DispenseDialog rx={target} onClose={() => setTarget(null)} />}
