@@ -8,7 +8,6 @@ import { Toaster } from 'sonner'
 import { getQueryClient } from './query-client'
 import { persistOptions } from '@/lib/offline/persister'
 import { registerOfflineMutationDefaults } from '@/lib/offline/mutation-defaults'
-import { ClinicProvider } from '@/context/ClinicContext'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   // Register replayable mutation defaults before hydration so paused mutations
@@ -28,11 +27,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
         if (onlineManager.isOnline()) void queryClient.resumePausedMutations()
       }}
     >
-      <ClinicProvider>
-        {children}
-        <Toaster richColors position="top-right" />
-        <ReactQueryDevtools initialIsOpen={false} />
-      </ClinicProvider>
+      {/* ClinicProvider is mounted per-dashboard (server-seeded) in the
+          dashboard layout, so authenticated users never render a null tenant.
+          Public pages don't need it. */}
+      {children}
+      <Toaster richColors position="top-right" />
+      <ReactQueryDevtools initialIsOpen={false} />
     </PersistQueryClientProvider>
   )
 }

@@ -8,6 +8,7 @@ import {
   Building2, ChevronRight, ClipboardList, Pill, FlaskConical, BarChart2, Inbox, X, CreditCard, TestTube, Package, PackageSearch,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { isNavVisible } from '@/lib/tenant'
 import { useClinic } from '@/context/ClinicContext'
 import { useSidebar } from '@/context/SidebarContext'
 import { signOut } from '@/lib/auth/actions'
@@ -67,10 +68,7 @@ function SidebarInner() {
   const isAdminOrSuper = role === 'super_admin' || role === 'admin'
   const t = useTranslations('nav')
 
-  const visibleNav = navItems.filter(item => {
-    if (!item.roles) return true
-    return role ? item.roles.includes(role) : false
-  })
+  const visibleNav = navItems.filter(item => isNavVisible(role, item.roles))
 
   return (
     <>
@@ -115,7 +113,7 @@ function SidebarInner() {
             </div>
             {adminItems
               .filter(item => {
-                if (item.roles) return role ? item.roles.includes(role) : false
+                if (item.roles) return isNavVisible(role, item.roles)
                 return isSuperAdmin || item.href !== '/admin/clinics'
               })
               .map(({ href, labelKey, icon: Icon }) => {

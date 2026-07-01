@@ -1,4 +1,11 @@
 {
+  "tenant": {
+    "loading": "Chargement de votre espace…",
+    "errorTitle": "Impossible de charger votre profil",
+    "errorMessage": "Nous n'avons pas pu récupérer votre profil et votre clinique. Vérifiez votre connexion et réessayez.",
+    "retry": "Réessayer",
+    "signOut": "Se déconnecter"
+  },
   "copilot": {
     "title": "Copilote Clinique",
     "subtitle": "Assistant en lecture seule",

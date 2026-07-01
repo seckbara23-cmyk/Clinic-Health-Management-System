@@ -1,4 +1,11 @@
 {
+  "tenant": {
+    "loading": "Loading your workspace…",
+    "errorTitle": "Unable to load your profile",
+    "errorMessage": "We couldn't fetch your profile and clinic. Check your connection and try again.",
+    "retry": "Retry",
+    "signOut": "Sign out"
+  },
   "copilot": {
     "title": "Clinic Copilot",
     "subtitle": "Read-only assistant",

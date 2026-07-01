@@ -5,7 +5,9 @@ import { BottomNav } from '@/components/layout/BottomNav'
 import { FloatingActionButton } from '@/components/layout/FloatingActionButton'
 import { ConnectionBanner } from '@/components/offline/ConnectionBanner'
 import { Copilot } from '@/components/ai/Copilot'
+import { TenantBoundary } from '@/components/layout/TenantBoundary'
 import { SidebarProvider } from '@/context/SidebarContext'
+import type { Clinic, UserProfile } from '@/types/database'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -20,45 +22,43 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (!user) redirect('/login')
 
-  // Single query — join clinic status so we can check it without a second round-trip
-  const { data: profile } = await supabase
+  // Single query — the FULL profile + clinic. This resolves the tenant on the
+  // server (we already redirect if it's missing), then seeds the client tenant
+  // context so authenticated users never render a generic/null shell on refresh.
+  const { data: full } = await supabase
     .from('user_profiles')
-    .select('is_active, role, must_change_password, clinic_id, clinic:clinics(status)')
+    .select('*, clinic:clinics(*)')
     .eq('id', user.id)
-    .single() as {
-      data: {
-        is_active: boolean
-        role: string
-        must_change_password: boolean
-        clinic_id: string | null
-        clinic: { status: string } | null
-      } | null
-    }
+    .single() as { data: (UserProfile & { clinic: Clinic | null }) | null }
 
-  if (!profile || !profile.is_active) redirect('/suspended?reason=inactive')
-  if (profile.must_change_password) redirect('/change-password')
+  if (!full || !full.is_active) redirect('/suspended?reason=inactive')
+  if (full.must_change_password) redirect('/change-password')
 
-  // Clinic-level lifecycle guard (does not apply to super_admin — they have no clinic_id)
+  const { clinic, ...profile } = full as UserProfile & { clinic: Clinic | null }
+
+  // Clinic-level lifecycle guard (does not apply to super_admin — no clinic_id)
   if (profile.clinic_id && profile.role !== 'super_admin') {
     const blockedStatuses = ['suspended', 'inactive', 'archived', 'pending']
-    const clinicStatus = profile.clinic?.status ?? 'active'
+    const clinicStatus = clinic?.status ?? 'active'
     if (blockedStatuses.includes(clinicStatus)) {
       redirect(`/suspended?reason=${clinicStatus}`)
     }
   }
 
   return (
-    <SidebarProvider>
-      <ConnectionBanner />
-      <div className="flex h-screen overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto min-w-0 pb-16 md:pb-0">
-          {children}
-        </main>
-      </div>
-      <BottomNav />
-      <FloatingActionButton />
-      <Copilot />
-    </SidebarProvider>
+    <TenantBoundary initialProfile={profile as UserProfile} initialClinic={clinic ?? null}>
+      <SidebarProvider>
+        <ConnectionBanner />
+        <div className="flex h-screen overflow-hidden">
+          <Sidebar />
+          <main className="flex-1 overflow-y-auto min-w-0 pb-16 md:pb-0">
+            {children}
+          </main>
+        </div>
+        <BottomNav />
+        <FloatingActionButton />
+        <Copilot />
+      </SidebarProvider>
+    </TenantBoundary>
   )
 }
