@@ -219,7 +219,23 @@
     "no": "No",
     "actionAddStock": "Add to pharmacy stock",
     "actionUseInRx": "Use in a prescription",
+    "sectionSafety": "Safety",
     "close": "Close"
+  },
+  "medicationSafety": {
+    "msg_duplicate_exact": "⚠️ Duplicate therapy: {medication} is already in the prescription",
+    "msg_duplicate_ingredient": "⚠️ Same active ingredient: {medication} (already prescribed)",
+    "msg_duplicate_class": "⚠️ Same therapeutic class ({class}): {medication}",
+    "msg_allergy": "🚨 Allergy alert: {medication} — known allergy: {allergy}",
+    "msg_out_of_stock": "⚠️ Medication unavailable: {medication}",
+    "msg_low_stock": "⚠️ Limited stock: {medication} ({stock} left)",
+    "msg_near_expiry": "⚠️ Near expiry: {medication} (batch expiring {date})",
+    "msg_inactive": "⚠️ Medication inactive (off-formulary): {medication}",
+    "substitutionTitle": "Available alternatives",
+    "substitutionHelp": "Suggestions only — never auto-substituted.",
+    "inStockN": "{n} in stock",
+    "outOfStock": "Out of stock",
+    "useAlternative": "Use"
   },
   "labOrders": {
     "title": "Laboratory",

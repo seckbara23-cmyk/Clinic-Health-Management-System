@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Loader2, Pill, Eye, CheckCircle2, Receipt, Package, CalendarClock, ClipboardList, ArrowUpRight, Plus, FileBarChart } from 'lucide-react'
 import { Topbar } from '@/components/layout/Topbar'
@@ -12,11 +12,14 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
 import { useInventory, useDispensings, useDispense, useGenerateDispensingInvoice, useLowStock, useNearExpiry } from '@/hooks/usePharmacy'
+import { useMedicationSafety, usePatientAllergies } from '@/hooks/useMedicationSafety'
+import { SafetyAlerts } from '@/components/pharmacy/SafetyAlerts'
 import { useFormatters } from '@/hooks/useFormatters'
 import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
 import { InsightsPanel } from '@/components/ai/InsightsPanel'
 import type { Prescription, Medication, ClinicMedicationInventory, MedicationDispensing } from '@/types/database'
+import type { SafetyWarning, Substitution } from '@/lib/medication-safety'
 
 type RxRow = Prescription & { patient?: { full_name?: string; patient_number?: string }; doctor?: { full_name?: string } }
 
@@ -199,6 +202,23 @@ function DispenseDialog({ rx, onClose }: { rx: RxRow; onClose: () => void }) {
   const { data: dispensings } = useDispensings({ prescriptionId: rx.id })
   const generateInvoice = useGenerateDispensingInvoice()
 
+  // ── Medication Safety Layer 1 (read-only warnings before dispensing) ──
+  const safety = useMedicationSafety()
+  const { data: patientAllergies } = usePatientAllergies(rx.patient_id)
+  const { data: nearExpiryBatches } = useNearExpiry()
+  const nowMs = new Date().getTime()
+  const nearExpiryByInvId = useMemo(() => {
+    const map = new Map<string, string[]>()
+    for (const b of nearExpiryBatches ?? []) {
+      const invId = b.inventory?.id
+      if (!invId || !b.expiry_date) continue
+      const list = map.get(invId) ?? []
+      list.push(b.expiry_date)
+      map.set(invId, list)
+    }
+    return map
+  }, [nearExpiryBatches])
+
   const hasBillable = (dispensings ?? []).some(d => ['dispensed', 'partial'].includes(d.status) && d.quantity_dispensed > 0 && !d.invoice_id)
 
   return (
@@ -217,6 +237,10 @@ function DispenseDialog({ rx, onClose }: { rx: RxRow; onClose: () => void }) {
               med={med}
               inventory={inventory ?? []}
               dispensings={(dispensings ?? []).filter(d => d.prescription_line_index === idx)}
+              safety={safety}
+              allergies={patientAllergies ?? null}
+              nearExpiryByInvId={nearExpiryByInvId}
+              nowMs={nowMs}
             />
           ))}
         </div>
@@ -235,17 +259,30 @@ function DispenseDialog({ rx, onClose }: { rx: RxRow; onClose: () => void }) {
   )
 }
 
-function DispenseLine({ prescriptionId, lineIndex, med, inventory, dispensings }: {
+function DispenseLine({ prescriptionId, lineIndex, med, inventory, dispensings, safety, allergies, nearExpiryByInvId, nowMs }: {
   prescriptionId: string
   lineIndex: number
   med: Medication
   inventory: ClinicMedicationInventory[]
   dispensings: MedicationDispensing[]
+  safety: ReturnType<typeof useMedicationSafety>
+  allergies: string[] | null
+  nearExpiryByInvId: Map<string, string[]>
+  nowMs: number
 }) {
   const t = useTranslations('pharmacy')
   const dispense = useDispense()
   const inv = med.medication_id ? inventory.find(i => i.medication_id === med.medication_id) : undefined
   const stock = inv?.stock_quantity ?? 0
+
+  // ── Safety warnings for this line: stock/formulary + allergy + near-expiry ──
+  const safetyWarnings: SafetyWarning[] = [
+    ...safety.analyzeSingle({ medication_id: med.medication_id ?? null, name: med.name }, allergies),
+    ...(inv ? safety.analyzeExpiry(med.name, nearExpiryByInvId.get(inv.id) ?? [], nowMs) : []),
+  ]
+  const substitutions: Substitution[] = safetyWarnings.some(w => w.code === 'out_of_stock')
+    ? safety.substitutionsFor(med.medication_id)
+    : []
 
   const alreadyDispensed = dispensings.filter(d => d.status !== 'unavailable').reduce((s, d) => s + d.quantity_dispensed, 0)
   const isUnavailable = dispensings.some(d => d.status === 'unavailable')
@@ -296,6 +333,10 @@ function DispenseLine({ prescriptionId, lineIndex, med, inventory, dispensings }
           {alreadyDispensed > 0 && <span className="block text-xs text-emerald-600">{t('dispensedSoFar', { n: alreadyDispensed })}</span>}
         </div>
       </div>
+
+      {(safetyWarnings.length > 0 || substitutions.length > 0) && (
+        <SafetyAlerts warnings={safetyWarnings} substitutions={substitutions} />
+      )}
 
       {resolved ? (
         <Badge variant="outline" className={cn('text-xs', isUnavailable ? 'text-red-600 border-red-200' : 'text-emerald-700 border-emerald-200')}>

@@ -17,6 +17,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useMedicationCatalog, useMedicationUsage } from '@/hooks/useMedications'
+import { useMedicationSafety } from '@/hooks/useMedicationSafety'
+import { SafetyAlerts } from '@/components/pharmacy/SafetyAlerts'
 import { useClinic } from '@/context/ClinicContext'
 import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
@@ -271,6 +273,13 @@ function MedicationDetailDrawer({ medication, onClose }: { medication: CatalogMe
 
   const { data: usage, isLoading, isError } = useMedicationUsage(medication.id)
 
+  // ── Medication Safety Layer 1 (formulary/stock warnings; no patient context) ──
+  const safety = useMedicationSafety()
+  const safetyWarnings = safety.analyzeSingle({ medication_id: medication.id, name: medication.name })
+  const substitutions = safetyWarnings.some(w => w.code === 'out_of_stock')
+    ? safety.substitutionsFor(medication.id)
+    : []
+
   function goToInventory() {
     router.push(`/pharmacy/inventory?add=${medication.id}&name=${encodeURIComponent(medication.name)}`)
   }
@@ -327,6 +336,14 @@ function MedicationDetailDrawer({ medication, onClose }: { medication: CatalogMe
 
           {/* Body */}
           <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            {/* Safety warnings */}
+            {(safetyWarnings.length > 0 || substitutions.length > 0) && (
+              <section>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{t('sectionSafety')}</h3>
+                <SafetyAlerts warnings={safetyWarnings} substitutions={substitutions} />
+              </section>
+            )}
+
             {/* Details */}
             <section>
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{t('sectionDetails')}</h3>

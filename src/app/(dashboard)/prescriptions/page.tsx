@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useForm, useFieldArray, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -16,6 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { usePrescriptions, useCreatePrescription, useUpdatePrescription } from '@/hooks/usePrescriptions'
 import { useMedications } from '@/hooks/useMedications'
+import { useMedicationSafety, usePatientAllergies } from '@/hooks/useMedicationSafety'
+import { SafetyAlerts } from '@/components/pharmacy/SafetyAlerts'
 import { useConsultations } from '@/hooks/useConsultations'
 import { useClinic } from '@/context/ClinicContext'
 import { useFormatters } from '@/hooks/useFormatters'
@@ -94,6 +96,33 @@ export default function PrescriptionsPage() {
   // useWatch (not form.watch) keeps live medication values without the
   // React-Compiler "incompatible library" warning.
   const watchedMeds = useWatch({ control: form.control, name: 'medications' })
+  const selectedConsultId = useWatch({ control: form.control, name: 'consultation_id' })
+
+  // ── Medication Safety Layer 1 (read-only warnings, never blocks) ──
+  const safety = useMedicationSafety()
+  const selectedPatientId = consultations?.find(c => c.id === selectedConsultId)?.patient_id ?? null
+  const { data: patientAllergies } = usePatientAllergies(selectedPatientId)
+  const safetyWarnings = useMemo(
+    () => safety.analyzeLines(
+      (watchedMeds ?? []).map(m => ({ medication_id: m?.medication_id ?? null, name: m?.name ?? '' })),
+      patientAllergies ?? null,
+    ),
+    [safety, watchedMeds, patientAllergies],
+  )
+  const warningsByLine = useMemo(() => {
+    const map: Record<string, typeof safetyWarnings> = {}
+    for (const w of safetyWarnings) { const k = w.key ?? ''; (map[k] ??= []).push(w) }
+    return map
+  }, [safetyWarnings])
+
+  function applySubstitution(idx: number, medId: string) {
+    const cat = safety.catalogById.get(medId)
+    if (!cat) return
+    form.setValue(`medications.${idx}.name`, cat.name, { shouldValidate: true })
+    form.setValue(`medications.${idx}.medication_id`, cat.id)
+    form.setValue(`medications.${idx}.strength`, cat.strength)
+    form.setValue(`medications.${idx}.dosage_form`, cat.dosage_form)
+  }
 
   // Deep-link from the medication catalog: /prescriptions?rxmed=<id>&name=&strength=&form=.
   // Opens the create dialog with the medication prefilled as the first line; the
@@ -332,6 +361,19 @@ export default function PrescriptionsPage() {
                       <Input {...form.register(`medications.${idx}.instructions`)} placeholder={t('medInstructionsPlaceholder')} className="h-8 text-sm" />
                     </div>
                   </div>
+                  {(() => {
+                    const lineWarnings = warningsByLine[String(idx)] ?? []
+                    const outOfStock = lineWarnings.some(w => w.code === 'out_of_stock')
+                    const subs = outOfStock ? safety.substitutionsFor(watchedMeds?.[idx]?.medication_id) : []
+                    if (lineWarnings.length === 0 && subs.length === 0) return null
+                    return (
+                      <SafetyAlerts
+                        warnings={lineWarnings}
+                        substitutions={subs}
+                        onPickSubstitution={s => applySubstitution(idx, s.id)}
+                      />
+                    )
+                  })()}
                 </div>
               ))}
             </div>

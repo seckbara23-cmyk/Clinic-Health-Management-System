@@ -219,7 +219,23 @@
     "no": "Non",
     "actionAddStock": "Ajouter au stock pharmacie",
     "actionUseInRx": "Utiliser dans une ordonnance",
+    "sectionSafety": "Sécurité",
     "close": "Fermer"
+  },
+  "medicationSafety": {
+    "msg_duplicate_exact": "⚠️ Thérapie en double : {medication} figure déjà dans l''ordonnance",
+    "msg_duplicate_ingredient": "⚠️ Même principe actif : {medication} (déjà prescrit)",
+    "msg_duplicate_class": "⚠️ Même classe thérapeutique ({class}) : {medication}",
+    "msg_allergy": "🚨 Alerte allergie : {medication} — allergie connue : {allergy}",
+    "msg_out_of_stock": "⚠️ Médicament indisponible : {medication}",
+    "msg_low_stock": "⚠️ Stock limité : {medication} ({stock} restant)",
+    "msg_near_expiry": "⚠️ Proche expiration : {medication} (lot expirant le {date})",
+    "msg_inactive": "⚠️ Médicament inactif (hors formulaire) : {medication}",
+    "substitutionTitle": "Alternatives disponibles",
+    "substitutionHelp": "Suggestions uniquement — jamais de substitution automatique.",
+    "inStockN": "{n} en stock",
+    "outOfStock": "Rupture",
+    "useAlternative": "Utiliser"
   },
   "labOrders": {
     "title": "Laboratoire",
