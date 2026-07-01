@@ -215,12 +215,16 @@ export interface Medication {
   dosage_form?: string | null
 }
 
-// Reference formulary row (migration 029). Global, not clinic-scoped.
+// Reference formulary row (migration 029; enriched by 032 — LNMPE 2025).
+// Global, not clinic-scoped. therapeutic_class/source are populated for
+// catalogued rows (e.g. source = 'LNMPE 2025') and NULL for legacy seed rows.
 export interface CatalogMedication {
   id: string
   name: string
   strength: string | null
   dosage_form: string | null
+  therapeutic_class?: string | null
+  source?: string | null
   is_active: boolean
   created_at: string
   updated_at: string
