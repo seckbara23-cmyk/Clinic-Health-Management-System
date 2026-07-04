@@ -104,9 +104,21 @@ export interface UserProfile {
   avatar_url: string | null
   is_active: boolean
   must_change_password: boolean
+  // Specialty identity (migration 037, additive — Phase 14.1).
+  primary_specialty?: string | null
+  sub_specialty?: string | null
+  department?: string | null
   created_at: string
   updated_at: string
   clinic?: Clinic
+}
+
+// Per-(user, clinic) workspace personalization (migration 037, Phase 14.1).
+export interface UserPreferences {
+  user_id: string
+  clinic_id: string
+  preferences: Record<string, unknown>
+  updated_at: string
 }
 
 export interface Patient {
