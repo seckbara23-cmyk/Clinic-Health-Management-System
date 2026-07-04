@@ -226,6 +226,11 @@ export interface CatalogMedication {
   therapeutic_class?: string | null
   source?: string | null
   normalized_name?: string | null
+  // Smart Pharmacy (migration 033, additive) — optional identifiers.
+  barcode?: string | null
+  manufacturer?: string | null
+  brand_name?: string | null
+  atc_code?: string | null
   is_active: boolean
   created_at: string
   updated_at: string
@@ -245,12 +250,30 @@ export interface ClinicMedicationInventory {
   purchase_price: number
   supplier: string | null
   is_active: boolean
+  // Smart Pharmacy (migration 033, additive) — physical shelf/bin location.
+  location_cabinet?: string | null
+  location_shelf?: string | null
+  location_row?: string | null
+  location_bin?: string | null
   deleted_at: string | null
   deleted_by: string | null
   deletion_reason: string | null
   created_at: string
   updated_at: string
   medication?: CatalogMedication
+}
+
+// Smart Pharmacy cycle count (migration 033).
+export interface MedicationCycleCount {
+  id: string
+  clinic_id: string
+  inventory_id: string
+  expected_qty: number
+  counted_qty: number
+  variance: number
+  notes: string | null
+  counted_by: string | null
+  created_at: string
 }
 
 export interface MedicationBatch {
