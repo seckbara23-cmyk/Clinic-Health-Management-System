@@ -564,6 +564,13 @@ export interface LabOrder {
   reviewed_at: string | null
   interpretation: string | null
   invoice_id: string | null
+  // Sample tracking (migration 035, additive).
+  sample_id?: string | null
+  sample_barcode?: string | null
+  collected_by?: string | null
+  received_at?: string | null
+  received_by?: string | null
+  processing_started_at?: string | null
   deleted_at: string | null
   deleted_by: string | null
   deletion_reason: string | null

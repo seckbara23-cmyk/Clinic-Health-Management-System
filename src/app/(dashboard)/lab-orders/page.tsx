@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, Loader2, FlaskConical, Eye, Printer } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Plus, Loader2, FlaskConical, Eye, Printer, ScanLine, Clock, CheckCircle2, AlertOctagon, Microscope, ClipboardCheck, Tag, Beaker, Lock } from 'lucide-react'
 import { Topbar } from '@/components/layout/Topbar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,7 +12,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { usePatients } from '@/hooks/usePatients'
 import {
   useLabTests, useLabOrders, useCreateLabOrder, useUpdateLabOrderStatus,
@@ -23,8 +22,15 @@ import { useFormatters } from '@/hooks/useFormatters'
 import { logRecordView } from '@/lib/audit-client'
 import { openLabResultPDF } from '@/lib/pdf'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
-import { InsightsPanel } from '@/components/ai/InsightsPanel'
+import { ScanBarcode } from '@/components/scan/ScanBarcode'
+import { LabBriefing } from '@/components/lab/LabBriefing'
+import { LabSampleLabel } from '@/components/lab/LabSampleLabel'
+import {
+  labKpis, filterLabOrders, orderCriticality, displaySampleId, matchLabOrderByCode, labCapabilities,
+  type LabFilter,
+} from '@/lib/lab-workflow'
 import type { LabOrder, LabOrderItem, LabOrderStatus, LabResultFlag, AppointmentPriority } from '@/types/database'
 
 const statusColors: Record<LabOrderStatus, string> = {
@@ -46,12 +52,11 @@ const flagColors: Record<LabResultFlag, string> = {
 
 export default function LabOrdersPage() {
   const t = useTranslations('labOrders')
-  const { formatDate } = useFormatters()
   const { profile } = useClinic()
   const role = profile?.role ?? ''
-  const canCreate = ['doctor', 'nurse', 'admin'].includes(role)
-  const canResult = ['doctor', 'nurse', 'admin', 'lab_technician'].includes(role)
-  const canReview = ['doctor', 'admin'].includes(role)
+  const caps = labCapabilities(role)
+  const { canCreate, canResult, canReview } = caps
+  const nowMs = new Date().getTime()
 
   const statusLabels: Record<LabOrderStatus, string> = {
     ordered:          t('statusOrdered'),
@@ -72,6 +77,9 @@ export default function LabOrdersPage() {
 
   const [createOpen, setCreateOpen] = useState(false)
   const [detail, setDetail] = useState<LabOrder | null>(null)
+  const [filter, setFilter] = useState<LabFilter>('all')
+  const [scannerOpen, setScannerOpen] = useState(false)
+  const [labelOrder, setLabelOrder] = useState<LabOrder | null>(null)
 
   const { data: orders, isLoading } = useLabOrders()
   const { data: tests } = useLabTests()
@@ -108,73 +116,160 @@ export default function LabOrdersPage() {
   // Keep the open detail dialog in sync with refreshed list data.
   const liveDetail = detail ? orders?.find(o => o.id === detail.id) ?? detail : null
 
+  const kpis = useMemo(() => labKpis(orders ?? [], new Date(nowMs).toISOString()), [orders, nowMs])
+  const filtered = useMemo(() => filterLabOrders(orders ?? [], filter), [orders, filter])
+
+  function onScan(code: string) {
+    setScannerOpen(false)
+    const match = orders ? matchLabOrderByCode(code, orders) : null
+    if (match) openDetail(match)
+    else toast.error(t('scanNotFound', { code }))
+  }
+
+  // super_admin: platform role, no patient medical detail.
+  if (caps.restricted) {
+    return (
+      <div className="flex h-full flex-col">
+        <Topbar title={t('title')} />
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center text-gray-400">
+          <Lock className="h-12 w-12 opacity-30" />
+          <p className="max-w-sm text-sm">{t('restrictedNotice')}</p>
+        </div>
+      </div>
+    )
+  }
+
+  const kpiCards = [
+    { label: t('kpiPending'),       value: kpis.pending,          icon: Clock,          color: 'text-blue-700',    bg: 'bg-blue-50' },
+    { label: t('kpiCollected'),     value: kpis.collected,        icon: Beaker,         color: 'text-purple-700',  bg: 'bg-purple-50' },
+    { label: t('kpiInProgress'),    value: kpis.inProgress,       icon: Microscope,     color: 'text-amber-700',   bg: 'bg-amber-50' },
+    { label: t('kpiCompletedToday'),value: kpis.completedToday,   icon: CheckCircle2,   color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { label: t('kpiCritical'),      value: kpis.criticalAbnormal, icon: AlertOctagon,   color: 'text-red-600',     bg: 'bg-red-50' },
+    { label: t('kpiAwaitingReview'),value: kpis.awaitingReview,   icon: ClipboardCheck, color: 'text-teal-700',    bg: 'bg-teal-50' },
+  ]
+  const filters: { key: LabFilter; label: string }[] = [
+    { key: 'all', label: t('filterAll') },
+    { key: 'pending', label: t('filterPending') },
+    { key: 'collected', label: t('filterCollected') },
+    { key: 'in_progress', label: t('filterInProgress') },
+    { key: 'completed', label: t('filterCompleted') },
+    { key: 'awaiting_review', label: t('filterAwaitingReview') },
+    { key: 'critical', label: t('filterCritical') },
+  ]
+
   return (
     <div className="flex flex-col h-full">
       <Topbar title={t('title')} description={t('subtitle')} />
-      <div className="flex-1 p-4 md:p-6 space-y-4">
-        <InsightsPanel variant="lab" />
-        {canCreate && (
-          <div className="flex justify-end">
-            <Button onClick={() => { resetCreate(); setCreateOpen(true) }}>
-              <Plus className="h-4 w-4" /> {t('newOrder')}
-            </Button>
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6">
+        {/* Hero */}
+        <section className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-teal-50 via-emerald-50 to-cyan-50 p-5 shadow-sm md:p-6">
+          <div aria-hidden className="pointer-events-none absolute -right-10 -top-12 h-48 w-48 rounded-full bg-teal-200/30 blur-3xl" />
+          <div className="relative z-10 flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-700 text-white shadow-md shadow-teal-900/20">
+                <FlaskConical className="h-5 w-5" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-gray-900">{t('heroTitle')}</h1>
+                <p className="text-sm font-semibold text-teal-700">{t('heroSubtitle')}</p>
+                <p className="mt-1 max-w-md text-xs leading-relaxed text-gray-500">{t('heroHelper')}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" className="gap-1.5 bg-white/70" onClick={() => setScannerOpen(true)}>
+                <ScanLine className="h-4 w-4" /> {t('scanSample')}
+              </Button>
+              {canCreate && (
+                <Button className="gap-1.5 bg-teal-700 hover:bg-teal-800" onClick={() => { resetCreate(); setCreateOpen(true) }}>
+                  <Plus className="h-4 w-4" /> {t('newOrder')}
+                </Button>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* KPIs */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+          {kpiCards.map(k => (
+            <Card key={k.label}>
+              <CardContent className="flex items-center gap-2.5 p-3">
+                <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', k.bg)}>
+                  <k.icon className={cn('h-4.5 w-4.5', k.color)} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-lg font-bold text-gray-900">{k.value}</p>
+                  <p className="truncate text-[11px] text-gray-500">{k.label}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* AI executive lab briefing */}
+        {orders && orders.length > 0 && <LabBriefing orders={orders} nowMs={nowMs} />}
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-1.5">
+          {filters.map(f => (
+            <button
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              className={cn(
+                'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                filter === f.key ? 'border-teal-600 bg-teal-600 text-white' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50',
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Work queue */}
+        {isLoading ? (
+          <div className="flex h-32 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>
+        ) : !orders || orders.length === 0 ? (
+          <Card><CardContent className="p-0"><EmptyState icon={FlaskConical} title={t('emptyTitle')} description={t('emptyDesc')} /></CardContent></Card>
+        ) : filtered.length === 0 ? (
+          <Card><CardContent className="p-0"><EmptyState icon={FlaskConical} title={t('emptyFilterTitle')} description={t('emptyFilterDesc')} /></CardContent></Card>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2">
+            {filtered.map(order => {
+              const crit = orderCriticality(order)
+              const waitedH = Math.floor((nowMs - new Date(order.created_at).getTime()) / 3_600_000)
+              return (
+                <Card key={order.id} className={cn('transition-colors hover:border-teal-200', crit.level === 'critical' && 'border-red-300', crit.level === 'abnormal' && 'border-amber-300')}>
+                  <CardContent className="space-y-2 p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-gray-900">{order.patient_name ?? '—'}</p>
+                        <p className="font-mono text-xs text-blue-600">{displaySampleId(order)}{order.patient_number ? ` · ${order.patient_number}` : ''}</p>
+                      </div>
+                      {crit.level !== 'none' && (
+                        <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold', crit.level === 'critical' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700')}>
+                          <AlertOctagon className="h-3 w-3" /> {crit.level === 'critical' ? t('flagCritical') : t('flagAbnormal')}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
+                      <span className="inline-flex items-center gap-1"><Microscope className="h-3 w-3" />{order.items?.length ?? 0} {t('testsUnit')}</span>
+                      <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" />{waitedH < 1 ? t('waitRecent') : waitedH < 24 ? t('waitHours', { h: waitedH }) : t('waitDays', { d: Math.floor(waitedH / 24) })}</span>
+                      <span className={cn('rounded-full px-2 py-0.5 font-medium', order.priority === 'normal' ? 'bg-gray-100 text-gray-600' : order.priority === 'urgent' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700')}>{order.priority}</span>
+                      <span className={cn('rounded-full px-2 py-0.5 font-medium', statusColors[order.status])}>{statusLabels[order.status]}</span>
+                    </div>
+                    <div className="flex items-center justify-end gap-1.5 pt-1">
+                      <Button variant="ghost" size="sm" className="h-8" onClick={() => setLabelOrder(order)}>
+                        <Tag className="mr-1 h-3.5 w-3.5" /> {t('labelBtn')}
+                      </Button>
+                      <Button variant="outline" size="sm" className="h-8" onClick={() => openDetail(order)}>
+                        <Eye className="mr-1 h-3.5 w-3.5" /> {t('open')}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
         )}
-
-        <Card>
-          <CardContent className="p-0">
-            {isLoading && (
-              <div className="flex items-center justify-center h-32"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>
-            )}
-            {!isLoading && (!orders || orders.length === 0) && (
-              <EmptyState icon={FlaskConical} title={t('emptyTitle')} description={t('emptyDesc')} />
-            )}
-            {!isLoading && orders && orders.length > 0 && (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t('colPatient')}</TableHead>
-                      <TableHead>{t('colTests')}</TableHead>
-                      <TableHead>{t('colPriority')}</TableHead>
-                      <TableHead>{t('colStatus')}</TableHead>
-                      <TableHead>{t('colDate')}</TableHead>
-                      <TableHead className="text-right">{t('colActions')}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {orders.map(order => (
-                      <TableRow key={order.id}>
-                        <TableCell className="font-medium">
-                          {order.patient_name ?? '—'}
-                          {order.patient_number && <span className="block font-mono text-xs text-blue-600">{order.patient_number}</span>}
-                        </TableCell>
-                        <TableCell className="text-sm text-gray-600">{order.items?.length ?? 0} {t('testsUnit')}</TableCell>
-                        <TableCell>
-                          <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium',
-                            order.priority === 'normal' ? 'bg-gray-100 text-gray-600' : order.priority === 'urgent' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700')}>
-                            {order.priority}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-medium', statusColors[order.status])}>
-                            {statusLabels[order.status]}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-sm text-gray-400">{formatDate(order.created_at)}</TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" className="h-8" onClick={() => openDetail(order)}>
-                            <Eye className="h-3.5 w-3.5 mr-1" /> {t('open')}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
       {/* Create order dialog */}
@@ -252,6 +347,12 @@ export default function LabOrdersPage() {
           onClose={() => setDetail(null)}
         />
       )}
+
+      {/* Barcode sample scanner (reused Smart-Pharmacy component) */}
+      {scannerOpen && <ScanBarcode title={t('scanSample')} onDetected={onScan} onClose={() => setScannerOpen(false)} />}
+
+      {/* Printable sample label */}
+      {labelOrder && <LabSampleLabel order={labelOrder} onClose={() => setLabelOrder(null)} />}
     </div>
   )
 }
