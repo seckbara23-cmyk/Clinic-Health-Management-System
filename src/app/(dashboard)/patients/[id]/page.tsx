@@ -1,173 +1,130 @@
 'use client'
 
-import { use, useState, useEffect } from 'react'
+import { use, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { logRecordView } from '@/lib/audit-client'
-import {
-  ArrowLeft, UserRound, Phone, Mail, MapPin, AlertCircle,
-  Droplets, Calendar, Stethoscope, Receipt, Clock, Pencil,
-  Pill, FlaskConical, History, MessageCircle, Activity,
-  CreditCard, ShieldCheck,
-} from 'lucide-react'
+import { ArrowLeft, UserRound, ShieldCheck, AlertCircle, Activity, Clock, Lock } from 'lucide-react'
 import { Topbar } from '@/components/layout/Topbar'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { usePatient } from '@/hooks/usePatients'
-import { useAppointments, useCreateAppointment } from '@/hooks/useAppointments'
-import { useConsultations, useCreateConsultation } from '@/hooks/useConsultations'
+import { useAppointments } from '@/hooks/useAppointments'
+import { useConsultations } from '@/hooks/useConsultations'
 import { useInvoices } from '@/hooks/useInvoices'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
 import { useLabOrders } from '@/hooks/useLab'
 import { useDispensings } from '@/hooks/usePharmacy'
-import { useDoctors } from '@/hooks/useDoctors'
 import { useLatestPatientVitals } from '@/hooks/useVitals'
+import { useMedicationSafety } from '@/hooks/useMedicationSafety'
 import { useClinic } from '@/context/ClinicContext'
-import { InsightsPanel } from '@/components/ai/InsightsPanel'
 import { useFormatters } from '@/hooks/useFormatters'
-import { age, cn } from '@/lib/utils'
-import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
-import type { Prescription, LabOrder, LabOrderStatus } from '@/types/database'
+import { cn } from '@/lib/utils'
+import {
+  computeHealthScore, buildPatientBrief, buildPatientAlerts, patientCapabilities,
+} from '@/lib/patient-intel'
+import { PatientHeader } from '@/components/patients/PatientHeader'
+import { PatientTimeline } from '@/components/patients/PatientTimeline'
+import { PatientQuickActions } from '@/components/patients/PatientQuickActions'
+import { PatientBrief, PatientAlerts, ClinicalSnapshot, PatientDocuments } from '@/components/patients/PatientPanels'
+import type { PatientTimelineType } from '@/lib/patient-intel'
+import type { Medication, Role } from '@/types/database'
 
-const apptStatusColors: Record<string, string> = {
-  scheduled: 'bg-blue-100 text-blue-800', in_queue: 'bg-amber-100 text-amber-800',
-  in_progress: 'bg-violet-100 text-violet-800', completed: 'bg-emerald-100 text-emerald-800',
-  cancelled: 'bg-gray-100 text-gray-600', no_show: 'bg-red-100 text-red-800',
-}
-const invStatusColors: Record<string, string> = {
-  draft: 'bg-gray-100 text-gray-700', sent: 'bg-blue-100 text-blue-700',
-  paid: 'bg-emerald-100 text-emerald-700', partial: 'bg-amber-100 text-amber-700',
-  overdue: 'bg-red-100 text-red-700', cancelled: 'bg-gray-100 text-gray-400',
-}
-const rxStatusColors: Record<string, string> = {
-  active: 'bg-emerald-100 text-emerald-700', partially_dispensed: 'bg-amber-100 text-amber-700', dispensed: 'bg-blue-100 text-blue-700',
-  expired: 'bg-gray-100 text-gray-500', cancelled: 'bg-red-100 text-red-500',
-}
-const labStatusColors: Record<string, string> = {
-  ordered: 'bg-blue-100 text-blue-700', sample_collected: 'bg-purple-100 text-purple-700',
-  sample_rejected: 'bg-red-100 text-red-700', in_progress: 'bg-amber-100 text-amber-700',
-  completed: 'bg-emerald-100 text-emerald-700', reviewed: 'bg-teal-100 text-teal-700',
-  cancelled: 'bg-red-100 text-red-500',
-}
-
-type Tab = 'history' | 'prescriptions' | 'labs' | 'timeline'
+const ACTIVE_RX = new Set(['active', 'partially_dispensed'])
+const PENDING_LAB = new Set(['ordered', 'sample_collected', 'in_progress'])
+const OPEN_INVOICE = new Set(['draft', 'sent', 'partial', 'overdue'])
+const ABNORMAL_FLAGS = new Set(['abnormal', 'high', 'low', 'critical'])
 
 export default function PatientProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const t = useTranslations('patientProfile')
-  const { formatDate, formatTime, formatCurrency } = useFormatters()
-  const router = useRouter()
+  const { formatDate, formatTime } = useFormatters()
   const { profile } = useClinic()
-  const [activeTab, setActiveTab] = useState<Tab>('history')
-  const [quickApptOpen, setQuickApptOpen] = useState(false)
-  const [apptDate, setApptDate] = useState('')
-  const [apptTime, setApptTime] = useState('')
-  const [apptDoctorId, setApptDoctorId] = useState('')
-  const [apptNotes, setApptNotes] = useState('')
-
-  const apptStatusLabels: Record<string, string> = {
-    scheduled:   t('apptStatusScheduled'),
-    in_queue:    t('apptStatusInQueue'),
-    in_progress: t('apptStatusInProgress'),
-    completed:   t('apptStatusCompleted'),
-    cancelled:   t('apptStatusCancelled'),
-    no_show:     t('apptStatusNoShow'),
-  }
-  const invStatusLabels: Record<string, string> = {
-    draft:     t('invStatusDraft'),
-    sent:      t('invStatusSent'),
-    paid:      t('invStatusPaid'),
-    partial:   t('invStatusPartial'),
-    overdue:   t('invStatusOverdue'),
-    cancelled: t('invStatusCancelled'),
-  }
-  const rxStatusLabels: Record<string, string> = {
-    active:               t('rxStatusActive'),
-    partially_dispensed:  t('rxStatusPartiallyDispensed'),
-    dispensed:            t('rxStatusDispensed'),
-    expired:   t('rxStatusExpired'),
-    cancelled: t('rxStatusCancelled'),
-  }
-  const labStatusLabels: Record<string, string> = {
-    ordered:          t('labStatusOrdered'),
-    sample_collected: t('labStatusSampleCollected'),
-    sample_rejected:  t('labStatusSampleRejected'),
-    in_progress:      t('labStatusInProgress'),
-    completed:        t('labStatusCompleted'),
-    reviewed:         t('labStatusReviewed'),
-    cancelled:        t('labStatusCancelled'),
-  }
-  const genderLabel: Record<string, string> = {
-    male:   t('genderMale'),
-    female: t('genderFemale'),
-    other:  t('genderOther'),
-  }
+  const role = (profile?.role ?? 'admin') as Role
+  const caps = patientCapabilities(role)
 
   const { data: patient, isLoading } = usePatient(id)
   useEffect(() => { logRecordView('patient', id) }, [id])
   const { data: latestVitals } = useLatestPatientVitals(id)
-  const { data: dispensingHistory } = useDispensings({ patientId: id })
-  const { data: patientAppointments } = useAppointments(undefined, id)
+  const { data: dispensings } = useDispensings({ patientId: id })
+  const { data: appointments } = useAppointments(undefined, id)
   const { data: consultations } = useConsultations(id)
-  const { data: patientInvoices } = useInvoices(undefined, id)
-  const { data: prescriptions } = usePrescriptions()
+  const { data: invoices } = useInvoices(undefined, id)
+  const { data: prescriptions } = usePrescriptions(undefined, id)
   const { data: labOrders } = useLabOrders(id)
-  const { data: doctors } = useDoctors()
-  const createConsultation = useCreateConsultation()
-  const createAppt = useCreateAppointment()
+  const safety = useMedicationSafety()
 
-  const patientPrescriptions = prescriptions?.filter(rx => rx.patient_id === id) ?? []
-
-  async function handleStartConsultation() {
-    if (!profile?.id) return
-    try {
-      const result = await createConsultation.mutateAsync({
-        patient_id: id,
-        appointment_id: null,
-        doctor_id: profile.id,
-      })
-      router.push(`/consultations/${result.id}`)
-    } catch {
-      // error already toasted by hook
+  const activeMeds = useMemo<Medication[]>(() => {
+    const seen = new Set<string>()
+    const out: Medication[] = []
+    for (const rx of prescriptions ?? []) {
+      if (!ACTIVE_RX.has(rx.status)) continue
+      for (const m of rx.medications ?? []) {
+        const key = m.name.trim().toLowerCase()
+        if (!key || seen.has(key)) continue
+        seen.add(key); out.push(m)
+      }
     }
-  }
+    return out
+  }, [prescriptions])
 
-  async function handleQuickAppt() {
-    if (!apptDate || !apptTime) { toast.error(t('quickApptDateRequired')); return }
-    await createAppt.mutateAsync({
-      patient_id: id,
-      doctor_id: apptDoctorId || null,
-      title: 'Rendez-vous',
-      scheduled_at: `${apptDate}T${apptTime}:00`,
-      duration_min: 30,
-      status: 'scheduled',
-      priority: 'normal',
-      notes: apptNotes || null,
-    })
-    setQuickApptOpen(false)
-    setApptDate(''); setApptTime(''); setApptDoctorId(''); setApptNotes('')
-  }
+  const derived = useMemo(() => {
+    const nowIso = new Date().toISOString()
+    const today = nowIso.slice(0, 10)
+
+    const outstandingBalance = (invoices ?? [])
+      .filter(i => OPEN_INVOICE.has(i.status))
+      .reduce((s, i) => s + (Number(i.total_amount) - Number(i.amount_paid)), 0)
+
+    const activePrescriptions = (prescriptions ?? []).filter(rx => ACTIVE_RX.has(rx.status)).length
+    const pendingLabOrders = (labOrders ?? []).filter(l => PENDING_LAB.has(l.status)).length
+    const pendingLabReviews = (labOrders ?? []).filter(l => l.status === 'completed').length
+
+    const upcoming = (appointments ?? [])
+      .filter(a => a.scheduled_at >= nowIso && !['cancelled', 'no_show', 'completed'].includes(a.status))
+      .sort((x, y) => new Date(x.scheduled_at).getTime() - new Date(y.scheduled_at).getTime())
+    const lastConsult = consultations?.[0]?.created_at ?? null
+
+    // Abnormal, still-unreviewed lab results.
+    const abnormalOrders = (labOrders ?? []).filter(l =>
+      l.status === 'completed' && (l.items ?? []).some(i => i.flag && ABNORMAL_FLAGS.has(i.flag)))
+    const criticalPendingLab = abnormalOrders.some(l => (l.items ?? []).some(i => i.flag === 'critical'))
+
+    // Missed follow-up: a past follow-up date with no visit or appointment since.
+    const pastFollowUps = (consultations ?? [])
+      .map(c => c.follow_up_date).filter((d): d is string => !!d && d < today).sort()
+    const latestPastFollowUp = pastFollowUps[pastFollowUps.length - 1]
+    const missedFollowUp = !!latestPastFollowUp
+      && !(consultations ?? []).some(c => c.created_at.slice(0, 10) > latestPastFollowUp)
+      && !(appointments ?? []).some(a => a.scheduled_at.slice(0, 10) >= latestPastFollowUp)
+
+    // Stock issue affecting an active medication (Phase 8 safety engine).
+    const stockIssueCount = safety.analyzeLines(
+      activeMeds.map(m => ({ medication_id: m.medication_id ?? null, name: m.name })),
+    ).filter(w => w.code === 'out_of_stock' || w.code === 'low_stock').length
+
+    return {
+      outstandingBalance, activePrescriptions, pendingLabOrders, pendingLabReviews,
+      upcomingAppointment: upcoming[0]?.scheduled_at ?? null, lastConsult,
+      abnormalPendingLabCount: abnormalOrders.length, criticalPendingLab, missedFollowUp,
+      stockIssueCount,
+      primaryPhysician: (consultations?.[0] as { doctor?: { full_name?: string } } | undefined)?.doctor?.full_name ?? null,
+    }
+  }, [invoices, prescriptions, labOrders, appointments, consultations, activeMeds, safety])
 
   if (isLoading) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex h-full flex-col">
         <Topbar title={t('title')} />
-        <div className="flex-1 flex items-center justify-center text-gray-400">{t('loading')}</div>
+        <div className="flex flex-1 items-center justify-center text-gray-400">{t('loading')}</div>
       </div>
     )
   }
-
   if (!patient) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex h-full flex-col">
         <Topbar title={t('title')} />
-        <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-3">
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 text-gray-400">
           <UserRound className="h-12 w-12 opacity-30" />
           <p>{t('notFound')}</p>
           <Link href="/patients"><Button variant="outline" size="sm">{t('backLink')}</Button></Link>
@@ -176,697 +133,179 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
     )
   }
 
-  // Timeline: merge all events by date descending
-  type TimelineEvent = {
-    date: string
-    type: 'consultation' | 'appointment' | 'invoice' | 'prescription' | 'lab'
-    title: string
-    subtitle?: string
-    badge?: string
-    badgeColor?: string
-    icon: React.ElementType
+  // super_admin: platform role, no patient medical detail.
+  if (caps.restricted) {
+    return (
+      <div className="flex h-full flex-col">
+        <Topbar title={patient.full_name} />
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center text-gray-400">
+          <Lock className="h-12 w-12 opacity-30" />
+          <p className="max-w-sm text-sm">{t('restrictedNotice')}</p>
+          <Link href="/patients"><Button variant="outline" size="sm">{t('backLink')}</Button></Link>
+        </div>
+      </div>
+    )
   }
-  const timelineEvents: TimelineEvent[] = [
-    ...(consultations ?? []).map(c => ({
-      date: c.created_at, type: 'consultation' as const,
-      title: c.chief_complaint ?? 'Consultation',
-      subtitle: c.diagnosis ? `${t('diagnosisLabel')} ${c.diagnosis}` : undefined,
-      badge: `Dr. ${(c as { doctor?: { full_name?: string } }).doctor?.full_name ?? ''}`,
-      badgeColor: 'bg-violet-100 text-violet-700',
-      icon: Stethoscope,
-    })),
-    ...(patientAppointments ?? []).map(a => ({
-      date: a.scheduled_at, type: 'appointment' as const,
-      title: t('appointmentEntry', { time: formatTime(a.scheduled_at) }),
-      subtitle: a.notes ?? undefined,
-      badge: apptStatusLabels[a.status] ?? a.status,
-      badgeColor: apptStatusColors[a.status] ?? '',
-      icon: Calendar,
-    })),
-    ...(patientInvoices ?? []).map(inv => ({
-      date: inv.created_at, type: 'invoice' as const,
-      title: `${inv.invoice_number} — ${formatCurrency(Number(inv.total_amount))}`,
-      subtitle: undefined,
-      badge: invStatusLabels[inv.status] ?? inv.status,
-      badgeColor: invStatusColors[inv.status] ?? '',
-      icon: Receipt,
-    })),
-    ...(patientPrescriptions as unknown as Prescription[]).map(rx => ({
-      date: rx.created_at, type: 'prescription' as const,
-      title: t('prescriptionTitle', { count: rx.medications.length }),
-      subtitle: rx.medications.map(m => m.name).join(', '),
-      badge: rxStatusLabels[rx.status] ?? rx.status,
-      badgeColor: rxStatusColors[rx.status] ?? '',
-      icon: Pill,
-    })),
-    ...(labOrders ?? []).map(lab => ({
-      date: lab.created_at, type: 'lab' as const,
-      title: (lab.items && lab.items.length === 1) ? lab.items[0].test_name : t('labOrderCount', { count: lab.items?.length ?? 0 }),
-      subtitle: lab.interpretation ?? undefined,
-      badge: labStatusLabels[lab.status] ?? lab.status,
-      badgeColor: labStatusColors[lab.status] ?? '',
-      icon: FlaskConical,
-    })),
-  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
-  const tabs = [
-    { id: 'history' as Tab,       label: t('tabHistory'),       icon: Stethoscope },
-    { id: 'prescriptions' as Tab, label: t('tabPrescriptions'), icon: Pill },
-    { id: 'labs' as Tab,          label: t('tabLabs'),          icon: FlaskConical },
-    { id: 'timeline' as Tab,      label: t('tabTimeline'),      icon: History },
-  ]
+  const healthScore = computeHealthScore(patient)
+  const brief = buildPatientBrief({
+    activePrescriptions: derived.activePrescriptions,
+    pendingLabReviews: derived.pendingLabReviews,
+    outstandingBalance: derived.outstandingBalance,
+    loaded: { prescriptions: !!prescriptions, labs: !!labOrders, invoices: !!invoices },
+  })
+
+  const alerts = buildPatientAlerts({
+    allergies: patient.allergies,
+    outstandingBalance: derived.outstandingBalance,
+    missedFollowUp: derived.missedFollowUp,
+    abnormalPendingLabCount: derived.abnormalPendingLabCount,
+    criticalPendingLab: derived.criticalPendingLab,
+    stockIssueCount: derived.stockIssueCount,
+  }).filter(a => {
+    if (a.code === 'outstanding_balance') return caps.financial
+    if (a.code === 'stock_issue') return caps.medications || caps.medical
+    return caps.medical // allergy, abnormal lab, missed follow-up
+  })
+
+  // Which record types the timeline shows for this role.
+  const include: PatientTimelineType[] = Array.from(new Set<PatientTimelineType>([
+    ...(caps.medical ? ['consultation', 'appointment', 'prescription', 'lab'] as PatientTimelineType[] : []),
+    ...(caps.medications ? ['prescription', 'dispensing'] as PatientTimelineType[] : []),
+    ...(caps.labs ? ['lab'] as PatientTimelineType[] : []),
+    ...(caps.financial ? ['invoice'] as PatientTimelineType[] : []),
+    ...(caps.appointments ? ['appointment'] as PatientTimelineType[] : []),
+  ]))
+
+  const insuranceData = {
+    payerLabel: patient.insurance_payer_type ? t(`payer_${patient.insurance_payer_type}`) : null,
+    provider: patient.insurance_provider,
+    coverage: patient.insurance_coverage_percent != null ? Number(patient.insurance_coverage_percent) : null,
+  }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       <Topbar title={patient.full_name} description={t('dossierDesc', { number: patient.patient_number })} />
 
-      <div className="flex-1 overflow-y-auto p-4 pb-20 md:pb-6 md:p-6 space-y-4 md:space-y-6">
-        <Link href="/patients" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800">
-          <ArrowLeft className="h-4 w-4" /> {t('backLink')}
-        </Link>
+      <div className="flex-1 overflow-y-auto p-4 md:p-6">
+        <div className="mx-auto max-w-6xl space-y-4 md:space-y-6">
+          <Link href="/patients" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800">
+            <ArrowLeft className="h-4 w-4" /> {t('backLink')}
+          </Link>
 
-        {/* Embedded AI insights (read-only; hidden when AI flags are off) */}
-        <InsightsPanel variant="patient" />
+          <PatientHeader patient={patient} healthScore={healthScore} caps={caps} metrics={{
+            lastConsult: derived.lastConsult,
+            upcomingAppointment: derived.upcomingAppointment,
+            outstandingBalance: derived.outstandingBalance,
+            activePrescriptions: derived.activePrescriptions,
+            pendingLabOrders: derived.pendingLabOrders,
+          }} />
 
-        <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
-          {/* Left column — patient info */}
-          <div className="space-y-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <UserRound className="h-4 w-4" /> {t('cardIdentity')}
-                  </CardTitle>
-                  <Link href={`/patients?edit=${id}`}>
-                    <Button variant="ghost" size="icon" className="h-8 w-8"><Pencil className="h-3.5 w-3.5" /></Button>
-                  </Link>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-700 text-lg font-bold">
-                    {patient.full_name[0]}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">{patient.full_name}</p>
-                    <p className="text-xs font-mono text-blue-600">{patient.patient_number}</p>
-                  </div>
-                </div>
-                <div className="space-y-2 pt-1">
-                  {patient.date_of_birth && (
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <Calendar className="h-3.5 w-3.5 shrink-0" />
-                      <span>{formatDate(patient.date_of_birth)} ({age(patient.date_of_birth)} ans)</span>
-                    </div>
-                  )}
-                  {patient.gender && (
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <UserRound className="h-3.5 w-3.5 shrink-0" />
-                      <span>{genderLabel[patient.gender]}</span>
-                    </div>
-                  )}
-                  {patient.phone && (
-                    <a href={`tel:${patient.phone}`} className="flex items-center gap-2 text-gray-600 hover:text-blue-600">
-                      <Phone className="h-3.5 w-3.5 shrink-0" /><span>{patient.phone}</span>
-                    </a>
-                  )}
-                  {patient.email && (
-                    <a href={`mailto:${patient.email}`} className="flex items-center gap-2 text-gray-600 hover:text-blue-600">
-                      <Mail className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{patient.email}</span>
-                    </a>
-                  )}
-                  {patient.address && (
-                    <div className="flex items-start gap-2 text-gray-600">
-                      <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" /><span>{patient.address}</span>
-                    </div>
-                  )}
-                  {patient.cni && (
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <CreditCard className="h-3.5 w-3.5 shrink-0" />
-                      <span className="font-mono text-xs">{t('cniLabel')} {patient.cni}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2">
-                    {patient.consent_given ? (
-                      <Badge variant="secondary" className="text-xs text-emerald-700">{t('consentGivenBadge')}</Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-xs text-amber-600 border-amber-200">{t('consentMissingBadge')}</Badge>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Alert strip — hidden entirely when empty */}
+          {alerts.length > 0 && <PatientAlerts alerts={alerts} />}
 
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Droplets className="h-4 w-4" /> {t('cardMedical')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                {patient.blood_type && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-500">{t('bloodGroupLabel')}</span>
-                    <Badge variant="secondary" className="font-mono">{patient.blood_type}</Badge>
-                  </div>
-                )}
-                {patient.allergies && patient.allergies.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-1.5 text-red-600 mb-1.5">
-                      <AlertCircle className="h-3.5 w-3.5" />
-                      <span className="font-medium text-xs">{t('allergiesLabel')}</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {patient.allergies.map(a => (
-                        <span key={a} className="rounded-full bg-red-50 px-2 py-0.5 text-xs text-red-700 border border-red-200">{a}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {patient.notes && (
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">{t('notesLabel')}</p>
-                    <p className="text-gray-700 text-xs">{patient.notes}</p>
-                  </div>
-                )}
-                {!patient.blood_type && (!patient.allergies || patient.allergies.length === 0) && !patient.notes && (
-                  <p className="text-gray-400 text-xs">{t('noMedicalInfo')}</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {patient.insurance_payer_type && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-emerald-600" /> {t('cardInsurance')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-500">{t('insurancePayerLabel')}</span>
-                    <Badge variant="secondary">{t(`payer_${patient.insurance_payer_type}`)}</Badge>
-                  </div>
-                  {patient.insurance_provider && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-500">{t('insuranceProviderLabel')}</span>
-                      <span className="font-medium text-gray-900">{patient.insurance_provider}</span>
-                    </div>
-                  )}
-                  {patient.insurance_policy_number && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-500">{t('insurancePolicyLabel')}</span>
-                      <span className="font-mono text-xs">{patient.insurance_policy_number}</span>
-                    </div>
-                  )}
-                  {patient.insurance_coverage_percent != null && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-500">{t('insuranceCoverageLabel')}</span>
-                      <span className="font-semibold text-emerald-700">{Number(patient.insurance_coverage_percent)}%</span>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {(patient.emergency_contact || patient.emergency_phone) && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4" /> {t('cardEmergency')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm space-y-1.5">
-                  {patient.emergency_contact && <p className="font-medium text-gray-900">{patient.emergency_contact}</p>}
-                  {patient.emergency_phone && (
-                    <a href={`tel:${patient.emergency_phone}`} className="flex items-center gap-2 text-gray-600 hover:text-blue-600">
-                      <Phone className="h-3.5 w-3.5" /> {patient.emergency_phone}
-                    </a>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Dispensing history */}
-            {(dispensingHistory?.length ?? 0) > 0 && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Pill className="h-4 w-4 text-lime-600" /> {t('cardDispensing')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm space-y-2">
-                  {dispensingHistory!.slice(0, 8).map(d => (
-                    <div key={d.id} className="flex items-center justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="font-medium text-gray-900 truncate">{d.medication_name}</p>
-                        <p className="text-xs text-gray-400">{formatDate(d.dispensed_at ?? d.created_at)}</p>
-                      </div>
-                      {d.status === 'unavailable'
-                        ? <Badge variant="outline" className="shrink-0 text-xs text-red-600 border-red-200">{t('dispUnavailable')}</Badge>
-                        : <span className="shrink-0 font-semibold text-emerald-700">×{d.quantity_dispensed}</span>}
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Latest vitals snapshot */}
-            {latestVitals && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-rose-500" /> {t('cardVitals')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm space-y-3">
-                  <p className="text-xs text-gray-400 flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    {formatDate(latestVitals.created_at)} à {formatTime(latestVitals.created_at)}
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {latestVitals.systolic_bp != null && latestVitals.diastolic_bp != null && (
-                      <div className="rounded-lg bg-rose-50 border border-rose-100 px-2.5 py-2">
-                        <p className="text-[10px] text-rose-500 font-medium uppercase tracking-wide">Tension</p>
-                        <p className="font-bold text-rose-800 tabular-nums">
-                          {latestVitals.systolic_bp}/{latestVitals.diastolic_bp}
-                          <span className="text-xs font-normal text-rose-500 ml-1">mmHg</span>
-                        </p>
-                      </div>
-                    )}
-                    {latestVitals.heart_rate != null && (
-                      <div className="rounded-lg bg-pink-50 border border-pink-100 px-2.5 py-2">
-                        <p className="text-[10px] text-pink-500 font-medium uppercase tracking-wide">FC</p>
-                        <p className="font-bold text-pink-800 tabular-nums">
-                          {latestVitals.heart_rate}
-                          <span className="text-xs font-normal text-pink-500 ml-1">bpm</span>
-                        </p>
-                      </div>
-                    )}
-                    {latestVitals.temperature_c != null && (
-                      <div className="rounded-lg bg-amber-50 border border-amber-100 px-2.5 py-2">
-                        <p className="text-[10px] text-amber-600 font-medium uppercase tracking-wide">Temp.</p>
-                        <p className="font-bold text-amber-800 tabular-nums">
-                          {latestVitals.temperature_c}
-                          <span className="text-xs font-normal text-amber-600 ml-1">°C</span>
-                        </p>
-                      </div>
-                    )}
-                    {latestVitals.spo2 != null && (
-                      <div className="rounded-lg bg-blue-50 border border-blue-100 px-2.5 py-2">
-                        <p className="text-[10px] text-blue-500 font-medium uppercase tracking-wide">SpO₂</p>
-                        <p className="font-bold text-blue-800 tabular-nums">
-                          {latestVitals.spo2}
-                          <span className="text-xs font-normal text-blue-500 ml-1">%</span>
-                        </p>
-                      </div>
-                    )}
-                    {latestVitals.weight_kg != null && (
-                      <div className="rounded-lg bg-violet-50 border border-violet-100 px-2.5 py-2">
-                        <p className="text-[10px] text-violet-500 font-medium uppercase tracking-wide">Poids</p>
-                        <p className="font-bold text-violet-800 tabular-nums">
-                          {latestVitals.weight_kg}
-                          <span className="text-xs font-normal text-violet-500 ml-1">kg</span>
-                        </p>
-                      </div>
-                    )}
-                    {latestVitals.bmi != null && (
-                      <div className="rounded-lg bg-violet-50 border border-violet-100 px-2.5 py-2">
-                        <p className="text-[10px] text-violet-500 font-medium uppercase tracking-wide">IMC</p>
-                        <p className="font-bold text-violet-800 tabular-nums">{latestVitals.bmi}</p>
-                      </div>
-                    )}
-                  </div>
-                  {latestVitals.pain_scale != null && (
-                    <div className="flex items-center gap-2 text-xs text-gray-600">
-                      <span className="text-gray-400">Douleur :</span>
-                      <span className={cn(
-                        'font-bold',
-                        latestVitals.pain_scale <= 3 ? 'text-emerald-600'
-                        : latestVitals.pain_scale <= 6 ? 'text-amber-600'
-                        : 'text-red-600',
-                      )}>
-                        {latestVitals.pain_scale}/10
-                      </span>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Right column — tabbed history */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* Summary chips */}
-            <div className="grid grid-cols-5 gap-2">
-              {[
-                { label: t('chipConsult'),       value: consultations?.length ?? 0,       color: 'bg-violet-50 text-violet-700' },
-                { label: t('chipAppt'),          value: patientAppointments?.length ?? 0, color: 'bg-blue-50 text-blue-700' },
-                { label: t('chipInvoices'),      value: patientInvoices?.length ?? 0,     color: 'bg-emerald-50 text-emerald-700' },
-                { label: t('chipPrescriptions'), value: patientPrescriptions.length,      color: 'bg-amber-50 text-amber-700' },
-                { label: t('chipLabs'),          value: labOrders?.length ?? 0,           color: 'bg-pink-50 text-pink-700' },
-              ].map(s => (
-                <div key={s.label} className={cn('rounded-xl p-2 md:p-3 text-center', s.color)}>
-                  <div className="text-lg font-bold md:text-xl">{s.value}</div>
-                  <div className="text-[10px] md:text-xs mt-0.5">{s.label}</div>
-                </div>
-              ))}
+          <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-3">
+            {/* Main column */}
+            <div className="space-y-4 md:space-y-6 lg:col-span-2">
+              {caps.medical && <PatientBrief brief={brief} />}
+              {include.length > 0 && (
+                <PatientTimeline
+                  include={include}
+                  consultations={consultations}
+                  appointments={appointments}
+                  prescriptions={prescriptions}
+                  labOrders={labOrders}
+                  invoices={invoices}
+                  dispensings={dispensings}
+                />
+              )}
+              {caps.documents && <PatientDocuments />}
             </div>
 
-            {/* Tabs */}
-            <div className="flex gap-1 border-b">
-              {tabs.map(tab => {
-                const Icon = tab.icon
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={cn(
-                      'flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
-                      activeTab === tab.id
-                        ? 'border-blue-600 text-blue-700'
-                        : 'border-transparent text-gray-500 hover:text-gray-700',
-                    )}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                    {tab.label}
-                  </button>
-                )
-              })}
+            {/* Right rail */}
+            <div className="space-y-4 md:space-y-6">
+              {caps.quickActions.length > 0 && (
+                <PatientQuickActions
+                  actions={caps.quickActions}
+                  ctx={{ patientId: id, patientName: patient.full_name, doctorId: profile?.id ?? '' }}
+                />
+              )}
+
+              {caps.medical ? (
+                <ClinicalSnapshot data={{
+                  allergies: patient.allergies ?? [],
+                  activeMedications: activeMeds.map(m => m.name),
+                  insurance: insuranceData,
+                  emergency: { contact: patient.emergency_contact, phone: patient.emergency_phone },
+                  primaryPhysician: derived.primaryPhysician,
+                  chronicConditions: [],
+                }} showInsurance={caps.insurance} />
+              ) : caps.insurance && (
+                /* Non-medical roles: insurance + emergency only */
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                      <ShieldCheck className="h-4 w-4 text-emerald-600" /> {t('cardInsurance')}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm">
+                    {insuranceData.payerLabel ? (
+                      <p className="text-gray-700">
+                        {insuranceData.payerLabel}
+                        {insuranceData.provider ? ` · ${insuranceData.provider}` : ''}
+                        {insuranceData.coverage != null ? ` · ${insuranceData.coverage}%` : ''}
+                      </p>
+                    ) : <p className="text-gray-400">{t('snapshotNoInsurance')}</p>}
+                    <div className="border-t pt-2">
+                      <p className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                        <AlertCircle className="h-3 w-3 text-amber-600" /> {t('snapshotEmergency')}
+                      </p>
+                      {patient.emergency_contact || patient.emergency_phone
+                        ? <p className="text-gray-700">{[patient.emergency_contact, patient.emergency_phone].filter(Boolean).join(' · ')}</p>
+                        : <p className="text-gray-400">{t('snapshotNoEmergency')}</p>}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Latest vitals (clinical roles only) */}
+              {caps.medical && latestVitals && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                      <Activity className="h-4 w-4 text-rose-500" /> {t('cardVitals')}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-sm">
+                    <p className="flex items-center gap-1 text-xs text-gray-400">
+                      <Clock className="h-3 w-3" /> {formatDate(latestVitals.created_at)} {formatTime(latestVitals.created_at)}
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {latestVitals.systolic_bp != null && latestVitals.diastolic_bp != null && (
+                        <Vital label={t('vitalBp')} value={`${latestVitals.systolic_bp}/${latestVitals.diastolic_bp}`} unit="mmHg" cls="bg-rose-50 border-rose-100 text-rose-800" />
+                      )}
+                      {latestVitals.heart_rate != null && <Vital label={t('vitalHr')} value={String(latestVitals.heart_rate)} unit="bpm" cls="bg-pink-50 border-pink-100 text-pink-800" />}
+                      {latestVitals.temperature_c != null && <Vital label={t('vitalTemp')} value={String(latestVitals.temperature_c)} unit="°C" cls="bg-amber-50 border-amber-100 text-amber-800" />}
+                      {latestVitals.spo2 != null && <Vital label="SpO₂" value={String(latestVitals.spo2)} unit="%" cls="bg-blue-50 border-blue-100 text-blue-800" />}
+                      {latestVitals.weight_kg != null && <Vital label={t('vitalWeight')} value={String(latestVitals.weight_kg)} unit="kg" cls="bg-violet-50 border-violet-100 text-violet-800" />}
+                      {latestVitals.bmi != null && <Vital label={t('vitalBmi')} value={String(latestVitals.bmi)} unit="" cls="bg-violet-50 border-violet-100 text-violet-800" />}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
-
-            {/* Tab: History */}
-            {activeTab === 'history' && (
-              <div className="space-y-4">
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Stethoscope className="h-4 w-4" /> {t('cardConsultations')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {!consultations || consultations.length === 0 ? (
-                      <p className="text-sm text-gray-400 py-4 text-center">{t('noConsultation')}</p>
-                    ) : consultations.slice(0, 5).map(c => (
-                      <div key={c.id} className="rounded-lg border p-3 space-y-1.5 hover:bg-gray-50">
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs text-gray-400">{formatDate(c.created_at)}</p>
-                          {c.follow_up_date && (
-                            <span className="flex items-center gap-1 text-xs text-amber-600">
-                              <Clock className="h-3 w-3" /> {t('followUpLabel', { date: formatDate(c.follow_up_date) })}
-                            </span>
-                          )}
-                        </div>
-                        {c.chief_complaint && <p className="text-sm font-medium text-gray-800">{c.chief_complaint}</p>}
-                        {c.diagnosis && (
-                          <p className="text-sm text-gray-600">
-                            <span className="font-medium text-gray-700">{t('diagnosisLabel')}</span> {c.diagnosis}
-                          </p>
-                        )}
-                        {c.treatment_plan && (
-                          <p className="text-sm text-gray-600">
-                            <span className="font-medium text-gray-700">{t('treatmentLabel')}</span> {c.treatment_plan}
-                          </p>
-                        )}
-                        <p className="text-xs text-gray-400">Dr. {(c as { doctor?: { full_name?: string } }).doctor?.full_name ?? '—'}</p>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Calendar className="h-4 w-4" /> {t('cardAppointments')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {!patientAppointments || patientAppointments.length === 0 ? (
-                      <p className="text-sm text-gray-400 py-4 text-center">{t('noAppointment')}</p>
-                    ) : patientAppointments.slice(0, 5).map(a => (
-                      <div key={a.id} className="flex items-center justify-between rounded-lg border p-3">
-                        <div>
-                          <p className="text-sm font-medium text-gray-800">
-                            {formatDate(a.scheduled_at)} à {formatTime(a.scheduled_at)}
-                          </p>
-                          {a.notes && <p className="text-xs text-gray-500 mt-0.5">{a.notes}</p>}
-                        </div>
-                        <span className={cn('rounded-full px-2.5 py-1 text-xs font-medium', apptStatusColors[a.status])}>
-                          {apptStatusLabels[a.status]}
-                        </span>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Receipt className="h-4 w-4" /> {t('cardInvoicesTitle')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {!patientInvoices || patientInvoices.length === 0 ? (
-                      <p className="text-sm text-gray-400 py-4 text-center">{t('noInvoice')}</p>
-                    ) : patientInvoices.slice(0, 5).map(inv => (
-                      <div key={inv.id} className="flex items-center justify-between rounded-lg border p-3">
-                        <div>
-                          <p className="text-sm font-mono font-medium text-blue-600">{inv.invoice_number}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">{formatDate(inv.created_at)}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-semibold">{formatCurrency(Number(inv.total_amount))}</p>
-                          <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', invStatusColors[inv.status])}>
-                            {invStatusLabels[inv.status]}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {/* Tab: Prescriptions */}
-            {activeTab === 'prescriptions' && (
-              <Card>
-                <CardContent className="p-0">
-                  {patientPrescriptions.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400">
-                      <Pill className="mx-auto h-10 w-10 mb-3 opacity-30" />
-                      <p>{t('noPrescription')}</p>
-                    </div>
-                  ) : (
-                    <div className="divide-y">
-                      {(patientPrescriptions as unknown as Prescription[]).map(rx => (
-                        <div key={rx.id} className="p-4 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-gray-400">{formatDate(rx.created_at)}</span>
-                            <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', rxStatusColors[rx.status])}>
-                              {rxStatusLabels[rx.status]}
-                            </span>
-                          </div>
-                          <div className="flex flex-wrap gap-1.5">
-                            {rx.medications.map((m, i) => (
-                              <div key={i} className="rounded-md bg-gray-50 border px-2.5 py-1.5 text-xs">
-                                <p className="font-medium">{m.name} {m.dosage}</p>
-                                <p className="text-gray-500">{m.frequency} × {m.duration}</p>
-                              </div>
-                            ))}
-                          </div>
-                          {rx.valid_until && (
-                            <p className="text-xs text-amber-600">{t('validUntil', { date: formatDate(rx.valid_until) })}</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Tab: Labs */}
-            {activeTab === 'labs' && (
-              <Card>
-                <CardContent className="p-0">
-                  {!labOrders || labOrders.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400">
-                      <FlaskConical className="mx-auto h-10 w-10 mb-3 opacity-30" />
-                      <p>{t('noLab')}</p>
-                    </div>
-                  ) : (
-                    <div className="divide-y">
-                      {(labOrders as LabOrder[]).map(order => (
-                        <div key={order.id} className="p-4 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <p className="font-medium text-gray-900">
-                              {order.items && order.items.length === 1 ? order.items[0].test_name : t('labOrderCount', { count: order.items?.length ?? 0 })}
-                            </p>
-                            <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', labStatusColors[order.status as LabOrderStatus])}>
-                              {labStatusLabels[order.status]}
-                            </span>
-                          </div>
-                          <div className="flex gap-2 text-xs text-gray-500">
-                            {order.priority !== 'normal' && <span className="text-amber-600 font-medium">⚠ {order.priority}</span>}
-                            <span>{formatDate(order.created_at)}</span>
-                          </div>
-                          {(order.items ?? []).some(i => i.result_value) && (
-                            <div className="rounded-md bg-emerald-50 border border-emerald-200 p-2 space-y-1">
-                              {(order.items ?? []).filter(i => i.result_value).map(i => (
-                                <div key={i.id} className="flex items-center justify-between text-xs">
-                                  <span className="text-emerald-900">{i.test_name}</span>
-                                  <span className={cn('font-medium', i.flag === 'normal' ? 'text-emerald-800' : 'text-red-700')}>
-                                    {i.result_value}{i.unit ? ` ${i.unit}` : ''}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          {order.interpretation && <p className="text-xs text-gray-600 italic">{order.interpretation}</p>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Tab: Timeline */}
-            {activeTab === 'timeline' && (
-              <div className="space-y-2">
-                {timelineEvents.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400">
-                    <History className="mx-auto h-10 w-10 mb-3 opacity-30" />
-                    <p>{t('noTimeline')}</p>
-                  </div>
-                ) : timelineEvents.map((event, idx) => {
-                  const Icon = event.icon
-                  return (
-                    <div key={idx} className="flex gap-3">
-                      <div className="flex flex-col items-center">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 shrink-0">
-                          <Icon className="h-3.5 w-3.5 text-gray-600" />
-                        </div>
-                        {idx < timelineEvents.length - 1 && (
-                          <div className="w-px flex-1 bg-gray-200 my-1" />
-                        )}
-                      </div>
-                      <div className="pb-4 flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm font-medium text-gray-900 truncate">{event.title}</p>
-                          {event.badge && (
-                            <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium shrink-0', event.badgeColor)}>
-                              {event.badge}
-                            </span>
-                          )}
-                        </div>
-                        {event.subtitle && <p className="text-xs text-gray-500 mt-0.5 truncate">{event.subtitle}</p>}
-                        <p className="text-xs text-gray-400 mt-1">{formatDate(event.date, { dateStyle: 'medium' })}</p>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
           </div>
         </div>
       </div>
+    </div>
+  )
+}
 
-      {/* Mobile sticky action bar */}
-      <div className="shrink-0 border-t bg-white md:hidden">
-        <div className="grid grid-cols-4 gap-2 p-3">
-          {patient.phone ? (
-            <a
-              href={`tel:${patient.phone}`}
-              className="flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-xl bg-blue-50 text-blue-700 text-xs font-medium"
-            >
-              <Phone className="h-5 w-5" />
-              {t('actionCall')}
-            </a>
-          ) : (
-            <div className="flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-xl bg-gray-50 text-gray-300 text-xs font-medium cursor-not-allowed">
-              <Phone className="h-5 w-5" />
-              {t('actionCall')}
-            </div>
-          )}
-          {patient.phone ? (
-            <a
-              href={`https://wa.me/${patient.phone.replace(/\D/g, '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-xl bg-green-50 text-green-700 text-xs font-medium"
-            >
-              <MessageCircle className="h-5 w-5" />
-              WhatsApp
-            </a>
-          ) : (
-            <div className="flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-xl bg-gray-50 text-gray-300 text-xs font-medium cursor-not-allowed">
-              <MessageCircle className="h-5 w-5" />
-              WhatsApp
-            </div>
-          )}
-          <button
-            onClick={() => setQuickApptOpen(true)}
-            className="flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-xl bg-violet-50 text-violet-700 text-xs font-medium"
-          >
-            <Calendar className="h-5 w-5" />
-            {t('chipAppt')}
-          </button>
-          <button
-            onClick={handleStartConsultation}
-            disabled={createConsultation.isPending}
-            className="flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-xl bg-teal-50 text-teal-700 text-xs font-medium disabled:opacity-50"
-          >
-            <Stethoscope className="h-5 w-5" />
-            {createConsultation.isPending ? '...' : t('actionConsult')}
-          </button>
-        </div>
-      </div>
-
-      {/* Quick appointment dialog */}
-      <Dialog open={quickApptOpen} onOpenChange={setQuickApptOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{t('quickApptTitle')}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <p className="text-sm text-gray-500">{t('quickApptPatient')} <span className="font-medium text-gray-900">{patient.full_name}</span></p>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>{t('quickApptDateLabel')}</Label>
-                <Input type="date" value={apptDate} onChange={e => setApptDate(e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>{t('quickApptTimeLabel')}</Label>
-                <Input type="time" value={apptTime} onChange={e => setApptTime(e.target.value)} />
-              </div>
-            </div>
-            {doctors && doctors.length > 0 && (
-              <div className="space-y-1.5">
-                <Label>{t('quickApptDoctorLabel')}</Label>
-                <Select value={apptDoctorId} onValueChange={setApptDoctorId}>
-                  <SelectTrigger><SelectValue placeholder={t('quickApptDoctorPlaceholder')} /></SelectTrigger>
-                  <SelectContent>
-                    {doctors.map(d => (
-                      <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            <div className="space-y-1.5">
-              <Label>{t('quickApptNotesLabel')}</Label>
-              <Input value={apptNotes} onChange={e => setApptNotes(e.target.value)} placeholder={t('quickApptNotesPlaceholder')} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setQuickApptOpen(false)}>{t('quickApptCancel')}</Button>
-            <Button onClick={handleQuickAppt} disabled={createAppt.isPending}>
-              {createAppt.isPending ? t('quickApptCreating') : t('quickApptCreate')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+function Vital({ label, value, unit, cls }: { label: string; value: string; unit: string; cls: string }) {
+  return (
+    <div className={cn('rounded-lg border px-2.5 py-2', cls)}>
+      <p className="text-[10px] font-medium uppercase tracking-wide opacity-70">{label}</p>
+      <p className="font-bold tabular-nums">{value}{unit && <span className="ml-1 text-xs font-normal opacity-70">{unit}</span>}</p>
     </div>
   )
 }
