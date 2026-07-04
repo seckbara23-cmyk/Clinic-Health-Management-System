@@ -198,8 +198,8 @@ export function useDispense() {
   const { clinic } = useClinic()
   const supabase = createClient()
   return useMutation({
-    mutationFn: async (input: DispenseInput) => {
-      const { error } = await supabase.rpc('dispense_medication', {
+    mutationFn: async (input: DispenseInput): Promise<string | null> => {
+      const { data, error } = await supabase.rpc('dispense_medication', {
         p_prescription_id: input.prescription_id,
         p_line_index: input.line_index,
         p_medication_id: input.medication_id,
@@ -211,6 +211,9 @@ export function useDispense() {
         p_unavailable_reason: input.unavailable_reason ?? null,
       })
       if (error) throw error
+      // The RPC returns the new dispensing id — used to attach a verification
+      // audit row (Phase 10B). Existing callers ignore the return value.
+      return (data as string | null) ?? null
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['dispensings', clinic?.id] })

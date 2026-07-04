@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Loader2, Pill, Eye, CheckCircle2, Receipt, Package, CalendarClock, ClipboardList, ArrowUpRight, Plus, FileBarChart } from 'lucide-react'
+import { Loader2, Pill, CheckCircle2, Receipt, Package, CalendarClock, ClipboardList, ArrowUpRight, Plus, FileBarChart, ScanLine, AlertOctagon, ShieldCheck, MapPin, FlaskConical, Clock } from 'lucide-react'
 import { Topbar } from '@/components/layout/Topbar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,14 +11,23 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
-import { useInventory, useDispensings, useDispense, useGenerateDispensingInvoice, useLowStock, useNearExpiry } from '@/hooks/usePharmacy'
+import { useInventory, useBatches, useDispensings, useDispense, useGenerateDispensingInvoice, useLowStock, useNearExpiry } from '@/hooks/usePharmacy'
+import { useMedicationCatalog } from '@/hooks/useMedications'
 import { useMedicationSafety, usePatientAllergies } from '@/hooks/useMedicationSafety'
+import { fetchMedicationByBarcode, useRecordDispensingVerification } from '@/hooks/usePharmacyScan'
 import { SafetyAlerts } from '@/components/pharmacy/SafetyAlerts'
+import { ScanBarcode } from '@/components/scan/ScanBarcode'
+import { DispensingReceipt } from '@/components/pharmacy/DispensingReceipt'
 import { useFormatters } from '@/hooks/useFormatters'
 import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
 import { InsightsPanel } from '@/components/ai/InsightsPanel'
-import type { Prescription, Medication, ClinicMedicationInventory, MedicationDispensing } from '@/types/database'
+import {
+  matchCatalogByCode, verifyMedicationScan, recommendFefoBatch, formatLocation,
+  type VerifyResult,
+} from '@/lib/pharmacy-scan'
+import { stockAfterDispense, isAlmostDepleted, type VerificationMethod } from '@/lib/dispensing-workflow'
+import type { Prescription, Medication, ClinicMedicationInventory, MedicationDispensing, CatalogMedication } from '@/types/database'
 import type { SafetyWarning, Substitution } from '@/lib/medication-safety'
 
 type RxRow = Prescription & { patient?: { full_name?: string; patient_number?: string }; doctor?: { full_name?: string } }
@@ -31,7 +40,7 @@ const statusColors: Record<string, string> = {
 
 export default function PharmacyPage() {
   const t = useTranslations('pharmacy')
-  const { formatDate } = useFormatters()
+  const nowTs = new Date().getTime()
   const { data: prescriptions, isLoading } = usePrescriptions()
   // Existing hooks only — no new queries beyond these reused ones.
   const { data: dispensings } = useDispensings()
@@ -139,24 +148,33 @@ export default function PharmacyPage() {
 
                 {!isLoading && queue.length > 0 && (
                   <div className="divide-y">
-                    {queue.map(rx => (
-                      <div key={rx.id} className="flex items-center justify-between gap-3 p-4">
-                        <div className="min-w-0">
-                          <p className="truncate font-medium">{rx.patient?.full_name ?? '—'}</p>
-                          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500">
-                            <span>{rx.medications.length} {t('medsUnit')}</span>
-                            <span>· {formatDate(rx.created_at)}</span>
-                            {rx.doctor?.full_name && <span>· Dr. {rx.doctor.full_name}</span>}
+                    {queue.map(rx => {
+                      const waitedH = Math.floor((nowTs - new Date(rx.created_at).getTime()) / 3_600_000)
+                      const waitLabel = waitedH < 1 ? t('waitRecent') : waitedH < 24 ? t('waitHours', { h: waitedH }) : t('waitDays', { d: Math.floor(waitedH / 24) })
+                      return (
+                        <div key={rx.id} className="flex items-center justify-between gap-3 p-4">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-100 text-sm font-bold text-teal-700">
+                              {rx.patient?.full_name?.[0]?.toUpperCase() ?? '?'}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate font-medium">{rx.patient?.full_name ?? '—'}</p>
+                              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500">
+                                <span className="inline-flex items-center gap-1"><Pill className="h-3 w-3" />{rx.medications.length} {t('medsUnit')}</span>
+                                <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" />{waitLabel}</span>
+                                {rx.doctor?.full_name && <span>· Dr. {rx.doctor.full_name}</span>}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-2">
+                            <span className={cn('hidden rounded-full px-2.5 py-0.5 text-xs font-medium sm:inline', statusColors[rx.status])}>{statusLabels[rx.status]}</span>
+                            <Button size="sm" className="h-8 gap-1.5 bg-teal-700 hover:bg-teal-800" onClick={() => setTarget(rx)}>
+                              <ScanLine className="h-3.5 w-3.5" /> {t('verifyDispense')}
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex shrink-0 items-center gap-2">
-                          <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-medium', statusColors[rx.status])}>{statusLabels[rx.status]}</span>
-                          <Button size="sm" variant="outline" className="h-8" onClick={() => setTarget(rx)}>
-                            <Eye className="mr-1 h-3.5 w-3.5" /> {t('dispense')}
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </CardContent>
@@ -199,8 +217,10 @@ export default function PharmacyPage() {
 function DispenseDialog({ rx, onClose }: { rx: RxRow; onClose: () => void }) {
   const t = useTranslations('pharmacy')
   const { data: inventory } = useInventory(false)
+  const { data: catalog } = useMedicationCatalog()
   const { data: dispensings } = useDispensings({ prescriptionId: rx.id })
   const generateInvoice = useGenerateDispensingInvoice()
+  const [receiptOpen, setReceiptOpen] = useState(false)
 
   // ── Medication Safety Layer 1 (read-only warnings before dispensing) ──
   const safety = useMedicationSafety()
@@ -233,9 +253,11 @@ function DispenseDialog({ rx, onClose }: { rx: RxRow; onClose: () => void }) {
             <DispenseLine
               key={idx}
               prescriptionId={rx.id}
+              patientName={rx.patient?.full_name ?? '—'}
               lineIndex={idx}
               med={med}
               inventory={inventory ?? []}
+              catalog={catalog ?? []}
               dispensings={(dispensings ?? []).filter(d => d.prescription_line_index === idx)}
               safety={safety}
               allergies={patientAllergies ?? null}
@@ -246,6 +268,11 @@ function DispenseDialog({ rx, onClose }: { rx: RxRow; onClose: () => void }) {
         </div>
 
         <DialogFooter className="flex-wrap gap-2">
+          {(dispensings ?? []).some(d => d.status !== 'unavailable' && d.quantity_dispensed > 0) && (
+            <Button variant="outline" onClick={() => setReceiptOpen(true)}>
+              <Receipt className="h-4 w-4" /> {t('receiptBtn')}
+            </Button>
+          )}
           {hasBillable && (
             <Button variant="outline" onClick={() => generateInvoice.mutate(rx.id)} disabled={generateInvoice.isPending}>
               {generateInvoice.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Receipt className="h-4 w-4" />}
@@ -255,15 +282,27 @@ function DispenseDialog({ rx, onClose }: { rx: RxRow; onClose: () => void }) {
           <Button variant="outline" onClick={onClose}>{t('close')}</Button>
         </DialogFooter>
       </DialogContent>
+
+      {receiptOpen && (
+        <DispensingReceipt
+          patientName={rx.patient?.full_name ?? '—'}
+          patientNumber={rx.patient?.patient_number ?? null}
+          meds={rx.medications as Medication[]}
+          dispensings={dispensings ?? []}
+          onClose={() => setReceiptOpen(false)}
+        />
+      )}
     </Dialog>
   )
 }
 
-function DispenseLine({ prescriptionId, lineIndex, med, inventory, dispensings, safety, allergies, nearExpiryByInvId, nowMs }: {
+function DispenseLine({ prescriptionId, patientName, lineIndex, med, inventory, catalog, dispensings, safety, allergies, nearExpiryByInvId, nowMs }: {
   prescriptionId: string
+  patientName: string
   lineIndex: number
   med: Medication
   inventory: ClinicMedicationInventory[]
+  catalog: CatalogMedication[]
   dispensings: MedicationDispensing[]
   safety: ReturnType<typeof useMedicationSafety>
   allergies: string[] | null
@@ -271,9 +310,39 @@ function DispenseLine({ prescriptionId, lineIndex, med, inventory, dispensings, 
   nowMs: number
 }) {
   const t = useTranslations('pharmacy')
+  const { formatDate } = useFormatters()
   const dispense = useDispense()
+  const recordVerification = useRecordDispensingVerification()
   const inv = med.medication_id ? inventory.find(i => i.medication_id === med.medication_id) : undefined
   const stock = inv?.stock_quantity ?? 0
+  const { data: batches } = useBatches(inv?.id)
+
+  // Barcode verification state (Phase 10B). Never auto-corrects.
+  const [verify, setVerify] = useState<{ method: VerificationMethod; result: VerifyResult | null; scannedName: string | null } | null>(null)
+  const [scannerOpen, setScannerOpen] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+
+  const fefo = recommendFefoBatch((batches ?? []).map(b => ({ id: b.id, expiry_date: b.expiry_date, quantity_remaining: b.quantity_remaining })))
+  const location = formatLocation({ cabinet: inv?.location_cabinet, shelf: inv?.location_shelf, row: inv?.location_row, bin: inv?.location_bin })
+
+  async function onScan(code: string, method: 'camera' | 'manual') {
+    setScannerOpen(false)
+    const byBarcode = await fetchMedicationByBarcode(code)
+    let scanned = byBarcode
+      ? { name: byBarcode.name, strength: byBarcode.strength, dosageForm: byBarcode.dosage_form, isActive: byBarcode.is_active }
+      : null
+    if (!scanned) {
+      const m = matchCatalogByCode(code, catalog.map(c => ({ id: c.id, name: c.name, barcode: c.barcode ?? null, normalizedName: c.normalized_name ?? null })))
+      const full = m ? catalog.find(c => c.id === m.id) : null
+      if (full) scanned = { name: full.name, strength: full.strength, dosageForm: full.dosage_form, isActive: full.is_active }
+    }
+    if (!scanned) { setVerify({ method, result: null, scannedName: null }); return }
+    const result = verifyMedicationScan(
+      { name: med.name, strength: med.strength, dosageForm: med.dosage_form },
+      { name: scanned.name, strength: scanned.strength, dosageForm: scanned.dosageForm, isActive: scanned.isActive },
+    )
+    setVerify({ method, result, scannedName: scanned.name })
+  }
 
   // ── Safety warnings for this line: stock/formulary + allergy + near-expiry ──
   const safetyWarnings: SafetyWarning[] = [
@@ -298,13 +367,22 @@ function DispenseLine({ prescriptionId, lineIndex, med, inventory, dispensings, 
   async function doDispense() {
     const qd = Number(qtyDisp)
     if (!qd || qd <= 0) return
-    await dispense.mutateAsync({
+    // Existing atomic RPC: deducts FEFO, updates batch, records the stock
+    // movement + dispensing row. Returns the new dispensing id.
+    const dispensingId = await dispense.mutateAsync({
       prescription_id: prescriptionId, line_index: lineIndex,
       medication_id: med.medication_id ?? null, inventory_id: inv?.id ?? null,
       medication_name: med.name, quantity_prescribed: Number(qtyPresc) || 0, quantity_dispensed: qd,
       substitution_notes: subNotes || null,
     })
-    setQtyDisp(''); setSubNotes('')
+    // Append the barcode-verification audit (best-effort; never blocks).
+    await recordVerification({
+      dispensing_id: dispensingId, prescription_id: prescriptionId, line_index: lineIndex,
+      medication_name: med.name, scanned_name: verify?.scannedName ?? null,
+      verified: verify?.result?.ok ?? false, method: verify?.method ?? 'none',
+      mismatches: verify?.result?.mismatches ?? [],
+    })
+    setQtyDisp(''); setSubNotes(''); setConfirmOpen(false); setVerify(null)
   }
   async function doUnavailable() {
     await dispense.mutateAsync({
@@ -338,6 +416,29 @@ function DispenseLine({ prescriptionId, lineIndex, med, inventory, dispensings, 
         <SafetyAlerts warnings={safetyWarnings} substitutions={substitutions} />
       )}
 
+      {/* Barcode verification banner — never auto-corrects, never auto-substitutes */}
+      {verify && (
+        verify.result?.ok ? (
+          <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+            <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600" /> {t('verifyOk', { name: verify.scannedName ?? '' })}
+          </div>
+        ) : verify.result ? (
+          <div className="rounded-lg border-2 border-red-300 bg-red-50 px-3 py-2.5 text-red-800">
+            <p className="flex items-center gap-2 text-sm font-bold"><AlertOctagon className="h-5 w-5 shrink-0 text-red-600" /> {t('verifyWrong')}</p>
+            <p className="mt-0.5 text-xs">{t('verifyScanned', { name: verify.scannedName ?? '' })}</p>
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {verify.result.mismatches.map(m => (
+                <span key={m} className="rounded-full bg-red-200 px-2 py-0.5 text-[11px] font-medium text-red-800">{t(`mismatch_${m}`)}</span>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            <AlertOctagon className="h-4 w-4 shrink-0 text-amber-600" /> {t('verifyUnknown')}
+          </div>
+        )
+      )}
+
       {resolved ? (
         <Badge variant="outline" className={cn('text-xs', isUnavailable ? 'text-red-600 border-red-200' : 'text-emerald-700 border-emerald-200')}>
           {isUnavailable ? t('lineUnavailable') : t('lineDispensed')}
@@ -348,28 +449,74 @@ function DispenseLine({ prescriptionId, lineIndex, med, inventory, dispensings, 
           <Button size="sm" className="h-8 bg-red-600 hover:bg-red-700" onClick={doUnavailable} disabled={dispense.isPending}>{t('confirm')}</Button>
           <Button size="sm" variant="ghost" className="h-8" onClick={() => setUnavailOpen(false)}>{t('cancel')}</Button>
         </div>
-      ) : (
-        <div className="grid grid-cols-12 gap-2 items-end">
-          <div className="col-span-3 space-y-1">
-            <Label className="text-xs">{t('qtyPrescribed')}</Label>
-            <Input type="number" min={0} value={qtyPresc} onChange={e => setQtyPresc(e.target.value)} className="h-8 text-sm" />
-          </div>
-          <div className="col-span-3 space-y-1">
-            <Label className="text-xs">{t('qtyDispensed')}</Label>
-            <Input type="number" min={0} max={med.medication_id ? stock : undefined} value={qtyDisp} onChange={e => setQtyDisp(e.target.value)} placeholder="0" className="h-8 text-sm" />
-          </div>
-          <div className="col-span-4 space-y-1">
-            <Label className="text-xs">{t('substitution')}</Label>
-            <Input value={subNotes} onChange={e => setSubNotes(e.target.value)} className="h-8 text-sm" />
-          </div>
-          <div className="col-span-2 flex gap-1">
-            <Button size="icon" className="h-8 w-8" title={t('dispense')} onClick={doDispense} disabled={dispense.isPending || !qtyDisp}>
+      ) : confirmOpen ? (
+        // Dispensing confirmation summary
+        <div className="space-y-2 rounded-lg border border-teal-200 bg-teal-50/60 p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">{t('confirmTitle')}</p>
+          <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
+            <ConfRow label={t('confMed')} value={med.name} />
+            <ConfRow label={t('confQty')} value={qtyDisp} />
+            <ConfRow label={t('confPatient')} value={patientName} />
+            <ConfRow label={t('confBatch')} value={fefo?.expiry_date ? formatDate(fefo.expiry_date) : t('confBatchAny')} />
+            <ConfRow label={t('confStockAfter')} value={String(stockAfterDispense(stock, Number(qtyDisp)))} />
+            {location && <ConfRow label={t('confLocation')} value={location} />}
+          </dl>
+          {inv && isAlmostDepleted(stockAfterDispense(stock, Number(qtyDisp)), inv.reorder_level) && (
+            <p className="flex items-center gap-1.5 text-xs text-amber-700"><Package className="h-3.5 w-3.5" /> {t('confAlmostDepleted')}</p>
+          )}
+          {fefo && (
+            <p className="flex items-center gap-1.5 text-xs text-teal-700"><FlaskConical className="h-3.5 w-3.5" /> {t('confFefo', { date: fefo.expiry_date ? formatDate(fefo.expiry_date) : '' })}</p>
+          )}
+          <div className="flex justify-end gap-2 pt-1">
+            <Button size="sm" variant="ghost" onClick={() => setConfirmOpen(false)}>{t('cancel')}</Button>
+            <Button size="sm" className="gap-1.5 bg-teal-700 hover:bg-teal-800" onClick={doDispense} disabled={dispense.isPending}>
               {dispense.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+              {t('confirmDispense')}
             </Button>
-            <Button size="icon" variant="outline" className="h-8 w-8 text-red-500" title={t('markUnavailable')} onClick={() => setUnavailOpen(true)}>✕</Button>
           </div>
         </div>
+      ) : (
+        <>
+          {(fefo || location) && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+              {fefo && <span className="inline-flex items-center gap-1 text-teal-700"><FlaskConical className="h-3 w-3" /> {t('fefoHint', { date: fefo.expiry_date ? formatDate(fefo.expiry_date) : '', qty: fefo.quantity_remaining })}</span>}
+              {location && <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3 text-teal-600" /> {location}</span>}
+            </div>
+          )}
+          <div className="grid grid-cols-12 items-end gap-2">
+            <div className="col-span-3 space-y-1">
+              <Label className="text-xs">{t('qtyPrescribed')}</Label>
+              <Input type="number" min={0} value={qtyPresc} onChange={e => setQtyPresc(e.target.value)} className="h-8 text-sm" />
+            </div>
+            <div className="col-span-3 space-y-1">
+              <Label className="text-xs">{t('qtyDispensed')}</Label>
+              <Input type="number" min={0} max={med.medication_id ? stock : undefined} value={qtyDisp} onChange={e => setQtyDisp(e.target.value)} placeholder="0" className="h-8 text-sm" />
+            </div>
+            <div className="col-span-3 space-y-1">
+              <Label className="text-xs">{t('substitution')}</Label>
+              <Input value={subNotes} onChange={e => setSubNotes(e.target.value)} className="h-8 text-sm" />
+            </div>
+            <div className="col-span-3 flex gap-1">
+              <Button size="icon" variant="outline" className="h-8 w-8" title={t('scanVerify')} onClick={() => setScannerOpen(true)}><ScanLine className="h-3.5 w-3.5" /></Button>
+              <Button size="icon" className="h-8 w-8" title={t('dispense')} onClick={() => { if (Number(qtyDisp) > 0) setConfirmOpen(true) }} disabled={!qtyDisp}>
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              </Button>
+              <Button size="icon" variant="outline" className="h-8 w-8 text-red-500" title={t('markUnavailable')} onClick={() => setUnavailOpen(true)}>✕</Button>
+            </div>
+          </div>
+        </>
       )}
+
+      {scannerOpen && <ScanBarcode title={t('scanVerifyTitle', { name: med.name })} onDetected={onScan} onClose={() => setScannerOpen(false)} />}
+    </div>
+  )
+}
+
+function ConfRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <dt className="text-gray-500">{label}</dt>
+      <dd className="min-w-0 truncate font-medium text-gray-800">{value}</dd>
     </div>
   )
 }

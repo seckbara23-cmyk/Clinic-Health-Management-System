@@ -29,7 +29,13 @@ type Mode = 'starting' | 'scanning' | 'manual' | 'error'
  */
 export function ScanBarcode({
   onDetected, onClose, title,
-}: { onDetected: (code: string) => void; onClose: () => void; title?: string }) {
+}: {
+  /** Emits the normalized code plus how it was captured. USB / Bluetooth wedge
+   *  scanners type into the manual input, so they report 'manual'. */
+  onDetected: (code: string, method: 'camera' | 'manual') => void
+  onClose: () => void
+  title?: string
+}) {
   const t = useTranslations('scan')
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -59,7 +65,7 @@ export function ScanBarcode({
     stopCamera()
     setFlash(true)
     // Brief success flash before handing control back to the caller.
-    setTimeout(() => { onDetected(code); onClose() }, 350)
+    setTimeout(() => { onDetected(code, 'camera'); onClose() }, 350)
   }, [onDetected, onClose, stopCamera])
 
   useEffect(() => {
@@ -137,7 +143,7 @@ export function ScanBarcode({
     const code = normalizeBarcode(manual)
     if (!code) return
     stopCamera()
-    onDetected(code)
+    onDetected(code, 'manual')
     onClose()
   }
 

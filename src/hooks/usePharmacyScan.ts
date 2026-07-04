@@ -1,8 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useClinic } from '@/context/ClinicContext'
 import { toast } from 'sonner'
 import type { CatalogMedication, MedicationCycleCount } from '@/types/database'
+import type { VerificationMethod } from '@/lib/dispensing-workflow'
 
 export interface BarcodeMedication {
   id: string
@@ -64,6 +66,47 @@ export function useCycleCounts(limit = 20) {
       }
     },
   })
+}
+
+export interface VerificationInput {
+  dispensing_id?: string | null
+  prescription_id: string
+  line_index: number
+  medication_name: string
+  scanned_name?: string | null
+  verified: boolean
+  method: VerificationMethod
+  mismatches?: string[]
+}
+
+/**
+ * Append a barcode-verification audit row (Phase 10B, migration 034). Returns a
+ * fire-and-forget recorder. ERROR-TOLERANT: if the table doesn't exist yet or
+ * the insert is denied, it resolves without throwing so it never blocks the
+ * dispensing flow. The existing dispensing audit is untouched.
+ */
+export function useRecordDispensingVerification() {
+  const { clinic, profile } = useClinic()
+  return useCallback(async (input: VerificationInput): Promise<void> => {
+    if (!clinic?.id) return
+    const supabase = createClient()
+    try {
+      // Table added by migration 034 — not in generated types; cast + tolerant.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('dispensing_verifications').insert({
+        clinic_id: clinic.id,
+        dispensing_id: input.dispensing_id ?? null,
+        prescription_id: input.prescription_id,
+        line_index: input.line_index,
+        medication_name: input.medication_name,
+        scanned_name: input.scanned_name ?? null,
+        verified: input.verified,
+        verification_method: input.method,
+        mismatches: input.mismatches ?? [],
+        verified_by: profile?.id ?? null,
+      })
+    } catch { /* audit is best-effort — never block dispensing */ }
+  }, [clinic?.id, profile?.id])
 }
 
 interface CycleCountInput {
