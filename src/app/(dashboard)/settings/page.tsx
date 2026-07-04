@@ -8,8 +8,9 @@ import { z } from 'zod'
 import {
   Settings2, Search, ChevronRight, Loader2, Save, RotateCcw, Lock, ArrowUpRight,
   Building2, Palette, Clock, Stethoscope, Pill, FlaskConical, Receipt, MessageSquare,
-  Sparkles, ShieldCheck, History, User, Download, Users, Activity, Mail, ClipboardList,
+  Sparkles, ShieldCheck, History, User, Download, Users, Activity, Mail, ClipboardList, IdCard,
 } from 'lucide-react'
+import { ProfessionalIdentityForm } from '@/components/professional/ProfessionalIdentityForm'
 import { createClient } from '@/lib/supabase/client'
 import { Topbar } from '@/components/layout/Topbar'
 import { Button } from '@/components/ui/button'
@@ -37,7 +38,7 @@ import {
 
 const ICONS: Record<string, React.ElementType> = {
   Building2, Palette, Clock, Stethoscope, Pill, FlaskConical, Receipt, MessageSquare,
-  Sparkles, ShieldCheck, History, User, Download,
+  Sparkles, ShieldCheck, History, User, Download, IdCard,
 }
 const CATEGORY_ICON: Record<string, React.ElementType> = {
   clinic: Building2, organization: Users, clinical: Stethoscope, pharmacy: Pill,
@@ -176,6 +177,7 @@ function SectionWorkspace({ section, stored, canEdit }: { section: SettingsSecti
         )}
         {section.kind === 'audit' && <AuditPanel />}
         {section.kind === 'native' && section.id === 'profile' && <ProfileForm />}
+        {section.kind === 'native' && section.id === 'professional_identity' && <ProfessionalIdentityForm />}
         {section.kind === 'native' && section.id === 'clinic_identity' && <ClinicIdentityForm canEdit={canEdit} />}
         {section.kind === 'native' && section.id === 'sms' && <SmsForm canEdit={canEdit} />}
         {section.kind === 'native' && section.id === 'export' && <ExportPanel />}

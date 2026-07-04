@@ -61,6 +61,13 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     icon: 'User', kind: 'native', fields: [], searchTerms: ['profile', 'account', 'me', 'profil', 'compte', 'name', 'phone'],
   },
   {
+    // Phase 14.2.2 — the professional's own identity (professional_profiles).
+    // Visible to every authenticated role; each user edits only their own row (RLS).
+    id: 'professional_identity', category: 'clinic', titleKey: 'sec_prof_identity_title', descKey: 'sec_prof_identity_desc',
+    icon: 'IdCard', kind: 'native', fields: [],
+    searchTerms: ['profession', 'credentials', 'license', 'signature', 'department', 'position', 'languages', 'identity', 'diplome', 'licence', 'credentials', 'profil professionnel', 'medecin', 'infirmier'],
+  },
+  {
     id: 'clinic_identity', category: 'clinic', titleKey: 'sec_identity_title', descKey: 'sec_identity_desc',
     icon: 'Building2', kind: 'native', viewRoles: ADMINS, fields: [],
     searchTerms: ['clinic', 'identity', 'name', 'address', 'ninea', 'rc', 'phone', 'email', 'clinique', 'identite', 'adresse'],
