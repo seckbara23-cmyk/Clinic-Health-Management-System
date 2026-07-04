@@ -8,6 +8,25 @@ import { toast } from 'sonner'
 
 export const PATIENTS_PAGE_SIZE = 25
 
+/**
+ * True when an error is the Postgres unique-violation (23505) raised by the
+ * partial index `patients_clinic_cni_unique` — i.e. this clinic already has a
+ * patient with the same CNI. Callers surface a friendly, field-level message
+ * instead of the raw constraint text.
+ */
+export function isCniDuplicateError(e: unknown): boolean {
+  const err = e as { code?: string; message?: string; details?: string } | null
+  if (!err) return false
+  const haystack = `${err.message ?? ''} ${err.details ?? ''}`.toLowerCase()
+  return err.code === '23505' && haystack.includes('cni')
+}
+
+/** French toast message for a patient mutation error (hooks are FR-only). */
+function patientErrorMessage(e: Error): string {
+  if (isCniDuplicateError(e)) return 'Ce numéro CNI est déjà enregistré pour un autre patient'
+  return e.message
+}
+
 export function usePatients(search?: string, page = 0, includeDeleted = false) {
   const { clinic } = useClinic()
   const supabase = createClient()
@@ -159,7 +178,7 @@ export function useCreatePatient() {
       qc.invalidateQueries({ queryKey: ['patients', clinic?.id] })
       toast.success('Patient créé avec succès')
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(patientErrorMessage(e)),
   })
 }
 
@@ -208,7 +227,7 @@ export function useUpdatePatient() {
       qc.invalidateQueries({ queryKey: ['patient', data.id] })
       toast.success('Patient mis à jour')
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(patientErrorMessage(e)),
   })
 }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -15,10 +15,10 @@ import { PatientRowSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { usePatients, useCreatePatient, useUpdatePatient, useUpdatePatientDemographics, usePatientDeletionCounts } from '@/hooks/usePatients'
+import { usePatients, useCreatePatient, useUpdatePatient, useUpdatePatientDemographics, usePatientDeletionCounts, isCniDuplicateError } from '@/hooks/usePatients'
 import { useSoftDeleteRecord, useRestoreRecord } from '@/hooks/useCompliance'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
 import { useClinic } from '@/context/ClinicContext'
@@ -28,6 +28,16 @@ import { age } from '@/lib/utils'
 import { isValidPhone } from '@/lib/phone'
 import type { Gender, BloodType, InsurancePayerType, ConsentMethod } from '@/types/database'
 import { useTranslations } from 'next-intl'
+
+/** A titled group of form fields laid out in a responsive 1→2 column grid. */
+function FormSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="space-y-3 py-5">
+      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{children}</div>
+    </section>
+  )
+}
 
 export default function PatientsPage() {
   const t = useTranslations('patients')
@@ -96,7 +106,7 @@ export default function PatientsPage() {
   const restore = useRestoreRecord()
   const { data: deletionCounts, isLoading: countsLoading } = usePatientDeletionCounts(deletePatientId)
 
-  const { register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } = useForm<PatientFormData>({
+  const { register, handleSubmit, reset, setValue, watch, setError, formState: { errors, isSubmitting } } = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
   })
   const watchPayerType = watch('insurance_payer_type')
@@ -129,23 +139,30 @@ export default function PatientsPage() {
   }
 
   async function onSubmit(data: PatientFormData) {
-    if (editId) {
-      if (!isOnline) {
-        // Offline: queue a basic-demographics update only. Insurance/consent
-        // edits require a connection (toast informs the user).
-        await demographics.mutateAsync({
-          id: editId, full_name: data.full_name, phone: data.phone, email: data.email,
-          address: data.address, date_of_birth: data.date_of_birth, gender: data.gender,
-        })
-        toast.message(t('offlineDemographicsNote'))
+    try {
+      if (editId) {
+        if (!isOnline) {
+          // Offline: queue a basic-demographics update only. Insurance/consent
+          // edits require a connection (toast informs the user).
+          await demographics.mutateAsync({
+            id: editId, full_name: data.full_name, phone: data.phone, email: data.email,
+            address: data.address, date_of_birth: data.date_of_birth, gender: data.gender,
+          })
+          toast.message(t('offlineDemographicsNote'))
+        } else {
+          await updateMutation.mutateAsync({ id: editId, ...data, blood_type: (data.blood_type ?? null) as BloodType | null })
+        }
       } else {
-        await updateMutation.mutateAsync({ id: editId, ...data, blood_type: (data.blood_type ?? null) as BloodType | null })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await createMutation.mutateAsync(data as any)
       }
-    } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await createMutation.mutateAsync(data as any)
+      setOpen(false)
+    } catch (e) {
+      // A duplicate CNI is a fixable, field-level problem — pin it to the CNI
+      // input and keep the dialog open (the hook has already toasted). Any other
+      // error just leaves the dialog open with its toast.
+      if (isCniDuplicateError(e)) setError('cni', { message: t('zodCniDuplicate') })
     }
-    setOpen(false)
   }
 
   return (
@@ -423,87 +440,104 @@ export default function PatientsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Create / Edit dialog */}
+      {/* Create / Edit dialog — sticky header + scrolling body + sticky footer,
+          so the long form never clips and Save is always reachable. */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
+        <DialogContent className="flex max-h-[calc(100dvh-2rem)] w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
+          {/* Sticky header */}
+          <DialogHeader className="shrink-0 space-y-1 border-b px-6 py-4 text-left">
             <DialogTitle>{editId ? t('editTitle') : t('createTitle')}</DialogTitle>
+            <DialogDescription>{editId ? t('editSubtitle') : t('createSubtitle')}</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2 space-y-1.5">
-                <Label>{t('labelFullName')}</Label>
-                <Input {...register('full_name')} />
-                {errors.full_name && <p className="text-xs text-red-500">{errors.full_name.message}</p>}
-              </div>
-              <div className="space-y-1.5">
-                <Label>{t('labelPhone')}</Label>
-                <Input {...register('phone')} placeholder="+221 77 123 45 67" />
-                {errors.phone && <p className="text-xs text-red-500">{errors.phone.message}</p>}
-              </div>
-              <div className="space-y-1.5">
-                <Label>{t('labelEmail')}</Label>
-                <Input type="email" {...register('email')} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>{t('labelCNI')}</Label>
-                <Input {...register('cni')} placeholder="1 234 5678 90123" />
-              </div>
-              <label className="col-span-2 flex items-start gap-2.5 rounded-lg border p-3 cursor-pointer hover:bg-gray-50">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
-                  {...register('sms_opt_in')}
-                />
-                <span className="text-sm">
-                  <span className="font-medium">{t('labelSmsOptIn')}</span>
-                  <span className="block text-xs text-gray-500">{t('smsOptInHint')}</span>
-                </span>
-              </label>
-              <div className="space-y-1.5">
-                <Label>{t('labelDOB')}</Label>
-                <Input type="date" {...register('date_of_birth')} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>{t('labelGender')}</Label>
-                <Select onValueChange={v => setValue('gender', v as Gender)}>
-                  <SelectTrigger><SelectValue placeholder={t('selectPlaceholder')} /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="male">{t('genderMale')}</SelectItem>
-                    <SelectItem value="female">{t('genderFemale')}</SelectItem>
-                    <SelectItem value="other">{t('genderOther')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>{t('labelBloodType')}</Label>
-                <Select onValueChange={v => setValue('blood_type', v as BloodType)}>
-                  <SelectTrigger><SelectValue placeholder={t('labelBloodType')} /></SelectTrigger>
-                  <SelectContent>
-                    {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(bt => (
-                      <SelectItem key={bt} value={bt}>{bt}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="col-span-2 space-y-1.5">
-                <Label>{t('labelAddress')}</Label>
-                <Input {...register('address')} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>{t('labelEmergencyContact')}</Label>
-                <Input {...register('emergency_contact')} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>{t('labelEmergencyPhone')}</Label>
-                <Input {...register('emergency_phone')} placeholder="+221 77 123 45 67" />
-                {errors.emergency_phone && <p className="text-xs text-red-500">{errors.emergency_phone.message}</p>}
-              </div>
+
+          <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col">
+            {/* Scrollable body */}
+            <div className="min-h-0 flex-1 divide-y divide-border overflow-y-auto px-6">
+
+              {/* Identity */}
+              <FormSection title={t('sectionIdentity')}>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label>{t('labelFullName')}</Label>
+                  <Input {...register('full_name')} autoFocus />
+                  {errors.full_name && <p className="text-xs text-red-500">{errors.full_name.message}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t('labelCNI')}</Label>
+                  <Input {...register('cni')} placeholder="1 234 5678 90123" />
+                  {errors.cni && <p className="text-xs text-red-500">{errors.cni.message}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t('labelDOB')}</Label>
+                  <Input type="date" {...register('date_of_birth')} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t('labelGender')}</Label>
+                  <Select value={watch('gender') ?? ''} onValueChange={v => setValue('gender', v as Gender)}>
+                    <SelectTrigger><SelectValue placeholder={t('selectPlaceholder')} /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">{t('genderMale')}</SelectItem>
+                      <SelectItem value="female">{t('genderFemale')}</SelectItem>
+                      <SelectItem value="other">{t('genderOther')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </FormSection>
+
+              {/* Contact */}
+              <FormSection title={t('sectionContact')}>
+                <div className="space-y-1.5">
+                  <Label>{t('labelPhone')}</Label>
+                  <Input {...register('phone')} placeholder="+221 77 123 45 67" inputMode="tel" />
+                  {errors.phone && <p className="text-xs text-red-500">{errors.phone.message}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t('labelEmail')}</Label>
+                  <Input type="email" {...register('email')} />
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label>{t('labelAddress')}</Label>
+                  <Input {...register('address')} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t('labelEmergencyContact')}</Label>
+                  <Input {...register('emergency_contact')} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t('labelEmergencyPhone')}</Label>
+                  <Input {...register('emergency_phone')} placeholder="+221 77 123 45 67" inputMode="tel" />
+                  {errors.emergency_phone && <p className="text-xs text-red-500">{errors.emergency_phone.message}</p>}
+                </div>
+                <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border p-3 hover:bg-gray-50 sm:col-span-2">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                    {...register('sms_opt_in')}
+                  />
+                  <span className="text-sm">
+                    <span className="font-medium">{t('labelSmsOptIn')}</span>
+                    <span className="block text-xs text-gray-500">{t('smsOptInHint')}</span>
+                  </span>
+                </label>
+              </FormSection>
+
+              {/* Medical info */}
+              <FormSection title={t('sectionMedical')}>
+                <div className="space-y-1.5">
+                  <Label>{t('labelBloodType')}</Label>
+                  <Select value={watch('blood_type') ?? ''} onValueChange={v => setValue('blood_type', v as BloodType)}>
+                    <SelectTrigger><SelectValue placeholder={t('selectPlaceholder')} /></SelectTrigger>
+                    <SelectContent>
+                      {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(bt => (
+                        <SelectItem key={bt} value={bt}>{bt}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </FormSection>
 
               {/* Consent (CDP) */}
-              <div className="col-span-2 border-t pt-3 space-y-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('consentSection')}</p>
-                <label className="flex items-start gap-2.5 cursor-pointer">
+              <FormSection title={t('consentSection')}>
+                <label className="flex cursor-pointer items-start gap-2.5 sm:col-span-2">
                   <input
                     type="checkbox"
                     className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
@@ -515,7 +549,7 @@ export default function PatientsPage() {
                   </span>
                 </label>
                 {watchConsent && (
-                  <div className="grid grid-cols-2 gap-4 pl-7">
+                  <>
                     <div className="space-y-1.5">
                       <Label>{t('labelConsentMethod')}</Label>
                       <Select
@@ -534,62 +568,64 @@ export default function PatientsPage() {
                       <Label>{t('labelConsentNotes')}</Label>
                       <Input {...register('consent_notes')} />
                     </div>
-                  </div>
+                  </>
                 )}
-              </div>
+              </FormSection>
 
               {/* Insurance / mutuelle */}
-              <div className="col-span-2 border-t pt-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">{t('insuranceSection')}</p>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label>{t('labelPayerType')}</Label>
-                    <Select
-                      value={watchPayerType ?? 'none'}
-                      onValueChange={v => setValue('insurance_payer_type', v === 'none' ? null : (v as InsurancePayerType))}
-                    >
-                      <SelectTrigger><SelectValue placeholder={t('selectPlaceholder')} /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">{t('payerNone')}</SelectItem>
-                        <SelectItem value="ipm">{t('payerIpm')}</SelectItem>
-                        <SelectItem value="mutuelle">{t('payerMutuelle')}</SelectItem>
-                        <SelectItem value="cnss">{t('payerCnss')}</SelectItem>
-                        <SelectItem value="ipres">{t('payerIpres')}</SelectItem>
-                        <SelectItem value="private">{t('payerPrivate')}</SelectItem>
-                        <SelectItem value="other">{t('payerOther')}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>{t('labelInsuranceProvider')}</Label>
-                    <Input {...register('insurance_provider')} disabled={!watchPayerType} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>{t('labelPolicyNumber')}</Label>
-                    <Input {...register('insurance_policy_number')} disabled={!watchPayerType} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>{t('labelCoverage')}</Label>
-                    <Input
-                      type="number" min={0} max={100} step={1} placeholder="80"
-                      disabled={!watchPayerType}
-                      {...register('insurance_coverage_percent', {
-                        setValueAs: v => (v === '' || v == null ? null : Number(v)),
-                      })}
-                    />
-                    {errors.insurance_coverage_percent && (
-                      <p className="text-xs text-red-500">{errors.insurance_coverage_percent.message}</p>
-                    )}
-                  </div>
+              <FormSection title={t('insuranceSection')}>
+                <div className="space-y-1.5">
+                  <Label>{t('labelPayerType')}</Label>
+                  <Select
+                    value={watchPayerType ?? 'none'}
+                    onValueChange={v => setValue('insurance_payer_type', v === 'none' ? null : (v as InsurancePayerType))}
+                  >
+                    <SelectTrigger><SelectValue placeholder={t('selectPlaceholder')} /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">{t('payerNone')}</SelectItem>
+                      <SelectItem value="ipm">{t('payerIpm')}</SelectItem>
+                      <SelectItem value="mutuelle">{t('payerMutuelle')}</SelectItem>
+                      <SelectItem value="cnss">{t('payerCnss')}</SelectItem>
+                      <SelectItem value="ipres">{t('payerIpres')}</SelectItem>
+                      <SelectItem value="private">{t('payerPrivate')}</SelectItem>
+                      <SelectItem value="other">{t('payerOther')}</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              </div>
+                <div className="space-y-1.5">
+                  <Label>{t('labelInsuranceProvider')}</Label>
+                  <Input {...register('insurance_provider')} disabled={!watchPayerType} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t('labelPolicyNumber')}</Label>
+                  <Input {...register('insurance_policy_number')} disabled={!watchPayerType} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t('labelCoverage')}</Label>
+                  <Input
+                    type="number" min={0} max={100} step={1} placeholder="80"
+                    disabled={!watchPayerType}
+                    {...register('insurance_coverage_percent', {
+                      setValueAs: v => (v === '' || v == null ? null : Number(v)),
+                    })}
+                  />
+                  {errors.insurance_coverage_percent && (
+                    <p className="text-xs text-red-500">{errors.insurance_coverage_percent.message}</p>
+                  )}
+                </div>
+              </FormSection>
 
-              <div className="col-span-2 space-y-1.5">
-                <Label>{t('labelNotes')}</Label>
-                <Input {...register('notes')} />
-              </div>
+              {/* Notes */}
+              <FormSection title={t('sectionNotes')}>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label>{t('labelNotes')}</Label>
+                  <Textarea {...register('notes')} rows={3} />
+                </div>
+              </FormSection>
             </div>
-            <DialogFooter>
+
+            {/* Sticky footer */}
+            <DialogFooter className="shrink-0 border-t px-6 py-4">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>{t('cancel')}</Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="animate-spin" />}
