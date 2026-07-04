@@ -42,6 +42,9 @@ export function fallbackProfile(
     photoPath: null,
     signaturePath: null,
     credentials: [],
+    primarySpecialty: null,
+    secondarySpecialties: [],
+    subSpecialties: [],
     onboardingCompleted: false,
     isFallback: true,
   }
@@ -70,9 +73,24 @@ export function normalizeProfile(
     photoPath: nonEmpty(row.photo_path),
     signaturePath: nonEmpty(row.signature_path),
     credentials: parseCredentials(row.credentials),
+    // Specialty selection (14.2.3). Missing columns (un-applied 038/039) → empty.
+    primarySpecialty: nonEmpty(row.primary_specialty),
+    secondarySpecialties: parseStringArray(row.secondary_specialties),
+    subSpecialties: parseStringArray(row.sub_specialties),
     onboardingCompleted: row.onboarding_completed === true,
     isFallback: false,
   }
+}
+
+// Tolerant JSONB string-array parsing — accepts an array or a JSON string;
+// drops anything that isn't a string. Never throws.
+export function parseStringArray(input: unknown): string[] {
+  let raw: unknown = input
+  if (typeof raw === 'string') {
+    try { raw = JSON.parse(raw) } catch { return [] }
+  }
+  if (!Array.isArray(raw)) return []
+  return raw.filter((x): x is string => typeof x === 'string')
 }
 
 function normalizeProfession(value?: string | null, role?: string | null): ProfessionId | null {

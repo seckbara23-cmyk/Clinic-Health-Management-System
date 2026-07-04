@@ -41,12 +41,14 @@ export function useProfessionalProfile() {
     queryFn: async (): Promise<ProfessionalProfile> => {
       const opts = { role: profile?.role ?? null, displayName: profile?.full_name ?? null }
       try {
+        // select('*') deliberately: columns arrive across migrations (038 base,
+        // 039 primary_specialty, …). An explicit list would 42703-error the whole
+        // read on a partially-migrated DB; '*' + the tolerant normaliser degrades
+        // per-field instead. Single flat table — still no embed, no PGRST201 risk.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data, error } = await (supabase as any)
           .from('professional_profiles')
-          .select(
-            'id, user_id, clinic_id, profession, display_name, professional_title, department, position, years_experience, languages, photo_path, signature_path, credentials, onboarding_completed',
-          )
+          .select('*')
           .eq('user_id', userId!)
           .eq('clinic_id', clinicId!)
           .maybeSingle()
@@ -71,6 +73,12 @@ export interface SaveProfileInput {
   photoPath?: string | null
   signaturePath?: string | null
   credentials?: Credential[]
+  // Specialty selection (14.2.3). Requires migrations 038/039; a save that
+  // includes these keys against an un-migrated DB fails gracefully (toast),
+  // while saves omitting them are unaffected.
+  primarySpecialty?: string | null
+  secondarySpecialties?: string[]
+  subSpecialties?: string[]
   onboardingCompleted?: boolean
 }
 
@@ -100,6 +108,9 @@ export function useSaveProfessionalProfile() {
       if (input.photoPath !== undefined) patch.photo_path = input.photoPath
       if (input.signaturePath !== undefined) patch.signature_path = input.signaturePath
       if (input.credentials !== undefined) patch.credentials = input.credentials
+      if (input.primarySpecialty !== undefined) patch.primary_specialty = input.primarySpecialty
+      if (input.secondarySpecialties !== undefined) patch.secondary_specialties = input.secondarySpecialties
+      if (input.subSpecialties !== undefined) patch.sub_specialties = input.subSpecialties
       if (input.onboardingCompleted !== undefined) patch.onboarding_completed = input.onboardingCompleted
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase as any)

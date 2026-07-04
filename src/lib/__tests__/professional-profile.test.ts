@@ -181,9 +181,11 @@ describe('Professional Registry', () => {
     for (const p of PROFESSIONS) expect(p.basePacks).toEqual([])
   })
 
-  it('usesSpecialties is true only for clinical professions', () => {
+  it('usesSpecialties is true exactly for specialty-practising professions', () => {
+    // Since 14.2.3 the taxonomy gives pharmacist (Pharmacy), lab_technologist
+    // (Laboratory Medicine) and radiographer (Radiology) their specialty space.
     const clinical = PROFESSIONS.filter(p => p.usesSpecialties).map(p => p.id).sort()
-    expect(clinical).toEqual(['doctor', 'midwife', 'nurse'])
+    expect(clinical).toEqual(['doctor', 'lab_technologist', 'midwife', 'nurse', 'pharmacist', 'radiographer'])
   })
 
   it('getProfession / professionForRole never throw and fall back to doctor', () => {

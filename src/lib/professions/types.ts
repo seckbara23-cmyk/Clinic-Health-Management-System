@@ -83,6 +83,11 @@ export interface ProfessionalProfile {
   photoPath: string | null
   signaturePath: string | null
   credentials: Credential[]
+  // Clinical specialty selection (Phase 14.2.3; taxonomy in specialties/taxonomy.ts).
+  // Ids only — bare strings, resolved against the registry at read time.
+  primarySpecialty: string | null       // exactly one
+  secondarySpecialties: string[]        // unlimited
+  subSpecialties: string[]              // unlimited, parent must be selected
   onboardingCompleted: boolean
   /** True when this profile was synthesised as a fallback (no DB row / no table). */
   isFallback: boolean
@@ -104,6 +109,9 @@ export interface ProfessionalProfileRow {
   photo_path?: string | null
   signature_path?: string | null
   credentials?: unknown
+  primary_specialty?: string | null   // migration 039
+  secondary_specialties?: unknown     // migration 038 (JSONB)
+  sub_specialties?: unknown           // migration 038 (JSONB)
   onboarding_completed?: boolean | null
 }
 

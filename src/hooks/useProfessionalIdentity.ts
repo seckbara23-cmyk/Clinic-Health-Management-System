@@ -13,6 +13,7 @@ import {
   assertOwnMediaPath,
   licenseNumbersFrom,
 } from '@/lib/professional-identity'
+import { resolveSpecialtySelection } from '@/lib/specialties/selection'
 import { PROFESSIONAL_MEDIA_BUCKET, credentialReminders } from '@/lib/professional-profile'
 import type { Credential, ProfessionalMediaKind } from '@/lib/professions/types'
 
@@ -40,11 +41,15 @@ export function useProfessionalIdentity() {
   const profile = query.data ?? null
   const profession = useMemo(() => resolveProfession(profile, role), [profile, role])
   const options = useMemo(() => selectableProfessions(role), [role])
+  // The full identity chain (14.2.3): Profession → Primary Specialty →
+  // Secondary Specialties → Sub-specialties. Unknown ids resolve to nothing.
+  const specialties = useMemo(() => resolveSpecialtySelection(profile), [profile])
 
   return {
     profile,
     role,
     profession,               // resolved ProfessionDefinition (never null)
+    specialties,              // ResolvedSpecialties { primary, secondaries, subs }
     selectableProfessions: options,
     isLoading: query.isLoading,
     isFallback: profile?.isFallback ?? true,

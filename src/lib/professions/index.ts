@@ -44,31 +44,35 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     basePacks: [],
   },
   {
+    // usesSpecialties since 14.2.3: the taxonomy gives pharmacists the Pharmacy
+    // specialty (clinical/hospital pharmacy, pharmacovigilance sub-specialties).
     id: 'pharmacist',
     labelKey: 'profession_pharmacist',
     icon: 'Pill',
     role: 'pharmacist',
-    usesSpecialties: false,
+    usesSpecialties: true,
     credentialKinds: ['medical_license', 'professional_membership', 'cme', 'diploma'],
     basePacks: [],
   },
   {
+    // usesSpecialties since 14.2.3: Laboratory Medicine + its sub-specialties.
     id: 'lab_technologist',
     labelKey: 'profession_lab_technologist',
     icon: 'FlaskConical',
     role: 'lab_technician',
-    usesSpecialties: false,
+    usesSpecialties: true,
     credentialKinds: ['specialty_certification', 'professional_membership', 'cme', 'diploma'],
     basePacks: [],
   },
   {
     // Radiographer reuses an existing clinical/diagnostic role until a dedicated
     // role is warranted. No new role, no RLS change.
+    // usesSpecialties since 14.2.3: Radiology imaging sub-specialties.
     id: 'radiographer',
     labelKey: 'profession_radiographer',
     icon: 'ScanLine',
     role: 'lab_technician',
-    usesSpecialties: false,
+    usesSpecialties: true,
     credentialKinds: ['specialty_certification', 'professional_membership', 'cme', 'diploma'],
     basePacks: [],
   },
