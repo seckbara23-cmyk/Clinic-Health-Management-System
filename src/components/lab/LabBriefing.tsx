@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Sparkles, Clock, AlertOctagon, FlaskConical, Timer, CheckCircle2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { buildLabBriefing, type LabOrderLite } from '@/lib/lab-workflow'
+import { useClinicConfig } from '@/hooks/useClinicConfig'
 
 /**
  * Deterministic, single-card executive lab briefing (not a wall of cards).
@@ -12,7 +13,10 @@ import { buildLabBriefing, type LabOrderLite } from '@/lib/lab-workflow'
  */
 export function LabBriefing({ orders, nowMs }: { orders: LabOrderLite[]; nowMs: number }) {
   const t = useTranslations('labOrders')
+  const config = useClinicConfig()
   const b = useMemo(() => buildLabBriefing(orders, nowMs), [orders, nowMs])
+
+  if (!config.ai('lab_intelligence')) return null // clinic AI settings gate
 
   const chips = [
     { show: b.critical > 0, icon: AlertOctagon, label: t('briefCritical', { n: b.critical }), cls: 'border-red-200 bg-red-50 text-red-700' },

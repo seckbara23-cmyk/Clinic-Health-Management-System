@@ -6,6 +6,7 @@ import { ShieldCheck, ShieldAlert } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SafetyAlerts } from '@/components/pharmacy/SafetyAlerts'
 import { useMedicationSafety } from '@/hooks/useMedicationSafety'
+import { useClinicConfig } from '@/hooks/useClinicConfig'
 import type { Medication } from '@/types/database'
 
 /**
@@ -17,6 +18,7 @@ export function MedicationSafetyPanel({
   activeMeds, allergies,
 }: { activeMeds: Medication[]; allergies: string[] | null }) {
   const t = useTranslations('consultationDetail')
+  const config = useClinicConfig()
   const safety = useMedicationSafety()
 
   const lines = useMemo(
@@ -27,6 +29,10 @@ export function MedicationSafetyPanel({
     () => safety.analyzeLines(lines, allergies),
     [safety, lines, allergies],
   )
+
+  // Clinic AI settings gate. NOTE: this hides the summary CARD only — the
+  // inline, safety-critical warnings in prescribing/dispensing stay always-on.
+  if (!config.ai('medication_safety')) return null
 
   const hasWarnings = warnings.length > 0
 

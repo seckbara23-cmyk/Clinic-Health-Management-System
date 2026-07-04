@@ -5,6 +5,7 @@ import { Sparkles } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { AI_UI_ENABLED, confidenceVariant, warningVariant, summarizeInsights } from '@/lib/ai/ui'
 import { useInsights } from '@/hooks/useInsights'
+import { useClinicConfig } from '@/hooks/useClinicConfig'
 
 type Variant = 'dashboard' | 'patient' | 'pharmacy' | 'lab' | 'billing' | 'queue' | 'appointments'
 
@@ -34,11 +35,24 @@ const VARIANT_TITLE_KEY: Record<Variant, string> = {
 // tool result — each with its source/citation — plus an overall confidence
 // badge. Hidden entirely when the AI UI flag is off, while loading, or when the
 // caller's role yields no insights for this page (respects RLS + role gating).
+// Map a panel variant to the Administration-Hub AI feature toggle that gates it.
+const VARIANT_FEATURE: Record<Variant, string> = {
+  dashboard: 'executive_briefings',
+  patient: 'patient_intelligence',
+  pharmacy: 'medication_safety',
+  lab: 'lab_intelligence',
+  billing: 'ai_enabled',
+  queue: 'ai_enabled',
+  appointments: 'ai_enabled',
+}
+
 export function InsightsPanel({ variant }: { variant: Variant }) {
   const t = useTranslations('copilot')
+  const config = useClinicConfig()
   const { data, isLoading, isError } = useInsights(VARIANT_CATEGORIES[variant])
 
   if (!AI_UI_ENABLED) return null
+  if (!config.ai(VARIANT_FEATURE[variant])) return null // clinic AI settings gate
   if (isLoading || isError) return null
 
   const results = data?.results ?? []

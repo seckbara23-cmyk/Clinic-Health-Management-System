@@ -5,6 +5,7 @@ import {
   mergeSectionValues, changedKeys, hasUnsavedChanges, pickSectionValues,
 } from '../settings/logic'
 import { SETTINGS_SECTIONS, getSection, sectionDefaults } from '../settings/registry'
+import { settingBool, settingNumber, settingString, aiFeatureEnabled } from '../settings/consumer'
 
 describe('settings permissions (role behavior)', () => {
   it('only admin / super_admin may edit', () => {
@@ -95,6 +96,26 @@ describe('registry integrity', () => {
     for (const s of SETTINGS_SECTIONS) {
       for (const f of s.fields) expect(f.key).toBeTruthy()
     }
+  })
+})
+
+describe('settings consumer (module integration, fallback-safe)', () => {
+  const map = { pharmacy: { low_stock_threshold: 25, fefo_enabled: false }, ai: { ai_enabled: true, lab_intelligence: false } }
+
+  it('reads typed values with a guaranteed fallback', () => {
+    expect(settingNumber(map, 'pharmacy', 'low_stock_threshold', 10)).toBe(25)
+    expect(settingNumber(map, 'pharmacy', 'missing', 10)).toBe(10)          // fallback
+    expect(settingNumber({}, 'pharmacy', 'low_stock_threshold', 10)).toBe(10) // no store → fallback
+    expect(settingBool(map, 'pharmacy', 'fefo_enabled', true)).toBe(false)
+    expect(settingBool(null, 'pharmacy', 'fefo_enabled', true)).toBe(true)  // pre-migration → fallback
+    expect(settingString(map, 'pharmacy', 'x', 'def')).toBe('def')
+  })
+
+  it('gates AI features (global + per-feature), defaulting to enabled', () => {
+    expect(aiFeatureEnabled(map, 'lab_intelligence')).toBe(false)  // feature off
+    expect(aiFeatureEnabled(map, 'patient_intelligence')).toBe(true) // unset → on
+    expect(aiFeatureEnabled({ ai: { ai_enabled: false } }, 'patient_intelligence')).toBe(false) // global off
+    expect(aiFeatureEnabled(null, 'executive_briefings')).toBe(true) // pre-migration → on (no regression)
   })
 })
 

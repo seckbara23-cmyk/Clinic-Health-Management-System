@@ -52,6 +52,14 @@
     "cycleSave": "Enregistrer le comptage",
     "recentCounts": "Comptages récents"
   },
+  "states": {
+    "loading": "Chargement…",
+    "retry": "Réessayer",
+    "offline": "Hors ligne — les données peuvent être obsolètes.",
+    "permissionDenied": "Vous n''avez pas accès à cette section.",
+    "serverError": "Une erreur est survenue. Veuillez réessayer.",
+    "empty": "Aucune donnée"
+  },
   "adminHub": {
     "title": "Administration",
     "subtitle": "Centre de configuration de la clinique",

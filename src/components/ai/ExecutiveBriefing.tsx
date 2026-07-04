@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { AI_UI_ENABLED, confidenceVariant } from '@/lib/ai/ui'
 import { useInsights } from '@/hooks/useInsights'
 import { useClinic } from '@/context/ClinicContext'
+import { useClinicConfig } from '@/hooks/useClinicConfig'
 import {
   buildExecutiveBriefing,
   type BriefingSection, type BriefingSectionGroup, type BriefingStatus,
@@ -50,10 +51,12 @@ const LEVEL_DOT: Record<AIWarningLevel, string> = {
 export function ExecutiveBriefing() {
   const t = useTranslations('briefing')
   const { profile } = useClinic()
+  const config = useClinicConfig()
   const { data, isLoading, isError } = useInsights()
   const [override, setOverride] = useState<boolean | null>(null)
 
   if (!AI_UI_ENABLED) return null
+  if (!config.ai('executive_briefings')) return null // clinic AI settings gate
   if (isLoading || isError || !data) return null
 
   const role = (profile?.role ?? 'admin') as Role

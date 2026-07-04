@@ -8,6 +8,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { confidenceVariant } from '@/lib/ai/ui'
+import { useClinicConfig } from '@/hooks/useClinicConfig'
 import { useFormatters } from '@/hooks/useFormatters'
 import { cn } from '@/lib/utils'
 import type { PatientBriefData, PatientAlert, AlertSeverity } from '@/lib/patient-intel'
@@ -16,6 +17,8 @@ import type { AIConfidenceLevel } from '@/lib/ai/types'
 // ── AI Patient Brief (informational, no diagnosis) ─────────────────
 export function PatientBrief({ brief }: { brief: PatientBriefData }) {
   const t = useTranslations('patientProfile')
+  const config = useClinicConfig()
+  if (!config.ai('patient_intelligence')) return null // clinic AI settings gate
   const rx = t('brief_rx', { count: brief.activePrescriptions })
   const labs = t('brief_labs', { count: brief.pendingLabReviews })
   const sentence = brief.hasIssues ? t('brief_sentence', { rx, labs }) : t('brief_none')

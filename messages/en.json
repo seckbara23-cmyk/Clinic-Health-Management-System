@@ -52,6 +52,14 @@
     "cycleSave": "Save count",
     "recentCounts": "Recent counts"
   },
+  "states": {
+    "loading": "Loading…",
+    "retry": "Retry",
+    "offline": "Offline — data may be out of date.",
+    "permissionDenied": "You do not have access to this section.",
+    "serverError": "Something went wrong. Please try again.",
+    "empty": "No data"
+  },
   "adminHub": {
     "title": "Administration",
     "subtitle": "Clinic configuration center",
