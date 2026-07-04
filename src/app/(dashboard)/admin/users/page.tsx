@@ -18,6 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { useClinic } from '@/context/ClinicContext'
 import { useFormatters } from '@/hooks/useFormatters'
+import { RolePermissionPreview } from '@/components/admin/RolePermissionPreview'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
@@ -132,10 +133,11 @@ export default function AdminUsersPage() {
     onError: (e: Error) => toast.error(e.message),
   })
 
-  const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm<InviteFormData>({
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } = useForm<InviteFormData>({
     resolver: zodResolver(inviteSchema),
     defaultValues: { clinic_id: profile?.clinic_id ?? '' },
   })
+  const selectedRole = watch('role')
 
   if (!isAdmin) {
     return (
@@ -282,7 +284,7 @@ export default function AdminUsersPage() {
 
       {/* Invite dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{t('inviteTitle')}</DialogTitle>
           </DialogHeader>
@@ -294,7 +296,7 @@ export default function AdminUsersPage() {
             </div>
             <div className="space-y-1.5">
               <Label>{t('labelRole')}</Label>
-              <Select onValueChange={v => setValue('role', v as Exclude<Role, 'super_admin'>)}>
+              <Select value={selectedRole ?? ''} onValueChange={v => setValue('role', v as Exclude<Role, 'super_admin'>, { shouldValidate: true })}>
                 <SelectTrigger><SelectValue placeholder={t('selectRole')} /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">{t('roleAdmin')}</SelectItem>
@@ -308,6 +310,11 @@ export default function AdminUsersPage() {
               </Select>
               {errors.role && <p className="text-xs text-red-500">{errors.role.message}</p>}
             </div>
+
+            {/* Live duty description + permission preview */}
+            {selectedRole
+              ? <RolePermissionPreview role={selectedRole} />
+              : <p className="rounded-lg border border-dashed bg-gray-50 px-3 py-4 text-center text-xs text-gray-400">{t('previewHint')}</p>}
             {profile?.role === 'super_admin' && (
               <div className="space-y-1.5">
                 <Label>{t('labelClinic')}</Label>
