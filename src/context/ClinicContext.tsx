@@ -86,7 +86,9 @@ export function ClinicProvider({
 
     const { data: prof, error } = await supabase
       .from('user_profiles')
-      .select('*, clinic:clinics(*)')
+      // Explicit FK hint: migration 037 (user_preferences) made user_profiles↔clinics
+      // ambiguous for PostgREST (junction table); pin the direct clinic_id FK.
+      .select('*, clinic:clinics!user_profiles_clinic_id_fkey(*)')
       .eq('id', uid)
       .single()
 

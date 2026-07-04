@@ -7,6 +7,7 @@ import { ConnectionBanner } from '@/components/offline/ConnectionBanner'
 import { Copilot } from '@/components/ai/Copilot'
 import { TenantBoundary } from '@/components/layout/TenantBoundary'
 import { SidebarProvider } from '@/context/SidebarContext'
+import { classifyProfileAccess } from '@/lib/auth/access'
 import type { Clinic, UserProfile } from '@/types/database'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -22,28 +23,44 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (!user) redirect('/login')
 
-  // Single query — the FULL profile + clinic. This resolves the tenant on the
-  // server (we already redirect if it's missing), then seeds the client tenant
-  // context so authenticated users never render a generic/null shell on refresh.
-  const { data: full } = await supabase
+  // Single query — the FULL profile + clinic. Resolves the tenant on the server
+  // and seeds the client tenant context so authenticated users never render a
+  // generic/null shell on refresh.
+  //
+  // The clinic embed is pinned to the DIRECT foreign key
+  // (user_profiles_clinic_id_fkey). Migration 037 (user_preferences) made
+  // user_profiles↔clinics ambiguous for PostgREST — without the hint this query
+  // fails with PGRST201, which previously collapsed into reason=inactive (P0
+  // lockout). maybeSingle() keeps "no row" distinct from "query error".
+  const { data: full, error: profileError } = await supabase
     .from('user_profiles')
-    .select('*, clinic:clinics(*)')
+    .select('*, clinic:clinics!user_profiles_clinic_id_fkey(*)')
     .eq('id', user.id)
-    .single() as { data: (UserProfile & { clinic: Clinic | null }) | null }
+    .maybeSingle() as { data: (UserProfile & { clinic: Clinic | null }) | null; error: { code?: string; message?: string; details?: string; hint?: string } | null }
 
-  if (!full || !full.is_active) redirect('/suspended?reason=inactive')
-  if (full.must_change_password) redirect('/change-password')
-
-  const { clinic, ...profile } = full as UserProfile & { clinic: Clinic | null }
-
-  // Clinic-level lifecycle guard (does not apply to super_admin — no clinic_id)
-  if (profile.clinic_id && profile.role !== 'super_admin') {
-    const blockedStatuses = ['suspended', 'inactive', 'archived', 'pending']
-    const clinicStatus = clinic?.status ?? 'active'
-    if (blockedStatuses.includes(clinicStatus)) {
-      redirect(`/suspended?reason=${clinicStatus}`)
-    }
+  if (profileError) {
+    console.error('[DashboardLayout] profile query failed:', {
+      code: profileError.code, message: profileError.message,
+      details: profileError.details, hint: profileError.hint,
+    })
   }
+
+  const clinic: Clinic | null = full?.clinic ?? null
+
+  // Distinct access states — a lookup error is never treated as "inactive".
+  const decision = classifyProfileAccess({
+    hasUser: true,
+    hadQueryError: !!profileError,
+    profile: full
+      ? { is_active: full.is_active, must_change_password: full.must_change_password, clinic_id: full.clinic_id, role: full.role }
+      : null,
+    clinicStatus: clinic?.status ?? null,
+  })
+  if (!decision.allow) redirect(decision.redirect)
+
+  // Safe here: decision.allow implies a fetched, active profile.
+  const { clinic: _omit, ...profile } = full as UserProfile & { clinic: Clinic | null }
+  void _omit
 
   return (
     <TenantBoundary initialProfile={profile as UserProfile} initialClinic={clinic ?? null}>

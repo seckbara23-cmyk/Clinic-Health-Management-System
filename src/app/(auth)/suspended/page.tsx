@@ -3,12 +3,12 @@
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
-import { Stethoscope, Clock, Mail, Ban, Archive, AlertTriangle, ShieldOff } from 'lucide-react'
+import { Stethoscope, Clock, Mail, Ban, Archive, AlertTriangle, ShieldOff, RotateCcw, WifiOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
-type Reason = 'suspended' | 'archived' | 'inactive' | 'pending' | 'unknown'
+type Reason = 'suspended' | 'archived' | 'inactive' | 'pending' | 'unknown' | 'error'
 
 const reasonConfig: Record<Reason, {
   icon: React.ElementType
@@ -76,6 +76,20 @@ const reasonConfig: Record<Reason, {
       'Revenez vérifier l\'accès dans quelques instants',
     ],
   },
+  // A transient infrastructure problem loading the profile — NOT an account
+  // status. Retryable, and never blames the user.
+  error: {
+    icon: WifiOff,
+    iconBg: 'bg-slate-100',
+    iconColor: 'text-slate-600',
+    title: 'Connexion momentanément indisponible',
+    description: 'Nous n\'avons pas pu charger votre profil pour le moment. Ce n\'est pas lié à votre compte — merci de réessayer dans un instant.',
+    tips: [
+      'Réessayez dans quelques instants',
+      'Vérifiez votre connexion internet',
+      'Si le problème persiste, contactez le support',
+    ],
+  },
 }
 
 function SuspendedContent() {
@@ -116,6 +130,11 @@ function SuspendedContent() {
         </ul>
       </div>
       <div className="flex flex-col gap-2 pt-2">
+        {reason === 'error' && (
+          <Button className="gap-2 w-full" onClick={() => router.push('/dashboard')}>
+            <RotateCcw className="h-4 w-4" /> Réessayer
+          </Button>
+        )}
         <Button variant="outline" className="gap-2 w-full" asChild>
           <Link href="mailto:support@chms.sn">
             <Mail className="h-4 w-4" /> Contacter le support

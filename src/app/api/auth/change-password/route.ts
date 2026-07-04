@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
 
     service
       .from('user_profiles')
-      .select('role, clinic_id, clinic:clinics(onboarding_completed_at)')
+      .select('role, clinic_id, clinic:clinics!user_profiles_clinic_id_fkey(onboarding_completed_at)')
       .eq('id', user.id)
       .single(),
   ])

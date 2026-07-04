@@ -73,9 +73,11 @@ export default function AdminUsersPage() {
     queryKey: ['admin-users'],
     enabled: !!profile && isAdmin,
     queryFn: async () => {
+      // Explicit FK hint (migration 037 made user_profiles↔clinics ambiguous).
+      const embed = '*, clinic:clinics!user_profiles_clinic_id_fkey(id, name)'
       const q = profile?.role === 'super_admin'
-        ? supabase.from('user_profiles').select('*, clinic:clinics(id, name)').order('created_at', { ascending: false })
-        : supabase.from('user_profiles').select('*, clinic:clinics(id, name)').eq('clinic_id', profile!.clinic_id!).order('created_at', { ascending: false })
+        ? supabase.from('user_profiles').select(embed).order('created_at', { ascending: false })
+        : supabase.from('user_profiles').select(embed).eq('clinic_id', profile!.clinic_id!).order('created_at', { ascending: false })
       const { data, error } = await q
       if (error) throw error
       return data as unknown as (UserProfile & { clinic: Clinic })[]
