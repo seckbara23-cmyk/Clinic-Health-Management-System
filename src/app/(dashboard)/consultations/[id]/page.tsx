@@ -1,31 +1,30 @@
 'use client'
 
-import { use, useState, useEffect } from 'react'
+import { use, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { logRecordView } from '@/lib/audit-client'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import {
-  ArrowLeft, Loader2, Receipt, CheckCircle2,
-  User, Calendar, Stethoscope,
-} from 'lucide-react'
+import { ArrowLeft, Loader2, CheckCircle2, Stethoscope } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { AutoTextarea } from '@/components/ui/auto-textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { VitalsForm } from '@/components/consultations/VitalsForm'
-import { useConsultation, useUpdateConsultation, useEndConsultation } from '@/hooks/useConsultations'
-import { useCreateInvoice } from '@/hooks/useInvoices'
-import { useClinic } from '@/context/ClinicContext'
-import { useFormatters } from '@/hooks/useFormatters'
-import { cn } from '@/lib/utils'
-import { toast } from 'sonner'
-import { useTranslations } from 'next-intl'
+import { PatientSummaryHeader } from '@/components/consultations/PatientSummaryHeader'
+import { ClinicalTimeline } from '@/components/consultations/ClinicalTimeline'
+import { QuickActions } from '@/components/consultations/QuickActions'
+import { MedicationSafetyPanel } from '@/components/consultations/MedicationSafetyPanel'
+import { InsightsPanel } from '@/components/ai/InsightsPanel'
 import { DraftLauncher } from '@/components/ai/DraftLauncher'
+import { useConsultation, useUpdateConsultation, useEndConsultation, useConsultations } from '@/hooks/useConsultations'
+import { usePrescriptions } from '@/hooks/usePrescriptions'
+import { useInvoices } from '@/hooks/useInvoices'
+import { cn } from '@/lib/utils'
+import { useTranslations } from 'next-intl'
+import type { Medication } from '@/types/database'
 
 const schema = z.object({
   chief_complaint: z.string().optional().nullable(),
@@ -37,44 +36,67 @@ const schema = z.object({
 })
 type FormData = z.infer<typeof schema>
 
-const invoiceSchema = z.object({
-  amount:         z.coerce.number().min(0),
-  payment_method: z.string().min(1),
-})
-type InvoiceForm = z.infer<typeof invoiceSchema>
+// Active prescription medications collapsed to a unique list (by name) for the
+// summary header + safety panel. Keeps the first catalog link seen.
+const ACTIVE_RX_STATES = new Set(['active', 'partially_dispensed'])
 
 export default function ConsultationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const t = useTranslations('consultationDetail')
-  const { formatDate, formatTime } = useFormatters()
   const router = useRouter()
-  const { profile } = useClinic()
+
   const { data: consultation, isLoading } = useConsultation(id)
   useEffect(() => { logRecordView('consultation', id) }, [id])
   const updateMutation = useUpdateConsultation()
   const endMutation = useEndConsultation()
-  const createInvoice = useCreateInvoice()
-  const [invoiceOpen, setInvoiceOpen] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  const PAYMENT_METHODS = [
-    { value: 'cash',         label: t('paymentCash') },
-    { value: 'mobile_money', label: t('paymentMobile') },
-    { value: 'card',         label: t('paymentCard') },
-    { value: 'insurance',    label: t('paymentInsurance') },
-    { value: 'other',        label: t('paymentOther') },
-  ]
+  const patientId = consultation?.patient_id ?? null
+
+  // Patient-scoped context (RLS-scoped; query keys shared app-wide → no dupes).
+  const { data: patientRx } = usePrescriptions(undefined, patientId ?? undefined)
+  const { data: patientInvoices } = useInvoices(undefined, patientId ?? undefined)
+  const { data: patientConsults } = useConsultations(patientId ?? undefined)
+
+  const activeMeds = useMemo<Medication[]>(() => {
+    const seen = new Set<string>()
+    const out: Medication[] = []
+    for (const rx of patientRx ?? []) {
+      if (!ACTIVE_RX_STATES.has(rx.status)) continue
+      for (const m of (rx.medications ?? [])) {
+        const key = m.name.trim().toLowerCase()
+        if (!key || seen.has(key)) continue
+        seen.add(key)
+        out.push(m)
+      }
+    }
+    return out
+  }, [patientRx])
+
+  const outstandingBalance = useMemo(() => {
+    const OPEN = new Set(['draft', 'sent', 'partial', 'overdue'])
+    return (patientInvoices ?? [])
+      .filter(i => OPEN.has(i.status))
+      .reduce((s, i) => s + (Number(i.total_amount) - Number(i.amount_paid)), 0)
+  }, [patientInvoices])
+
+  const lastConsultDate = useMemo(() => {
+    const prev = (patientConsults ?? [])
+      .filter(c => c.id !== id)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    return prev[0]?.created_at ?? null
+  }, [patientConsults, id])
 
   const clinicalFields = [
-    { field: 'chief_complaint' as const, label: t('labelChiefComplaint') },
-    { field: 'symptoms'        as const, label: t('labelSymptoms') },
-    { field: 'diagnosis'       as const, label: t('labelDiagnosis') },
-    { field: 'treatment_plan'  as const, label: t('labelTreatment') },
-    { field: 'notes'           as const, label: t('labelNotes') },
+    { field: 'chief_complaint' as const, label: t('sectionChiefComplaint'), hint: t('hintChiefComplaint') },
+    { field: 'symptoms'        as const, label: t('sectionHPI'),            hint: t('hintHPI') },
+    { field: 'notes'           as const, label: t('sectionExam'),           hint: t('hintExam') },
+    { field: 'diagnosis'       as const, label: t('sectionAssessment'),     hint: t('hintAssessment') },
+    { field: 'treatment_plan'  as const, label: t('sectionPlan'),           hint: t('hintPlan') },
   ]
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { register, handleSubmit, formState: { errors, isSubmitting, isDirty } } = useForm<FormData>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(schema) as any,
     values: consultation ? {
       chief_complaint: consultation.chief_complaint,
@@ -84,12 +106,6 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
       notes:           consultation.notes,
       follow_up_date:  consultation.follow_up_date,
     } : {},
-  })
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const invoiceForm = useForm<InvoiceForm>({
-    resolver: zodResolver(invoiceSchema) as any,
-    defaultValues: { amount: 0, payment_method: 'cash' },
   })
 
   async function onSave(data: FormData) {
@@ -112,30 +128,6 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
     router.push('/queue')
   }
 
-  async function onCreateInvoice(data: InvoiceForm) {
-    if (!consultation) return
-    const subtotal = data.amount
-    await createInvoice.mutateAsync({
-      patient_id:      consultation.patient_id,
-      consultation_id: id,
-      line_items:      [{ description: t('invoiceMedicalConsult'), quantity: 1, unit_price: subtotal, total: subtotal }],
-      subtotal,
-      tax_amount:      0,
-      discount_amount: 0,
-      total_amount:    subtotal,
-      amount_paid:     0,
-      currency:        'XOF',
-      status:          'draft',
-      payment_method:  data.payment_method,
-      due_date:        null,
-      paid_at:         null,
-      notes:           null,
-    })
-    setInvoiceOpen(false)
-    invoiceForm.reset()
-    toast.success(t('invoiceCreated'))
-  }
-
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -152,49 +144,31 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
     )
   }
 
-  const patient     = (consultation as { patient?: { full_name?: string; patient_number?: string; date_of_birth?: string | null; gender?: string | null; blood_type?: string | null; allergies?: string[] | null } }).patient
-  const doctor      = (consultation as { doctor?: { full_name?: string } }).doctor
-  const appointment = (consultation as { appointment?: { id: string; title: string; scheduled_at: string; notes: string | null; status: string } | null }).appointment
-  const isEnded     = !!consultation.ended_at
-
-  const genderLabel = (g: string | null | undefined) =>
-    g === 'male' ? t('genderM') : g === 'female' ? t('genderF') : g === 'other' ? t('genderOther') : null
+  const patient = (consultation as { patient?: {
+    id?: string; full_name?: string; patient_number?: string; date_of_birth?: string | null
+    gender?: string | null; blood_type?: string | null; phone?: string | null; allergies?: string[] | null
+  } }).patient
+  const allergies = patient?.allergies ?? null
+  const isEnded = !!consultation.ended_at
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       {/* Topbar */}
-      <div className="flex items-center gap-3 border-b bg-white px-4 md:px-6 py-3 shrink-0">
+      <div className="flex shrink-0 items-center gap-3 border-b bg-white px-4 py-3 md:px-6">
         <Button variant="ghost" size="sm" className="gap-1 text-gray-500" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4" /> {t('back')}
         </Button>
         <div className="h-5 w-px bg-gray-200" />
-        <Stethoscope className="h-4 w-4 text-teal-700 shrink-0" />
-        <div className="min-w-0">
-          <p className="font-semibold text-gray-900 leading-tight truncate">{patient?.full_name ?? '—'}</p>
-          {appointment && (
-            <p className="text-xs text-gray-400 truncate">
-              {appointment.title} — {formatTime(appointment.scheduled_at)}
-            </p>
-          )}
-        </div>
-        <div className="ml-auto flex items-center gap-2 shrink-0">
-          {isEnded && (
+        <Stethoscope className="h-4 w-4 shrink-0 text-teal-700" />
+        <p className="min-w-0 truncate font-semibold leading-tight text-gray-900">{patient?.full_name ?? '—'}</p>
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          {isEnded ? (
             <span className="flex items-center gap-1 text-xs text-gray-400">
               <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              <span className="hidden sm:inline">{t('ended', { date: formatDate(consultation.ended_at!) })}</span>
+              <span className="hidden sm:inline">{t('endedShort')}</span>
             </span>
-          )}
-          {!isEnded && (
+          ) : (
             <>
-              <Button
-                variant="outline" size="sm"
-                className="gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-                onClick={() => setInvoiceOpen(true)}
-                disabled={isSubmitting}
-              >
-                <Receipt className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{t('btnInvoice')}</span>
-              </Button>
               <Button
                 size="sm" className="gap-1.5"
                 onClick={handleSubmit(onSave)}
@@ -202,9 +176,7 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
               >
                 {(isSubmitting || updateMutation.isPending)
                   ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  : saved
-                  ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />
-                  : null}
+                  : saved ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" /> : null}
                 <span className="hidden sm:inline">{t('btnSave')}</span>
               </Button>
               <Button
@@ -224,187 +196,90 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 md:p-6">
-        <div className="mx-auto max-w-5xl mb-4 md:mb-6">
-          <DraftLauncher patientId={consultation.patient_id} consultationId={id} />
-        </div>
-        <div className="mx-auto max-w-5xl grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="mx-auto max-w-6xl space-y-4 md:space-y-6">
 
-          {/* Left: patient / appointment / doctor cards */}
-          <div className="space-y-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <User className="h-4 w-4 text-teal-700" /> {t('cardPatient')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-1.5 text-sm">
-                <p className="font-semibold text-gray-900">{patient?.full_name}</p>
-                <p className="font-mono text-xs text-gray-400">{patient?.patient_number}</p>
-                {patient?.date_of_birth && (
-                  <p className="text-gray-500">
-                    {new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear()} ans
-                    {genderLabel(patient.gender) && ` · ${genderLabel(patient.gender)}`}
-                  </p>
-                )}
-                {patient?.blood_type && (
-                  <p className="text-gray-500">
-                    {t('patientBloodGroup', { type: patient.blood_type })}
-                  </p>
-                )}
-                {patient?.allergies && patient.allergies.length > 0 && (
-                  <div>
-                    <p className="text-xs text-gray-400 mb-1">{t('patientAllergies')}</p>
-                    <div className="flex flex-wrap gap-1">
-                      {patient.allergies.map(a => (
-                        <span key={a} className="rounded-full bg-red-50 border border-red-200 px-2 py-0.5 text-xs text-red-700">
-                          {a}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {appointment && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-teal-700" /> {t('cardAppointment')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm space-y-1">
-                  <p className="font-medium text-gray-700">{appointment.title}</p>
-                  <p className="text-gray-500">{formatTime(appointment.scheduled_at)}</p>
-                  {appointment.notes && <p className="text-xs text-gray-400 italic">{appointment.notes}</p>}
-                </CardContent>
-              </Card>
-            )}
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Stethoscope className="h-4 w-4 text-teal-700" /> {t('cardDoctor')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm">
-                <p className="font-medium text-gray-700">{doctor?.full_name ?? profile?.full_name ?? '—'}</p>
-                {consultation.started_at && (
-                  <p className="text-xs text-gray-400 mt-1">{t('cardStarted', { time: formatTime(consultation.started_at) })}</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Right: clinical form + vitals */}
-          <div className="lg:col-span-2 space-y-4">
-
-            {/* Clinical data */}
-            <form onSubmit={handleSubmit(onSave)}>
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">{t('clinicalTitle')}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {clinicalFields.map(({ field, label }) => (
-                    <div key={field} className="space-y-1.5">
-                      <Label className="text-sm">{label}</Label>
-                      <Textarea
-                        {...register(field)}
-                        rows={2}
-                        disabled={isEnded}
-                        className={cn('resize-none text-sm', isEnded && 'bg-gray-50 text-gray-600')}
-                      />
-                      {errors[field] && (
-                        <p className="text-xs text-red-500">{String(errors[field]?.message)}</p>
-                      )}
-                    </div>
-                  ))}
-                  <div className="space-y-1.5">
-                    <Label className="text-sm">{t('labelFollowUp')}</Label>
-                    <Input
-                      type="date"
-                      {...register('follow_up_date')}
-                      disabled={isEnded}
-                      className="max-w-48"
-                    />
-                  </div>
-
-                  {!isEnded && (
-                    <div className="flex justify-end pt-1">
-                      <Button
-                        type="submit"
-                        size="sm"
-                        disabled={isSubmitting || updateMutation.isPending || !isDirty}
-                        className="gap-1.5"
-                      >
-                        {(isSubmitting || updateMutation.isPending) && (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        )}
-                        {saved
-                          ? <><CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" /> {t('btnSaved')}</>
-                          : t('btnSave')}
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </form>
-
-            {/* Structured vitals */}
-            <VitalsForm
-              consultationId={id}
-              patientId={consultation.patient_id}
-              isEnded={isEnded}
+          {/* 1. Patient summary */}
+          {patient && (
+            <PatientSummaryHeader
+              patient={{
+                id: patient.id ?? patientId ?? '',
+                full_name: patient.full_name ?? '—',
+                patient_number: patient.patient_number ?? '',
+                date_of_birth: patient.date_of_birth ?? null,
+                gender: patient.gender ?? null,
+                blood_type: patient.blood_type ?? null,
+                phone: patient.phone ?? null,
+                allergies: patient.allergies ?? null,
+              }}
+              activeMeds={activeMeds}
+              lastConsultDate={lastConsultDate}
+              outstandingBalance={outstandingBalance}
             />
+          )}
+
+          {/* AI draft launcher (existing AI layer) */}
+          <DraftLauncher patientId={consultation.patient_id} consultationId={id} />
+
+          <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-3">
+            {/* Left: consultation editor (2/3) + vitals */}
+            <div className="space-y-4 md:space-y-6 lg:col-span-2">
+              <form onSubmit={handleSubmit(onSave)}>
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm">{t('clinicalTitle')}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {clinicalFields.map(({ field, label, hint }) => (
+                      <div key={field} className="space-y-1.5">
+                        <Label className="text-sm font-medium">{label}</Label>
+                        <AutoTextarea
+                          {...register(field)}
+                          resizeDep={consultation.updated_at}
+                          disabled={isEnded}
+                          placeholder={hint}
+                          className={cn('text-sm', isEnded && 'bg-gray-50 text-gray-600')}
+                        />
+                        {errors[field] && <p className="text-xs text-red-500">{String(errors[field]?.message)}</p>}
+                      </div>
+                    ))}
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">{t('labelFollowUp')}</Label>
+                      <Input type="date" {...register('follow_up_date')} disabled={isEnded} className="max-w-48" />
+                    </div>
+                    {!isEnded && (
+                      <div className="flex justify-end pt-1">
+                        <Button type="submit" size="sm" disabled={isSubmitting || updateMutation.isPending || !isDirty} className="gap-1.5">
+                          {(isSubmitting || updateMutation.isPending) && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                          {saved
+                            ? <><CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" /> {t('btnSaved')}</>
+                            : t('btnSave')}
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </form>
+
+              {/* 2. Vitals */}
+              <VitalsForm consultationId={id} patientId={consultation.patient_id} isEnded={isEnded} />
+            </div>
+
+            {/* Right rail (1/3): actions, safety, timeline, AI */}
+            <div className="space-y-4 md:space-y-6">
+              <QuickActions
+                consultationId={id}
+                patientId={consultation.patient_id}
+                doctorId={consultation.doctor_id}
+                patientName={patient?.full_name ?? '—'}
+                allergies={allergies}
+              />
+              <MedicationSafetyPanel activeMeds={activeMeds} allergies={allergies} />
+              <ClinicalTimeline patientId={consultation.patient_id} currentConsultationId={id} />
+              <InsightsPanel variant="patient" />
+            </div>
           </div>
         </div>
       </div>
-
-      {/* Invoice creation dialog */}
-      <Dialog open={invoiceOpen} onOpenChange={setInvoiceOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{t('invoiceTitle')}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={invoiceForm.handleSubmit(onCreateInvoice)} className="space-y-4">
-            <div className="rounded-lg bg-gray-50 border px-4 py-3 text-sm text-gray-700 space-y-1">
-              <p className="font-medium">{patient?.full_name}</p>
-              <p className="text-xs text-gray-400">
-                {t('invoiceMedicalConsult')} · {formatDate(consultation.created_at)}
-              </p>
-            </div>
-            <div className="space-y-1.5">
-              <Label>{t('invoiceLabelAmount')}</Label>
-              <Input
-                type="number" min={0} step={100} placeholder="5000"
-                {...invoiceForm.register('amount')}
-                className="text-lg font-semibold"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>{t('invoiceLabelMethod')}</Label>
-              <Select defaultValue="cash" onValueChange={v => invoiceForm.setValue('payment_method', v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {PAYMENT_METHODS.map(m => (
-                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setInvoiceOpen(false)}>{t('cancel')}</Button>
-              <Button type="submit" disabled={invoiceForm.formState.isSubmitting || createInvoice.isPending}>
-                {(invoiceForm.formState.isSubmitting || createInvoice.isPending) && (
-                  <Loader2 className="animate-spin h-4 w-4" />
-                )}
-                {t('invoiceCreateBtn')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

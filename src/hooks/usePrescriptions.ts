@@ -9,11 +9,14 @@ type PrescriptionWithRelations = Prescription & {
   doctor: { id: string; full_name: string }
 }
 
-export function usePrescriptions(consultationId?: string) {
+// consultationId scopes to one consultation; patientId scopes to a patient's
+// full history (used by the consultation workspace timeline / active-meds).
+// Both are RLS-scoped, cached independently by query key.
+export function usePrescriptions(consultationId?: string, patientId?: string) {
   const { clinic } = useClinic()
   const supabase = createClient()
   return useQuery({
-    queryKey: ['prescriptions', clinic?.id, consultationId ?? 'all'],
+    queryKey: ['prescriptions', clinic?.id, consultationId ?? 'all', patientId ?? 'all'],
     enabled: !!clinic,
     queryFn: async () => {
       let q = supabase
@@ -22,6 +25,7 @@ export function usePrescriptions(consultationId?: string) {
         .eq('clinic_id', clinic!.id)
         .order('created_at', { ascending: false })
       if (consultationId) q = q.eq('consultation_id', consultationId)
+      if (patientId) q = q.eq('patient_id', patientId)
       const { data, error } = await q
       if (error) throw error
       return data as unknown as PrescriptionWithRelations[]
