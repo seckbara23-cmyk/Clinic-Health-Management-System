@@ -61,6 +61,8 @@
     "empty": "No data"
   },
   "adminHub": {
+    "sec_my_workspace_title": "My workspace",
+    "sec_my_workspace_desc": "Read-only preview of your resolved dashboard",
     "sec_prof_identity_title": "My professional profile",
     "sec_prof_identity_desc": "Your profession, credentials, languages and signature",
     "title": "Administration",
@@ -2059,5 +2061,30 @@
     "pkcat_clinical": "Clinical",
     "pkcat_diagnostic": "Diagnostic",
     "pkcat_support": "Support"
+  },
+  "workspace": {
+    "sectionWidgets": "Widgets",
+    "sectionQuickActions": "Quick actions",
+    "emptyWidgets": "No widgets for this role",
+    "emptyActions": "No quick actions for this role",
+    "locked": "Locked by clinic",
+    "previewIntro": "This reflects your dashboard’s current configuration (general practice). Read-only — personalization arrives in a future phase.",
+    "previewNote": "Phase 14.2 preview — specialty and add-on pack composition is not active yet.",
+    "widget_ai_brief": "AI Brief",
+    "widget_kpis": "Key metrics",
+    "widget_today_queue": "Today's queue",
+    "widget_quick_actions": "Quick actions",
+    "widget_appointments": "Appointments",
+    "widget_follow_ups": "Follow-ups",
+    "widget_lab_results": "Lab results",
+    "widget_critical_alerts": "Critical alerts",
+    "widget_revenue": "Revenue",
+    "widget_radiology": "Radiology",
+    "action_new_consultation": "New consultation",
+    "action_new_prescription": "New prescription",
+    "action_order_lab": "Order lab test",
+    "action_schedule_appointment": "Schedule appointment",
+    "action_new_invoice": "New invoice",
+    "action_dispense": "Dispense"
   }
 }

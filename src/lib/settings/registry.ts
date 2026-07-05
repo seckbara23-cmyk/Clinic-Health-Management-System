@@ -68,6 +68,13 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     searchTerms: ['profession', 'credentials', 'license', 'signature', 'department', 'position', 'languages', 'identity', 'diplome', 'licence', 'credentials', 'profil professionnel', 'medecin', 'infirmier'],
   },
   {
+    // Phase 14.2.6 — READ-ONLY preview of the resolved workspace (widgets +
+    // quick actions). Foundation only: general_practice today, no editing.
+    id: 'my_workspace', category: 'clinic', titleKey: 'sec_my_workspace_title', descKey: 'sec_my_workspace_desc',
+    icon: 'LayoutGrid', kind: 'native', fields: [],
+    searchTerms: ['workspace', 'widgets', 'dashboard', 'preview', 'espace de travail', 'tableau de bord'],
+  },
+  {
     id: 'clinic_identity', category: 'clinic', titleKey: 'sec_identity_title', descKey: 'sec_identity_desc',
     icon: 'Building2', kind: 'native', viewRoles: ADMINS, fields: [],
     searchTerms: ['clinic', 'identity', 'name', 'address', 'ninea', 'rc', 'phone', 'email', 'clinique', 'identite', 'adresse'],

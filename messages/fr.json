@@ -61,6 +61,8 @@
     "empty": "Aucune donnée"
   },
   "adminHub": {
+    "sec_my_workspace_title": "Mon espace de travail",
+    "sec_my_workspace_desc": "Aperçu en lecture seule de votre tableau de bord résolu",
     "sec_prof_identity_title": "Mon profil professionnel",
     "sec_prof_identity_desc": "Votre profession, vos qualifications, langues et signature",
     "title": "Administration",
@@ -2059,5 +2061,30 @@
     "pkcat_clinical": "Clinique",
     "pkcat_diagnostic": "Diagnostic",
     "pkcat_support": "Support"
+  },
+  "workspace": {
+    "sectionWidgets": "Widgets",
+    "sectionQuickActions": "Actions rapides",
+    "emptyWidgets": "Aucun widget pour ce rôle",
+    "emptyActions": "Aucune action rapide pour ce rôle",
+    "locked": "Verrouillé par la clinique",
+    "previewIntro": "Ceci reflète la configuration actuelle de votre tableau de bord (médecine générale). Lecture seule — la personnalisation arrivera dans une phase future.",
+    "previewNote": "Aperçu de la Phase 14.2 — la composition par spécialité et par module complémentaire n''est pas encore active.",
+    "widget_ai_brief": "Synthèse IA",
+    "widget_kpis": "Indicateurs clés",
+    "widget_today_queue": "File d''attente du jour",
+    "widget_quick_actions": "Actions rapides",
+    "widget_appointments": "Rendez-vous",
+    "widget_follow_ups": "Suivis",
+    "widget_lab_results": "Résultats de laboratoire",
+    "widget_critical_alerts": "Alertes critiques",
+    "widget_revenue": "Recettes",
+    "widget_radiology": "Radiologie",
+    "action_new_consultation": "Nouvelle consultation",
+    "action_new_prescription": "Nouvelle ordonnance",
+    "action_order_lab": "Demander une analyse",
+    "action_schedule_appointment": "Planifier un rendez-vous",
+    "action_new_invoice": "Nouvelle facture",
+    "action_dispense": "Dispenser"
   }
 }

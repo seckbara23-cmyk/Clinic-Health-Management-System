@@ -9,8 +9,11 @@ import {
   Settings2, Search, ChevronRight, Loader2, Save, RotateCcw, Lock, ArrowUpRight,
   Building2, Palette, Clock, Stethoscope, Pill, FlaskConical, Receipt, MessageSquare,
   Sparkles, ShieldCheck, History, User, Download, Users, Activity, Mail, ClipboardList, IdCard,
+  LayoutGrid,
 } from 'lucide-react'
 import { ProfessionalIdentityForm } from '@/components/professional/ProfessionalIdentityForm'
+import { WorkspaceRenderer } from '@/components/workspace/WorkspaceRenderer'
+import { useWorkspaceSpec } from '@/hooks/useWorkspaceSpec'
 import { createClient } from '@/lib/supabase/client'
 import { Topbar } from '@/components/layout/Topbar'
 import { Button } from '@/components/ui/button'
@@ -38,7 +41,7 @@ import {
 
 const ICONS: Record<string, React.ElementType> = {
   Building2, Palette, Clock, Stethoscope, Pill, FlaskConical, Receipt, MessageSquare,
-  Sparkles, ShieldCheck, History, User, Download, IdCard,
+  Sparkles, ShieldCheck, History, User, Download, IdCard, LayoutGrid,
 }
 const CATEGORY_ICON: Record<string, React.ElementType> = {
   clinic: Building2, organization: Users, clinical: Stethoscope, pharmacy: Pill,
@@ -178,6 +181,7 @@ function SectionWorkspace({ section, stored, canEdit }: { section: SettingsSecti
         {section.kind === 'audit' && <AuditPanel />}
         {section.kind === 'native' && section.id === 'profile' && <ProfileForm />}
         {section.kind === 'native' && section.id === 'professional_identity' && <ProfessionalIdentityForm />}
+        {section.kind === 'native' && section.id === 'my_workspace' && <MyWorkspacePreview />}
         {section.kind === 'native' && section.id === 'clinic_identity' && <ClinicIdentityForm canEdit={canEdit} />}
         {section.kind === 'native' && section.id === 'sms' && <SmsForm canEdit={canEdit} />}
         {section.kind === 'native' && section.id === 'export' && <ExportPanel />}
@@ -391,6 +395,22 @@ function ExportPanel() {
         ))}
       </div>
       <p className="mt-3 text-xs text-gray-400">{t('exportNote')}</p>
+    </div>
+  )
+}
+
+// ── Native: read-only workspace preview (Phase 14.2.6 foundation) ──
+function MyWorkspacePreview() {
+  const t = useTranslations('workspace')
+  const { spec, isLoading } = useWorkspaceSpec()
+  if (isLoading) {
+    return <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-gray-300" /></div>
+  }
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-gray-600">{t('previewIntro')}</p>
+      <WorkspaceRenderer spec={spec} />
+      <p className="text-[11px] leading-tight text-muted-foreground/70">{t('previewNote')}</p>
     </div>
   )
 }
