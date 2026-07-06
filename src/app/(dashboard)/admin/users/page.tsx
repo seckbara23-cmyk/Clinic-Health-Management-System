@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, Users, Mail, KeyRound, Copy, Check, ShieldAlert } from 'lucide-react'
+import { Loader2, Users, Mail, KeyRound, Copy, Check, ShieldAlert, UserPlus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Topbar } from '@/components/layout/Topbar'
 import { Button } from '@/components/ui/button'
@@ -27,6 +27,9 @@ import type { UserProfile, Clinic, Role } from '@/types/database'
 interface ResetResult {
   temp_password: string
   user: { email: string; full_name: string }
+  // Distinguishes the reveal-dialog copy: an existing user's password was reset,
+  // or a brand-new user was created with a temporary password.
+  kind?: 'reset' | 'created'
 }
 
 const roleColors: Record<string, string> = {
@@ -48,6 +51,7 @@ export default function AdminUsersPage() {
   const [resetResult, setResetResult] = useState<ResetResult | null>(null)
   const [copied, setCopied] = useState(false)
   const supabase = createClient()
+  const queryClient = useQueryClient()
 
   const roleLabels: Record<string, string> = {
     super_admin:  t('roleSuperAdmin'),
@@ -60,12 +64,21 @@ export default function AdminUsersPage() {
     pharmacist:   t('rolePharmacist'),
   }
 
-  const inviteSchema = z.object({
+  // One dialog, two onboarding methods: an email invitation (unchanged flow) or
+  // immediate creation with a temporary password. full_name is only required for
+  // the temp-password method (invited users set their own name on accept).
+  const onboardSchema = z.object({
+    method:     z.enum(['invite', 'temp']),
     email:      z.string().email(t('zodEmailInvalid')),
+    full_name:  z.string().optional(),
     role:       z.enum(['admin', 'doctor', 'receptionist', 'nurse', 'cashier', 'lab_technician', 'pharmacist']),
     clinic_id:  z.string().min(1, t('zodClinicRequired')),
+  }).superRefine((val, ctx) => {
+    if (val.method === 'temp' && !val.full_name?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['full_name'], message: t('zodFullNameRequired') })
+    }
   })
-  type InviteFormData = z.infer<typeof inviteSchema>
+  type OnboardFormData = z.infer<typeof onboardSchema>
 
   const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
 
@@ -107,7 +120,31 @@ export default function AdminUsersPage() {
       if (!res.ok) throw new Error(body.error ?? 'Erreur')
       return body as ResetResult
     },
-    onSuccess: (data) => setResetResult(data),
+    onSuccess: (data) => setResetResult({ ...data, kind: 'reset' }),
+    onError: (e: Error) => toast.error(e.message),
+  })
+
+  // Temp-password onboarding — creation happens server-side only (Admin API).
+  // The browser never generates the password nor creates the auth user.
+  const createUserMutation = useMutation({
+    mutationFn: async (input: OnboardFormData) => {
+      const res = await fetch('/api/admin/create-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: input.email, full_name: input.full_name, role: input.role, clinic_id: input.clinic_id,
+        }),
+      })
+      const bodyJson = await res.json()
+      if (!res.ok) throw new Error(bodyJson.error ?? 'Erreur')
+      return bodyJson as ResetResult
+    },
+    onSuccess: (data) => {
+      setResetResult({ ...data, kind: 'created' })
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+      setOpen(false)
+      reset()
+    },
     onError: (e: Error) => toast.error(e.message),
   })
 
@@ -118,7 +155,7 @@ export default function AdminUsersPage() {
   }
 
   const inviteMutation = useMutation({
-    mutationFn: async (input: InviteFormData) => {
+    mutationFn: async (input: OnboardFormData) => {
       const { data, error } = await supabase
         .from('clinic_invitations')
         .insert({ email: input.email, role: input.role, clinic_id: input.clinic_id, invited_by: profile!.id })
@@ -135,11 +172,19 @@ export default function AdminUsersPage() {
     onError: (e: Error) => toast.error(e.message),
   })
 
-  const { register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } = useForm<InviteFormData>({
-    resolver: zodResolver(inviteSchema),
-    defaultValues: { clinic_id: profile?.clinic_id ?? '' },
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } = useForm<OnboardFormData>({
+    resolver: zodResolver(onboardSchema),
+    defaultValues: { method: 'invite', clinic_id: profile?.clinic_id ?? '' },
   })
   const selectedRole = watch('role')
+  const method = watch('method')
+
+  // Route the single form to the chosen onboarding method.
+  function onSubmit(d: OnboardFormData) {
+    if (d.method === 'temp') createUserMutation.mutate(d)
+    else inviteMutation.mutate(d)
+  }
+  const submitting = isSubmitting || inviteMutation.isPending || createUserMutation.isPending
 
   if (!isAdmin) {
     return (
@@ -160,8 +205,8 @@ export default function AdminUsersPage() {
       <div className="flex-1 p-6 space-y-4">
         <div className="flex justify-between items-center">
           <p className="text-sm text-gray-500">{t('userCount', { count: users?.length ?? 0 })}</p>
-          <Button onClick={() => { reset({ clinic_id: profile?.clinic_id ?? '' }); setOpen(true) }}>
-            <Mail className="h-4 w-4" /> {t('inviteBtn')}
+          <Button onClick={() => { reset({ method: 'invite', clinic_id: profile?.clinic_id ?? '' }); setOpen(true) }}>
+            <UserPlus className="h-4 w-4" /> {t('addUserBtn')}
           </Button>
         </div>
 
@@ -253,12 +298,14 @@ export default function AdminUsersPage() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <KeyRound className="h-5 w-5 text-amber-600" />
-                {t('tempPasswordTitle')}
+                {resetResult.kind === 'created' ? t('createdTitle') : t('tempPasswordTitle')}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 text-sm">
               <p className="text-gray-600">
-                {t('tempPasswordNote', { name: resetResult.user.full_name, email: resetResult.user.email })}
+                {resetResult.kind === 'created'
+                  ? t('createdNote', { name: resetResult.user.full_name, email: resetResult.user.email })
+                  : t('tempPasswordNote', { name: resetResult.user.full_name, email: resetResult.user.email })}
               </p>
               <div className="flex items-center gap-2 rounded-lg border bg-gray-50 px-3 py-2">
                 <code className="flex-1 font-mono text-base tracking-widest text-gray-900 select-all">
@@ -288,9 +335,45 @@ export default function AdminUsersPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{t('inviteTitle')}</DialogTitle>
+            <DialogTitle>{t('dialogTitle')}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit(d => inviteMutation.mutate(d))} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* Onboarding method selector */}
+            <div className="space-y-1.5">
+              <Label>{t('methodLabel')}</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {(['invite', 'temp'] as const).map(m => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setValue('method', m, { shouldValidate: false })}
+                    className={cn(
+                      'flex items-start gap-2 rounded-lg border p-3 text-left transition-colors',
+                      method === m
+                        ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                        : 'border-input hover:border-gray-300',
+                    )}
+                  >
+                    {m === 'invite'
+                      ? <Mail className="h-4 w-4 mt-0.5 shrink-0 text-gray-500" />
+                      : <KeyRound className="h-4 w-4 mt-0.5 shrink-0 text-gray-500" />}
+                    <span>
+                      <span className="block text-sm font-medium">{m === 'invite' ? t('methodInvite') : t('methodTemp')}</span>
+                      <span className="block text-xs text-gray-500 mt-0.5">{m === 'invite' ? t('methodInviteHint') : t('methodTempHint')}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {method === 'temp' && (
+              <div className="space-y-1.5">
+                <Label>{t('labelFullName')}</Label>
+                <Input placeholder={t('fullNamePlaceholder')} {...register('full_name')} />
+                {errors.full_name && <p className="text-xs text-red-500">{errors.full_name.message}</p>}
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <Label>{t('labelEmail')}</Label>
               <Input type="email" placeholder={t('emailPlaceholder')} {...register('email')} />
@@ -333,9 +416,9 @@ export default function AdminUsersPage() {
             )}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>{t('cancel')}</Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="animate-spin" />}
-                {t('sendInvite')}
+              <Button type="submit" disabled={submitting}>
+                {submitting && <Loader2 className="animate-spin" />}
+                {method === 'temp' ? t('createUserBtn') : t('sendInvite')}
               </Button>
             </DialogFooter>
           </form>

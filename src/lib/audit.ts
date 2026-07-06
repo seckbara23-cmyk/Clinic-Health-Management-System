@@ -11,6 +11,7 @@ export type AuditAction =
   | 'clinic_request.approve'
   | 'clinic_request.reject'
   | 'user.password_reset'
+  | 'user.create_with_temp_password'
 
 /**
  * Append one row to admin_audit_log via the service-role client (bypasses RLS).
