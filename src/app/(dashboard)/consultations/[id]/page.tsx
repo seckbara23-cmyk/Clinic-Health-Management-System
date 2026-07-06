@@ -18,6 +18,7 @@ import { ClinicalTimeline } from '@/components/consultations/ClinicalTimeline'
 import { QuickActions } from '@/components/consultations/QuickActions'
 import { MedicationSafetyPanel } from '@/components/consultations/MedicationSafetyPanel'
 import { GeneralPracticeCopilot } from '@/components/consultations/GeneralPracticeCopilot'
+import { PediatricCopilot } from '@/components/consultations/PediatricCopilot'
 import { InsightsPanel } from '@/components/ai/InsightsPanel'
 import { DraftLauncher } from '@/components/ai/DraftLauncher'
 import { useConsultation, useUpdateConsultation, useEndConsultation, useConsultations } from '@/hooks/useConsultations'
@@ -148,6 +149,7 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
   const patient = (consultation as { patient?: {
     id?: string; full_name?: string; patient_number?: string; date_of_birth?: string | null
     gender?: string | null; blood_type?: string | null; phone?: string | null; allergies?: string[] | null
+    emergency_contact?: string | null
   } }).patient
   const allergies = patient?.allergies ?? null
   const isEnded = !!consultation.ended_at
@@ -281,6 +283,24 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
                 patientId={consultation.patient_id}
                 consultation={{ id, ended_at: consultation.ended_at, created_at: consultation.created_at }}
                 patient={{ date_of_birth: patient?.date_of_birth ?? null, gender: patient?.gender ?? null, allergies }}
+                doc={{
+                  chief_complaint: watch('chief_complaint'),
+                  symptoms: watch('symptoms'),
+                  notes: watch('notes'),
+                  diagnosis: watch('diagnosis'),
+                  treatment_plan: watch('treatment_plan'),
+                }}
+                activeMeds={activeMeds}
+                prescriptions={patientRx}
+                consultations={patientConsults}
+                invoices={patientInvoices}
+              />
+              {/* Pediatrics Clinical Copilot — read-only + vaccination recording.
+                  Renders only for a pediatrics doctor with AI enabled. */}
+              <PediatricCopilot
+                patientId={consultation.patient_id}
+                consultation={{ id, created_at: consultation.created_at }}
+                patient={{ date_of_birth: patient?.date_of_birth ?? null, gender: patient?.gender ?? null, allergies, emergency_contact: patient?.emergency_contact ?? null }}
                 doc={{
                   chief_complaint: watch('chief_complaint'),
                   symptoms: watch('symptoms'),

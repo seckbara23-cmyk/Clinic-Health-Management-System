@@ -40,7 +40,7 @@ export function useConsultation(id: string | null) {
         .from('consultations')
         .select(`
           *,
-          patient:patients(id, full_name, patient_number, date_of_birth, gender, blood_type, allergies, phone),
+          patient:patients(id, full_name, patient_number, date_of_birth, gender, blood_type, allergies, phone, emergency_contact),
           doctor:user_profiles!consultations_doctor_profiles_fkey(id, full_name),
           appointment:appointments(id, title, scheduled_at, notes, status)
         `)

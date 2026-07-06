@@ -58,10 +58,17 @@ export const COPILOT_PACKS: CopilotPackManifest[] = [
     futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
   },
   {
+    // Phase 17 — the SECOND real Copilot Pack (extends the GP reference pattern).
     ...BASE, id: 'pediatrics.core', code: 'PEDS-CORE',
     labelKey: 'pk_pediatrics_core', descKey: 'pkd_pediatrics_core',
     category: 'clinical', requiredProfessions: ['doctor'],
     supportedSpecialties: ['pediatrics'], capabilityLevels: [...PROFICIENCY],
+    futureWidgetIds: ['ai_brief', 'kpis', 'today_queue', 'quick_actions'],
+    futureQuickActionIds: ['new_consultation', 'new_prescription', 'order_lab', 'schedule_appointment', 'new_invoice'],
+    futureTemplateIds: ['peds_well_child', 'peds_sick_visit', 'peds_vaccination_visit', 'peds_nutrition_followup', 'peds_school_certificate', 'peds_newborn_followup'],
+    futureAiToolIds: ['get_patient_consultations', 'get_patient_prescriptions', 'get_patient_lab_results', 'get_patient_outstanding', 'get_patient_followups'],
+    futureDocHelperIds: ['pediatric_brief', 'growth_monitoring', 'vaccination_tracker', 'developmental_reminders', 'pediatric_completeness', 'pediatric_medication_review'],
+    futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
   },
   {
     ...BASE, id: 'obstetrics.core', code: 'OB-CORE',

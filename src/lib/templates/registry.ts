@@ -70,9 +70,31 @@ const GP_SMART_TEMPLATES: ConsultationTemplate[] = [
   gpTemplate('gp_minor_illness', [S.cc(), S.exam(), S.assessment(), S.plan(false)]),
 ]
 
+// ── Pediatrics Copilot — smart templates (Phase 17) ───────────────
+// Visit-type scaffolds mapping ONLY to existing consultation columns (no schema
+// change). Documentation guides — they generate NO diagnosis or content.
+function pedTemplate(id: string, sections: Sec[]): ConsultationTemplate {
+  return { id, specialty: 'pediatrics', noteStyle: 'soap', sections }
+}
+
+export const PEDS_SMART_TEMPLATE_IDS = [
+  'peds_well_child', 'peds_sick_visit', 'peds_vaccination_visit',
+  'peds_nutrition_followup', 'peds_school_certificate', 'peds_newborn_followup',
+] as const
+
+const PEDS_SMART_TEMPLATES: ConsultationTemplate[] = [
+  pedTemplate('peds_well_child', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  pedTemplate('peds_sick_visit', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  pedTemplate('peds_vaccination_visit', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  pedTemplate('peds_nutrition_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  pedTemplate('peds_school_certificate', [S.cc(), S.exam(), S.assessment(), S.plan(false)]),
+  pedTemplate('peds_newborn_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+]
+
 export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   GP_CONSULTATION,
   ...GP_SMART_TEMPLATES,
+  ...PEDS_SMART_TEMPLATES,
 ]
 
 export function getTemplate(id: string): ConsultationTemplate | undefined {

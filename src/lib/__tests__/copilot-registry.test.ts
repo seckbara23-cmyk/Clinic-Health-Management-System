@@ -49,16 +49,19 @@ describe('Copilot Pack Registry — integrity', () => {
     expect(new Set(codes).size).toBe(codes.length)
   })
 
-  it('the 11 placeholder cores are METADATA ONLY (empty future*); general_practice.core is the first REAL pack', () => {
-    // Phase 16 populated general_practice.core with real capabilities; the rest
-    // remain placeholders until their own copilot phase.
+  it('placeholder cores are METADATA ONLY (empty future*); the shipped copilots are populated', () => {
+    // Phase 16 populated general_practice.core; Phase 17 populated pediatrics.core.
+    // The remaining cores stay placeholders until their own copilot phase.
+    const REAL = new Set(['general_practice.core', 'pediatrics.core'])
     for (const p of COPILOT_PACKS) {
-      if (p.id === 'general_practice.core') continue
+      if (REAL.has(p.id)) continue
       for (const key of FUTURE_LISTS) expect(p[key]).toEqual([])
     }
-    const gp = getCopilotPack('general_practice.core')!
-    expect(gp.futureTemplateIds.length).toBeGreaterThan(0)
-    expect(gp.futureAiToolIds.length).toBeGreaterThan(0)
+    for (const id of REAL) {
+      const pack = getCopilotPack(id)!
+      expect(pack.futureTemplateIds.length).toBeGreaterThan(0)
+      expect(pack.futureAiToolIds.length).toBeGreaterThan(0)
+    }
   })
 
   it('every pack is active, versioned and platform-negotiable', () => {
