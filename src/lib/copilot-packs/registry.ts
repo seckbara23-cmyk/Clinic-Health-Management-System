@@ -90,10 +90,17 @@ export const COPILOT_PACKS: CopilotPackManifest[] = [
     supportedSpecialties: ['cardiology'], capabilityLevels: [...PROFICIENCY],
   },
   {
+    // Phase 19 — the FOURTH real Copilot Pack (ORL/ENT, extends the GP reference).
     ...BASE, id: 'ent.core', code: 'ORL-CORE',
     labelKey: 'pk_ent_core', descKey: 'pkd_ent_core',
     category: 'clinical', requiredProfessions: ['doctor'],
     supportedSpecialties: ['ent'], capabilityLevels: [...PROFICIENCY],
+    futureWidgetIds: ['ai_brief', 'kpis', 'today_queue', 'quick_actions'],
+    futureQuickActionIds: ['new_consultation', 'new_prescription', 'order_lab', 'schedule_appointment', 'new_invoice'],
+    futureTemplateIds: ['orl_consultation', 'orl_otitis', 'orl_hearing_loss', 'orl_vertigo', 'orl_rhinosinusitis', 'orl_tonsillitis', 'orl_voice', 'orl_neck_mass', 'orl_post_op'],
+    futureAiToolIds: ['get_patient_consultations', 'get_patient_prescriptions', 'get_patient_lab_results', 'get_patient_outstanding', 'get_patient_followups'],
+    futureDocHelperIds: ['orl_brief', 'orl_completeness', 'audiology_followup', 'imaging_followup', 'pathology_followup', 'post_op_followup'],
+    futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
   },
   {
     ...BASE, id: 'radiology.core', code: 'RADIO-CORE',

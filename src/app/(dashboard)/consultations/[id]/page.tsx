@@ -20,6 +20,7 @@ import { MedicationSafetyPanel } from '@/components/consultations/MedicationSafe
 import { GeneralPracticeCopilot } from '@/components/consultations/GeneralPracticeCopilot'
 import { PediatricCopilot } from '@/components/consultations/PediatricCopilot'
 import { ObgynCopilot } from '@/components/consultations/ObgynCopilot'
+import { OrlCopilot } from '@/components/consultations/OrlCopilot'
 import { InsightsPanel } from '@/components/ai/InsightsPanel'
 import { DraftLauncher } from '@/components/ai/DraftLauncher'
 import { useConsultation, useUpdateConsultation, useEndConsultation, useConsultations } from '@/hooks/useConsultations'
@@ -320,6 +321,24 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
                 patientId={consultation.patient_id}
                 consultation={{ id, created_at: consultation.created_at }}
                 patient={{ date_of_birth: patient?.date_of_birth ?? null, gender: patient?.gender ?? null, allergies }}
+                doc={{
+                  chief_complaint: watch('chief_complaint'),
+                  symptoms: watch('symptoms'),
+                  notes: watch('notes'),
+                  diagnosis: watch('diagnosis'),
+                  treatment_plan: watch('treatment_plan'),
+                }}
+                activeMeds={activeMeds}
+                prescriptions={patientRx}
+                consultations={patientConsults}
+                invoices={patientInvoices}
+              />
+              {/* ORL / ENT Clinical Copilot — read-only + ORL event tracking.
+                  Renders only for an ORL/ENT doctor with AI enabled. */}
+              <OrlCopilot
+                patientId={consultation.patient_id}
+                consultation={{ id, created_at: consultation.created_at }}
+                patient={{ allergies }}
                 doc={{
                   chief_complaint: watch('chief_complaint'),
                   symptoms: watch('symptoms'),

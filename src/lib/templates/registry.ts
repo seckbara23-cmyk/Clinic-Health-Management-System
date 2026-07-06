@@ -113,11 +113,35 @@ const OBGYN_SMART_TEMPLATES: ConsultationTemplate[] = [
   obgTemplate('obg_delivery_summary', [S.cc(), S.exam(), S.assessment(), S.plan(false)]),
 ]
 
+// ── ORL / ENT Copilot — smart templates (Phase 19) ────────────────
+// Visit-type scaffolds mapping ONLY to existing consultation columns.
+function orlTemplate(id: string, sections: Sec[]): ConsultationTemplate {
+  return { id, specialty: 'ent', noteStyle: 'soap', sections }
+}
+
+export const ORL_SMART_TEMPLATE_IDS = [
+  'orl_consultation', 'orl_otitis', 'orl_hearing_loss', 'orl_vertigo',
+  'orl_rhinosinusitis', 'orl_tonsillitis', 'orl_voice', 'orl_neck_mass', 'orl_post_op',
+] as const
+
+const ORL_SMART_TEMPLATES: ConsultationTemplate[] = [
+  orlTemplate('orl_consultation', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  orlTemplate('orl_otitis', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  orlTemplate('orl_hearing_loss', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  orlTemplate('orl_vertigo', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  orlTemplate('orl_rhinosinusitis', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  orlTemplate('orl_tonsillitis', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  orlTemplate('orl_voice', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  orlTemplate('orl_neck_mass', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  orlTemplate('orl_post_op', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+]
+
 export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   GP_CONSULTATION,
   ...GP_SMART_TEMPLATES,
   ...PEDS_SMART_TEMPLATES,
   ...OBGYN_SMART_TEMPLATES,
+  ...ORL_SMART_TEMPLATES,
 ]
 
 export function getTemplate(id: string): ConsultationTemplate | undefined {
