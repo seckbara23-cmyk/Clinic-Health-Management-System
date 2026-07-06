@@ -21,6 +21,7 @@ import { GeneralPracticeCopilot } from '@/components/consultations/GeneralPracti
 import { PediatricCopilot } from '@/components/consultations/PediatricCopilot'
 import { ObgynCopilot } from '@/components/consultations/ObgynCopilot'
 import { OrlCopilot } from '@/components/consultations/OrlCopilot'
+import { DocumentsPanel } from '@/components/documents/DocumentsPanel'
 import { InsightsPanel } from '@/components/ai/InsightsPanel'
 import { DraftLauncher } from '@/components/ai/DraftLauncher'
 import { useConsultation, useUpdateConsultation, useEndConsultation, useConsultations } from '@/hooks/useConsultations'
@@ -28,7 +29,7 @@ import { usePrescriptions } from '@/hooks/usePrescriptions'
 import { useInvoices } from '@/hooks/useInvoices'
 import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
-import type { Medication } from '@/types/database'
+import type { Medication, Patient } from '@/types/database'
 
 const schema = z.object({
   chief_complaint: z.string().optional().nullable(),
@@ -350,6 +351,17 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
                 prescriptions={patientRx}
                 consultations={patientConsults}
                 invoices={patientInvoices}
+              />
+              {/* Clinical Documents & Forms — shared, registry-driven (Phase 20).
+                  Lists role/specialty-permitted documents; clinician edits + prints. */}
+              <DocumentsPanel
+                patientId={consultation.patient_id}
+                consultation={consultation}
+                patient={patient ? {
+                  full_name: patient.full_name ?? '', patient_number: patient.patient_number ?? '',
+                  date_of_birth: patient.date_of_birth ?? null, gender: (patient.gender ?? null) as Patient['gender'],
+                  address: null, phone: patient.phone ?? null, cni: null,
+                } : null}
               />
               <ClinicalTimeline patientId={consultation.patient_id} currentConsultationId={id} />
               <InsightsPanel variant="patient" />
