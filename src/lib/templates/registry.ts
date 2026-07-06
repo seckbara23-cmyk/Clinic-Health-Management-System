@@ -91,10 +91,33 @@ const PEDS_SMART_TEMPLATES: ConsultationTemplate[] = [
   pedTemplate('peds_newborn_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
 ]
 
+// ── Obstetrics & Gynecology Copilot — smart templates (Phase 18) ──
+// Visit-type scaffolds mapping ONLY to existing consultation columns. The
+// Delivery-summary is a PLACEHOLDER scaffold — no generated findings.
+function obgTemplate(id: string, sections: Sec[]): ConsultationTemplate {
+  return { id, specialty: 'obgyn', noteStyle: 'soap', sections }
+}
+
+export const OBGYN_SMART_TEMPLATE_IDS = [
+  'obg_anc_visit', 'obg_gyne_consult', 'obg_postpartum', 'obg_family_planning',
+  'obg_fertility', 'obg_ultrasound_followup', 'obg_delivery_summary',
+] as const
+
+const OBGYN_SMART_TEMPLATES: ConsultationTemplate[] = [
+  obgTemplate('obg_anc_visit', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  obgTemplate('obg_gyne_consult', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  obgTemplate('obg_postpartum', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  obgTemplate('obg_family_planning', [S.cc(), S.assessment(), S.plan(true)]),
+  obgTemplate('obg_fertility', [S.cc(), S.hpi(), S.assessment(), S.plan(true)]),
+  obgTemplate('obg_ultrasound_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  obgTemplate('obg_delivery_summary', [S.cc(), S.exam(), S.assessment(), S.plan(false)]),
+]
+
 export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   GP_CONSULTATION,
   ...GP_SMART_TEMPLATES,
   ...PEDS_SMART_TEMPLATES,
+  ...OBGYN_SMART_TEMPLATES,
 ]
 
 export function getTemplate(id: string): ConsultationTemplate | undefined {

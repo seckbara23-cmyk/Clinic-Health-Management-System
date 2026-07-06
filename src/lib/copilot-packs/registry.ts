@@ -71,10 +71,17 @@ export const COPILOT_PACKS: CopilotPackManifest[] = [
     futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
   },
   {
+    // Phase 18 — the THIRD real Copilot Pack (OB/GYN, extends the GP reference).
     ...BASE, id: 'obstetrics.core', code: 'OB-CORE',
     labelKey: 'pk_obstetrics_core', descKey: 'pkd_obstetrics_core',
     category: 'clinical', requiredProfessions: ['doctor', 'midwife'],
     supportedSpecialties: ['obgyn', 'midwifery'], capabilityLevels: [...PROFICIENCY],
+    futureWidgetIds: ['ai_brief', 'kpis', 'today_queue', 'quick_actions'],
+    futureQuickActionIds: ['new_consultation', 'new_prescription', 'order_lab', 'schedule_appointment', 'new_invoice'],
+    futureTemplateIds: ['obg_anc_visit', 'obg_gyne_consult', 'obg_postpartum', 'obg_family_planning', 'obg_fertility', 'obg_ultrasound_followup', 'obg_delivery_summary'],
+    futureAiToolIds: ['get_patient_consultations', 'get_patient_prescriptions', 'get_patient_lab_results', 'get_patient_outstanding', 'get_patient_followups'],
+    futureDocHelperIds: ['obgyn_brief', 'anc_tracking', 'womens_health_reminders', 'obgyn_completeness', 'obgyn_medication_review', 'lab_ultrasound_followup'],
+    futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
   },
   {
     ...BASE, id: 'cardiology.core', code: 'CARDIO-CORE',

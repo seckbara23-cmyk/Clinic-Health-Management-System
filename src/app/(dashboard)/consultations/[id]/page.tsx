@@ -19,6 +19,7 @@ import { QuickActions } from '@/components/consultations/QuickActions'
 import { MedicationSafetyPanel } from '@/components/consultations/MedicationSafetyPanel'
 import { GeneralPracticeCopilot } from '@/components/consultations/GeneralPracticeCopilot'
 import { PediatricCopilot } from '@/components/consultations/PediatricCopilot'
+import { ObgynCopilot } from '@/components/consultations/ObgynCopilot'
 import { InsightsPanel } from '@/components/ai/InsightsPanel'
 import { DraftLauncher } from '@/components/ai/DraftLauncher'
 import { useConsultation, useUpdateConsultation, useEndConsultation, useConsultations } from '@/hooks/useConsultations'
@@ -301,6 +302,24 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
                 patientId={consultation.patient_id}
                 consultation={{ id, created_at: consultation.created_at }}
                 patient={{ date_of_birth: patient?.date_of_birth ?? null, gender: patient?.gender ?? null, allergies, emergency_contact: patient?.emergency_contact ?? null }}
+                doc={{
+                  chief_complaint: watch('chief_complaint'),
+                  symptoms: watch('symptoms'),
+                  notes: watch('notes'),
+                  diagnosis: watch('diagnosis'),
+                  treatment_plan: watch('treatment_plan'),
+                }}
+                activeMeds={activeMeds}
+                prescriptions={patientRx}
+                consultations={patientConsults}
+                invoices={patientInvoices}
+              />
+              {/* OB/GYN Clinical Copilot — read-only + pregnancy record.
+                  Renders only for an OB/GYN or midwife with AI enabled. */}
+              <ObgynCopilot
+                patientId={consultation.patient_id}
+                consultation={{ id, created_at: consultation.created_at }}
+                patient={{ date_of_birth: patient?.date_of_birth ?? null, gender: patient?.gender ?? null, allergies }}
                 doc={{
                   chief_complaint: watch('chief_complaint'),
                   symptoms: watch('symptoms'),
