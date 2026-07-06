@@ -24,7 +24,7 @@ export type WidgetSize = 'sm' | 'md' | 'lg'
 // the rest are declared so future packs add a definition without a type change.
 export type SpecialtyId =
   | 'general_practice' | 'internal_medicine' | 'family_medicine'
-  | 'pediatrics' | 'obgyn' | 'emergency' | 'general_surgery' | 'orthopedics'
+  | 'pediatrics' | 'obgyn' | 'emergency' | 'emergency_medicine' | 'general_surgery' | 'orthopedics'
   | 'cardiology' | 'dermatology' | 'ent' | 'ophthalmology' | 'psychiatry'
   | 'neurology' | 'oncology' | 'urology' | 'nephrology' | 'radiology_spec'
   | 'dentistry' | 'physiotherapy' | 'nutrition_spec' | 'mental_health'

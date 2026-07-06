@@ -128,10 +128,17 @@ export const COPILOT_PACKS: CopilotPackManifest[] = [
     supportedSpecialties: ['laboratory_medicine'], capabilityLevels: [...WORKFLOW],
   },
   {
+    // Phase 23 — the SIXTH real Copilot Pack (Emergency Medicine, extends the GP reference).
     ...BASE, id: 'emergency.core', code: 'EMERG-CORE',
     labelKey: 'pk_emergency_core', descKey: 'pkd_emergency_core',
     category: 'clinical', requiredProfessions: ['doctor'],
     supportedSpecialties: ['emergency_medicine'], capabilityLevels: [...PROFICIENCY],
+    futureWidgetIds: ['ai_brief', 'kpis', 'today_queue', 'quick_actions'],
+    futureQuickActionIds: ['new_consultation', 'new_prescription', 'order_lab', 'schedule_appointment', 'new_invoice'],
+    futureTemplateIds: ['em_chest_pain', 'em_abdominal_pain', 'em_trauma', 'em_shortness_of_breath', 'em_fever', 'em_stroke_eval', 'em_seizure', 'em_general_assessment'],
+    futureAiToolIds: ['get_patient_consultations', 'get_patient_prescriptions', 'get_patient_lab_results', 'get_patient_outstanding', 'get_patient_followups'],
+    futureDocHelperIds: ['emergency_brief', 'emergency_completeness', 'pending_results_tracker', 'observation_tracker', 'ed_procedure_tracker', 'emergency_medication_review'],
+    futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
   },
   {
     ...BASE, id: 'dentistry.core', code: 'DENT-CORE',

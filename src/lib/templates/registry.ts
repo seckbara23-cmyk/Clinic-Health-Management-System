@@ -160,6 +160,29 @@ const CARDIO_SMART_TEMPLATES: ConsultationTemplate[] = [
   cardioTemplate('cardio_cardiac_clearance', [S.cc(), S.exam(), S.assessment(), S.plan(false)]),
 ]
 
+// ── Emergency Medicine Copilot — smart templates (Phase 23) ───────
+// Visit-type scaffolds mapping ONLY to existing consultation columns (no schema
+// change). Documentation guides — they generate NO diagnosis or content.
+function emTemplate(id: string, sections: Sec[]): ConsultationTemplate {
+  return { id, specialty: 'emergency_medicine', noteStyle: 'soap', sections }
+}
+
+export const EMERGENCY_SMART_TEMPLATE_IDS = [
+  'em_chest_pain', 'em_abdominal_pain', 'em_trauma', 'em_shortness_of_breath',
+  'em_fever', 'em_stroke_eval', 'em_seizure', 'em_general_assessment',
+] as const
+
+const EMERGENCY_SMART_TEMPLATES: ConsultationTemplate[] = [
+  emTemplate('em_chest_pain', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  emTemplate('em_abdominal_pain', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  emTemplate('em_trauma', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  emTemplate('em_shortness_of_breath', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  emTemplate('em_fever', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  emTemplate('em_stroke_eval', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  emTemplate('em_seizure', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  emTemplate('em_general_assessment', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+]
+
 export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   GP_CONSULTATION,
   ...GP_SMART_TEMPLATES,
@@ -167,6 +190,7 @@ export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   ...OBGYN_SMART_TEMPLATES,
   ...ORL_SMART_TEMPLATES,
   ...CARDIO_SMART_TEMPLATES,
+  ...EMERGENCY_SMART_TEMPLATES,
 ]
 
 export function getTemplate(id: string): ConsultationTemplate | undefined {

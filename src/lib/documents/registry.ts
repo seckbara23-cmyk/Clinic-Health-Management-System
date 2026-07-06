@@ -101,6 +101,28 @@ export const DOCUMENT_DEFINITIONS: DocumentDefinition[] = [
       area('reason', 'df_reason', 'consultation.chief_complaint'),
       area('summary', 'df_summary'),
     ]; return { ...BASE, id: 'cardiac_rehab_referral', specialty: 'cardiology' as const, category: 'referral' as const, titleKey: 'doc_cardiac_rehab_referral', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+
+  // ── Emergency Medicine (Phase 23) ──
+  // NOTE: an emergency doctor also gets the SHARED referral letter + medical
+  // certificate (gp_referral_letter / gp_medical_certificate) — not re-registered.
+  (() => { const f = [
+      area('reason', 'df_reason', 'consultation.chief_complaint', true),
+      area('summary', 'df_summary', 'consultation.notes'),
+      area('management', 'df_current_management', 'consultation.treatment_plan'),
+      area('disposition', 'df_disposition'),
+      date('follow_up', 'df_next_visit', 'consultation.follow_up_date'),
+    ]; return { ...BASE, id: 'emergency_summary', specialty: 'emergency_medicine' as const, category: 'summary' as const, titleKey: 'doc_emergency_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      text('recipient', 'df_recipient'),
+      text('destination', 'df_destination'),
+      area('reason', 'df_reason', 'consultation.chief_complaint', true),
+      area('summary', 'df_summary', 'consultation.notes'),
+    ]; return { ...BASE, id: 'transfer_summary', specialty: 'emergency_medicine' as const, category: 'referral' as const, titleKey: 'doc_transfer_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      area('observation_course', 'df_observation_course', undefined, true),
+      area('disposition', 'df_disposition'),
+      date('follow_up', 'df_next_visit', 'consultation.follow_up_date'),
+    ]; return { ...BASE, id: 'observation_summary', specialty: 'emergency_medicine' as const, category: 'summary' as const, titleKey: 'doc_observation_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
 ]
 
 // ── Lookups / access ────────────────────────────────────────────────
