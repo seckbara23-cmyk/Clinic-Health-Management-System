@@ -84,10 +84,17 @@ export const COPILOT_PACKS: CopilotPackManifest[] = [
     futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
   },
   {
+    // Phase 22 — the FIFTH real Copilot Pack (Cardiology, extends the GP reference).
     ...BASE, id: 'cardiology.core', code: 'CARDIO-CORE',
     labelKey: 'pk_cardiology_core', descKey: 'pkd_cardiology_core',
     category: 'clinical', requiredProfessions: ['doctor'],
     supportedSpecialties: ['cardiology'], capabilityLevels: [...PROFICIENCY],
+    futureWidgetIds: ['ai_brief', 'kpis', 'today_queue', 'quick_actions'],
+    futureQuickActionIds: ['new_consultation', 'new_prescription', 'order_lab', 'schedule_appointment', 'new_invoice'],
+    futureTemplateIds: ['cardio_initial_consult', 'cardio_hypertension_review', 'cardio_heart_failure_review', 'cardio_arrhythmia_followup', 'cardio_chest_pain_eval', 'cardio_post_pci_followup', 'cardio_post_cabg_followup', 'cardio_cardiac_clearance'],
+    futureAiToolIds: ['get_patient_consultations', 'get_patient_prescriptions', 'get_patient_lab_results', 'get_patient_outstanding', 'get_patient_followups'],
+    futureDocHelperIds: ['cardio_brief', 'cardio_completeness', 'cardiac_test_tracking', 'procedure_tracker', 'cardiac_lab_followup', 'cardiac_medication_review'],
+    futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
   },
   {
     // Phase 19 — the FOURTH real Copilot Pack (ORL/ENT, extends the GP reference).

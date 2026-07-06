@@ -136,12 +136,37 @@ const ORL_SMART_TEMPLATES: ConsultationTemplate[] = [
   orlTemplate('orl_post_op', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
 ]
 
+// ── Cardiology Copilot — smart templates (Phase 22) ───────────────
+// Visit-type scaffolds mapping ONLY to existing consultation columns (no schema
+// change). Documentation guides — they generate NO diagnosis or content.
+function cardioTemplate(id: string, sections: Sec[]): ConsultationTemplate {
+  return { id, specialty: 'cardiology', noteStyle: 'soap', sections }
+}
+
+export const CARDIO_SMART_TEMPLATE_IDS = [
+  'cardio_initial_consult', 'cardio_hypertension_review', 'cardio_heart_failure_review',
+  'cardio_arrhythmia_followup', 'cardio_chest_pain_eval', 'cardio_post_pci_followup',
+  'cardio_post_cabg_followup', 'cardio_cardiac_clearance',
+] as const
+
+const CARDIO_SMART_TEMPLATES: ConsultationTemplate[] = [
+  cardioTemplate('cardio_initial_consult', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  cardioTemplate('cardio_hypertension_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  cardioTemplate('cardio_heart_failure_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  cardioTemplate('cardio_arrhythmia_followup', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  cardioTemplate('cardio_chest_pain_eval', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  cardioTemplate('cardio_post_pci_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  cardioTemplate('cardio_post_cabg_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  cardioTemplate('cardio_cardiac_clearance', [S.cc(), S.exam(), S.assessment(), S.plan(false)]),
+]
+
 export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   GP_CONSULTATION,
   ...GP_SMART_TEMPLATES,
   ...PEDS_SMART_TEMPLATES,
   ...OBGYN_SMART_TEMPLATES,
   ...ORL_SMART_TEMPLATES,
+  ...CARDIO_SMART_TEMPLATES,
 ]
 
 export function getTemplate(id: string): ConsultationTemplate | undefined {

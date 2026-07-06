@@ -79,6 +79,28 @@ export const DOCUMENT_DEFINITIONS: DocumentDefinition[] = [
       area('summary', 'df_summary'),
       date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
     ]; return { ...BASE, id: 'orl_ent_followup_summary', specialty: 'ent' as const, category: 'summary' as const, titleKey: 'doc_orl_ent_followup_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+
+  // ── Cardiology (Phase 22) ──
+  (() => { const f = [
+      text('recipient', 'df_recipient'),
+      area('reason', 'df_reason', 'consultation.chief_complaint', true),
+      area('clinical_summary', 'df_clinical_summary', 'consultation.diagnosis'),
+      area('request', 'df_request'),
+    ]; return { ...BASE, id: 'cardiology_referral', specialty: 'cardiology' as const, category: 'referral' as const, titleKey: 'doc_cardiology_referral', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      text('procedure', 'df_procedure'),
+      area('statement', 'df_statement', undefined, true),
+      area('notes', 'df_notes'),
+    ]; return { ...BASE, id: 'procedure_clearance', specialty: 'cardiology' as const, category: 'certificate' as const, titleKey: 'doc_procedure_clearance', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      area('summary', 'df_summary'),
+      date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
+    ]; return { ...BASE, id: 'cardiac_followup_summary', specialty: 'cardiology' as const, category: 'summary' as const, titleKey: 'doc_cardiac_followup_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      text('recipient', 'df_recipient'),
+      area('reason', 'df_reason', 'consultation.chief_complaint'),
+      area('summary', 'df_summary'),
+    ]; return { ...BASE, id: 'cardiac_rehab_referral', specialty: 'cardiology' as const, category: 'referral' as const, titleKey: 'doc_cardiac_rehab_referral', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
 ]
 
 // ── Lookups / access ────────────────────────────────────────────────

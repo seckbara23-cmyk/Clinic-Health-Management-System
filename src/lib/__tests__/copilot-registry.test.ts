@@ -50,9 +50,9 @@ describe('Copilot Pack Registry — integrity', () => {
   })
 
   it('placeholder cores are METADATA ONLY (empty future*); the shipped copilots are populated', () => {
-    // Phases 16/17/18/19 populated GP / pediatrics / obstetrics / ENT cores.
-    // The remaining cores stay placeholders until their own copilot phase.
-    const REAL = new Set(['general_practice.core', 'pediatrics.core', 'obstetrics.core', 'ent.core'])
+    // Phases 16/17/18/19/22 populated GP / pediatrics / obstetrics / ENT /
+    // cardiology cores. The remaining cores stay placeholders until their phase.
+    const REAL = new Set(['general_practice.core', 'pediatrics.core', 'obstetrics.core', 'ent.core', 'cardiology.core'])
     for (const p of COPILOT_PACKS) {
       if (REAL.has(p.id)) continue
       for (const key of FUTURE_LISTS) expect(p[key]).toEqual([])

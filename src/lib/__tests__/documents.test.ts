@@ -19,15 +19,16 @@ const CTX: DocumentContext = {
 
 // ── Registry integrity ──────────────────────────────────────────────
 describe('document registry — integrity', () => {
-  it('defines the 9 required initial documents', () => {
+  it('defines the required documents (9 initial + 4 cardiology)', () => {
     const ids = DOCUMENT_DEFINITIONS.map(d => d.id)
     for (const id of [
       'gp_referral_letter', 'gp_medical_certificate', 'gp_sick_leave',
       'peds_school_certificate', 'peds_vaccination_certificate',
       'obgyn_anc_summary', 'obgyn_pregnancy_summary',
       'orl_audiology_referral', 'orl_ent_followup_summary',
+      'cardiology_referral', 'procedure_clearance', 'cardiac_followup_summary', 'cardiac_rehab_referral',
     ]) expect(ids).toContain(id)
-    expect(DOCUMENT_DEFINITIONS.length).toBe(9)
+    expect(DOCUMENT_DEFINITIONS.length).toBe(13)
   })
   it('has unique ids and every field/section is coherent', () => {
     const ids = DOCUMENT_DEFINITIONS.map(d => d.id)
