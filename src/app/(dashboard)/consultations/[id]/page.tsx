@@ -17,6 +17,7 @@ import { PatientSummaryHeader } from '@/components/consultations/PatientSummaryH
 import { ClinicalTimeline } from '@/components/consultations/ClinicalTimeline'
 import { QuickActions } from '@/components/consultations/QuickActions'
 import { MedicationSafetyPanel } from '@/components/consultations/MedicationSafetyPanel'
+import { GeneralPracticeCopilot } from '@/components/consultations/GeneralPracticeCopilot'
 import { InsightsPanel } from '@/components/ai/InsightsPanel'
 import { DraftLauncher } from '@/components/ai/DraftLauncher'
 import { useConsultation, useUpdateConsultation, useEndConsultation, useConsultations } from '@/hooks/useConsultations'
@@ -95,7 +96,7 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
     { field: 'treatment_plan'  as const, label: t('sectionPlan'),           hint: t('hintPlan') },
   ]
 
-  const { register, handleSubmit, formState: { errors, isSubmitting, isDirty } } = useForm<FormData>({
+  const { register, handleSubmit, watch, formState: { errors, isSubmitting, isDirty } } = useForm<FormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(schema) as any,
     values: consultation ? {
@@ -274,6 +275,24 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
                 allergies={allergies}
               />
               <MedicationSafetyPanel activeMeds={activeMeds} allergies={allergies} />
+              {/* GP Clinical Copilot — read-only, deterministic (Phase 16).
+                  Renders only for a GP/un-specialised doctor with AI enabled. */}
+              <GeneralPracticeCopilot
+                patientId={consultation.patient_id}
+                consultation={{ id, ended_at: consultation.ended_at, created_at: consultation.created_at }}
+                patient={{ date_of_birth: patient?.date_of_birth ?? null, gender: patient?.gender ?? null, allergies }}
+                doc={{
+                  chief_complaint: watch('chief_complaint'),
+                  symptoms: watch('symptoms'),
+                  notes: watch('notes'),
+                  diagnosis: watch('diagnosis'),
+                  treatment_plan: watch('treatment_plan'),
+                }}
+                activeMeds={activeMeds}
+                prescriptions={patientRx}
+                consultations={patientConsults}
+                invoices={patientInvoices}
+              />
               <ClinicalTimeline patientId={consultation.patient_id} currentConsultationId={id} />
               <InsightsPanel variant="patient" />
             </div>

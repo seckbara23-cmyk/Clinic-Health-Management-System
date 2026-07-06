@@ -49,10 +49,16 @@ describe('Copilot Pack Registry — integrity', () => {
     expect(new Set(codes).size).toBe(codes.length)
   })
 
-  it('is METADATA ONLY — every future* capability list is empty', () => {
+  it('the 11 placeholder cores are METADATA ONLY (empty future*); general_practice.core is the first REAL pack', () => {
+    // Phase 16 populated general_practice.core with real capabilities; the rest
+    // remain placeholders until their own copilot phase.
     for (const p of COPILOT_PACKS) {
+      if (p.id === 'general_practice.core') continue
       for (const key of FUTURE_LISTS) expect(p[key]).toEqual([])
     }
+    const gp = getCopilotPack('general_practice.core')!
+    expect(gp.futureTemplateIds.length).toBeGreaterThan(0)
+    expect(gp.futureAiToolIds.length).toBeGreaterThan(0)
   })
 
   it('every pack is active, versioned and platform-negotiable', () => {

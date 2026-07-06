@@ -42,10 +42,20 @@ const WORKFLOW = ['observer', 'operator', 'reviewer', 'trainer'] as const
 
 export const COPILOT_PACKS: CopilotPackManifest[] = [
   {
+    // Phase 16 — the FIRST production Copilot Pack. Unlike the placeholder cores
+    // below, its capability lists reference REAL registered capabilities (widgets,
+    // quick actions, templates, AI tools, doc helpers) — all read-only,
+    // operational, deterministic. Referential integrity is guard-tested.
     ...BASE, id: 'general_practice.core', code: 'GP-CORE',
     labelKey: 'pk_general_practice_core', descKey: 'pkd_general_practice_core',
     category: 'clinical', requiredProfessions: ['doctor'],
     supportedSpecialties: ['general_practice', 'family_medicine'], capabilityLevels: [...PROFICIENCY],
+    futureWidgetIds: ['ai_brief', 'kpis', 'today_queue', 'quick_actions'],
+    futureQuickActionIds: ['new_consultation', 'new_prescription', 'order_lab', 'schedule_appointment', 'new_invoice'],
+    futureTemplateIds: ['gp_consultation', 'gp_acute', 'gp_chronic_followup', 'gp_hypertension', 'gp_diabetes', 'gp_annual_physical', 'gp_minor_illness'],
+    futureAiToolIds: ['get_patient_consultations', 'get_patient_prescriptions', 'get_patient_lab_results', 'get_patient_outstanding', 'get_patient_followups', 'get_today_queue', 'get_pending_lab_orders', 'get_critical_lab_results', 'get_unpaid_invoices'],
+    futureDocHelperIds: ['consultation_completeness', 'documentation_quality', 'preventive_reminders', 'medication_review', 'follow_up_assistant', 'operational_timeline'],
+    futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
   },
   {
     ...BASE, id: 'pediatrics.core', code: 'PEDS-CORE',

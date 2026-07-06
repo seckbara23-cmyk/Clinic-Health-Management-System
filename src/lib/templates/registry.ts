@@ -34,8 +34,45 @@ const GP_CONSULTATION: ConsultationTemplate = {
   ],
 }
 
+// ── General Practice Copilot — smart templates (Phase 16) ─────────
+//
+// Visit-type documentation scaffolds for the first production Copilot. Each
+// composes a SUBSET/ordering of the SAME existing consultation columns (no
+// schema change, no clinical_entries) and reuses the section labelKeys above —
+// templates are documentation guides, they generate NO diagnosis or content.
+type Sec = ConsultationTemplate['sections'][number]
+const S = {
+  cc: (): Sec => ({ id: 'chief_complaint', labelKey: 'sectionChiefComplaint', fields: [{ key: 'chief_complaint', type: 'textarea', labelKey: 'sectionChiefComplaint', target: { store: 'consultation', column: 'chief_complaint' } }] }),
+  hpi: (): Sec => ({ id: 'hpi', labelKey: 'sectionHPI', fields: [{ key: 'symptoms', type: 'textarea', labelKey: 'sectionHPI', target: { store: 'consultation', column: 'symptoms' } }] }),
+  exam: (): Sec => ({ id: 'exam', labelKey: 'sectionExam', fields: [{ key: 'notes', type: 'textarea', labelKey: 'sectionExam', target: { store: 'consultation', column: 'notes' } }] }),
+  assessment: (): Sec => ({ id: 'assessment', labelKey: 'sectionAssessment', fields: [{ key: 'diagnosis', type: 'textarea', labelKey: 'sectionAssessment', target: { store: 'consultation', column: 'diagnosis' } }] }),
+  plan: (withFollowUp: boolean): Sec => ({ id: 'plan', labelKey: 'sectionPlan', fields: [
+    { key: 'treatment_plan', type: 'textarea', labelKey: 'sectionPlan', target: { store: 'consultation', column: 'treatment_plan' } },
+    ...(withFollowUp ? [{ key: 'follow_up_date', type: 'date' as const, labelKey: 'labelFollowUp', target: { store: 'consultation' as const, column: 'follow_up_date' as const } }] : []),
+  ] }),
+}
+
+function gpTemplate(id: string, sections: Sec[]): ConsultationTemplate {
+  return { id, specialty: 'general_practice', noteStyle: 'soap', sections }
+}
+
+// Ids are registered on the general_practice.core pack (futureTemplateIds).
+export const GP_SMART_TEMPLATE_IDS = [
+  'gp_acute', 'gp_chronic_followup', 'gp_hypertension', 'gp_diabetes', 'gp_annual_physical', 'gp_minor_illness',
+] as const
+
+const GP_SMART_TEMPLATES: ConsultationTemplate[] = [
+  gpTemplate('gp_acute', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  gpTemplate('gp_chronic_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  gpTemplate('gp_hypertension', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  gpTemplate('gp_diabetes', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  gpTemplate('gp_annual_physical', [S.hpi(), S.exam(), S.assessment(), S.plan(false)]),
+  gpTemplate('gp_minor_illness', [S.cc(), S.exam(), S.assessment(), S.plan(false)]),
+]
+
 export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   GP_CONSULTATION,
+  ...GP_SMART_TEMPLATES,
 ]
 
 export function getTemplate(id: string): ConsultationTemplate | undefined {
