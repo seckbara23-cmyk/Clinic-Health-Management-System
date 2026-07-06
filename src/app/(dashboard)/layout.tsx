@@ -5,6 +5,7 @@ import { BottomNav } from '@/components/layout/BottomNav'
 import { FloatingActionButton } from '@/components/layout/FloatingActionButton'
 import { ConnectionBanner } from '@/components/offline/ConnectionBanner'
 import { Copilot } from '@/components/ai/Copilot'
+import { ReliabilityReporter } from '@/components/reliability/ReliabilityReporter'
 import { TenantBoundary } from '@/components/layout/TenantBoundary'
 import { SidebarProvider } from '@/context/SidebarContext'
 import { classifyProfileAccess } from '@/lib/auth/access'
@@ -75,6 +76,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <BottomNav />
         <FloatingActionButton />
         <Copilot />
+        {/* Invisible: captures uncaught client errors for platform reliability
+            monitoring (Phase 15.0B). Renders nothing; never throws. */}
+        <ReliabilityReporter />
       </SidebarProvider>
     </TenantBoundary>
   )

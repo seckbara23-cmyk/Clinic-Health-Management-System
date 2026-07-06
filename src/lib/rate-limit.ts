@@ -14,6 +14,7 @@ export type RateLimitEndpoint =
   | 'change-password'
   | 'ai-chat'
   | 'ai-insights'
+  | 'reliability-report'
 
 // Per-endpoint limits (requests per sliding 1-hour window).
 // Override the request count via env vars if needed.
@@ -24,6 +25,9 @@ const LIMITS: Record<RateLimitEndpoint, { requests: number }> = {
   'ai-chat':         { requests: Number(process.env.RATE_LIMIT_AI_CHAT          ?? '60')  },
   // Insights fire on page load, so the ceiling is higher than chat.
   'ai-insights':     { requests: Number(process.env.RATE_LIMIT_AI_INSIGHTS      ?? '240') },
+  // Client error reports can burst during an incident — allow a generous ceiling
+  // (the client also de-dupes within a session before posting).
+  'reliability-report': { requests: Number(process.env.RATE_LIMIT_RELIABILITY ?? '120') },
 }
 
 function getClientIp(req: NextRequest): string {
