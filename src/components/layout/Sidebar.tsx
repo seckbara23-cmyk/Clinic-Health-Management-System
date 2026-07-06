@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Users, CalendarDays, Receipt,
   Settings, LogOut, Stethoscope, ShieldCheck,
-  Building2, ChevronRight, ClipboardList, Pill, FlaskConical, BarChart2, Inbox, X, CreditCard, TestTube, Package, PackageSearch, BookMarked, ScanLine, Activity, ShieldAlert,
+  Building2, ChevronRight, ClipboardList, Pill, FlaskConical, BarChart2, Inbox, X, CreditCard, TestTube, Package, PackageSearch, BookMarked, ScanLine, Activity, ShieldAlert, IdCard,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { isNavVisible } from '@/lib/tenant'
@@ -63,6 +63,7 @@ const adminItems: NavItem[] = [
   { href: '/admin/clinics',          labelKey: 'adminClinics',   icon: Building2 },
   { href: '/admin/clinic-requests',  labelKey: 'adminRequests',  icon: Inbox, roles: ['super_admin'] },
   { href: '/admin/users',            labelKey: 'adminUsers',     icon: ShieldCheck },
+  { href: '/workforce',              labelKey: 'workforce',      icon: IdCard, roles: ['super_admin', 'admin'] },
   { href: '/admin/billing',          labelKey: 'adminBilling',   icon: CreditCard, roles: ['super_admin'] },
 ]
 
