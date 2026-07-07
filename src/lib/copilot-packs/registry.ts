@@ -232,6 +232,19 @@ export const COPILOT_PACKS: CopilotPackManifest[] = [
     futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
   },
   {
+    // Phase 31 — the FOURTEENTH real Copilot Pack (General Surgery, extends the GP reference).
+    ...BASE, id: 'surgery.core', code: 'SURG-CORE',
+    labelKey: 'pk_surgery_core', descKey: 'pkd_surgery_core',
+    category: 'clinical', requiredProfessions: ['doctor'],
+    supportedSpecialties: ['general_surgery'], capabilityLevels: [...PROFICIENCY],
+    futureWidgetIds: ['ai_brief', 'kpis', 'today_queue', 'quick_actions'],
+    futureQuickActionIds: ['new_consultation', 'new_prescription', 'order_lab', 'schedule_appointment', 'new_invoice'],
+    futureTemplateIds: ['surg_consultation', 'surg_preop_assessment', 'surg_operative_followup', 'surg_postop_review', 'surg_drain_review', 'surg_suture_removal', 'surg_wound_review', 'surg_discharge_followup'],
+    futureAiToolIds: ['get_patient_consultations', 'get_patient_prescriptions', 'get_patient_lab_results', 'get_patient_outstanding', 'get_patient_followups'],
+    futureDocHelperIds: ['surgery_brief', 'surgery_completeness', 'surgery_event_tracker', 'surgery_investigation_followup', 'surgery_medication_review', 'surgery_followup'],
+    futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
+  },
+  {
     ...BASE, id: 'dentistry.core', code: 'DENT-CORE',
     labelKey: 'pk_dentistry_core', descKey: 'pkd_dentistry_core',
     category: 'clinical', requiredProfessions: ['doctor'],

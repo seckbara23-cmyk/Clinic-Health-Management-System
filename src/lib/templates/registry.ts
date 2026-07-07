@@ -346,6 +346,30 @@ const ONCO_SMART_TEMPLATES: ConsultationTemplate[] = [
   oncoTemplate('onco_nutrition_followup', [S.cc(), S.assessment(), S.plan(true)]),
 ]
 
+// ── General Surgery Copilot — smart templates (Phase 31) ─────────
+// Surgical visit scaffolds mapping ONLY to existing consultation columns (no
+// schema change). Documentation guides — they generate NO diagnosis, operative
+// recommendation or content.
+function surgeryTemplate(id: string, sections: Sec[]): ConsultationTemplate {
+  return { id, specialty: 'general_surgery', noteStyle: 'soap', sections }
+}
+
+export const SURGERY_SMART_TEMPLATE_IDS = [
+  'surg_consultation', 'surg_preop_assessment', 'surg_operative_followup', 'surg_postop_review',
+  'surg_drain_review', 'surg_suture_removal', 'surg_wound_review', 'surg_discharge_followup',
+] as const
+
+const SURGERY_SMART_TEMPLATES: ConsultationTemplate[] = [
+  surgeryTemplate('surg_consultation', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  surgeryTemplate('surg_preop_assessment', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  surgeryTemplate('surg_operative_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  surgeryTemplate('surg_postop_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  surgeryTemplate('surg_drain_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  surgeryTemplate('surg_suture_removal', [S.cc(), S.exam(), S.plan(true)]),
+  surgeryTemplate('surg_wound_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  surgeryTemplate('surg_discharge_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+]
+
 export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   GP_CONSULTATION,
   ...GP_SMART_TEMPLATES,
@@ -361,6 +385,7 @@ export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   ...PULM_SMART_TEMPLATES,
   ...NEPHRO_SMART_TEMPLATES,
   ...ONCO_SMART_TEMPLATES,
+  ...SURGERY_SMART_TEMPLATES,
 ]
 
 export function getTemplate(id: string): ConsultationTemplate | undefined {

@@ -21,7 +21,7 @@ const REQUIRED_PACKS = [
   'general_practice.core', 'pediatrics.core', 'obstetrics.core', 'cardiology.core',
   'ent.core', 'radiology.core', 'pharmacy.core', 'laboratory.core', 'emergency.core',
   'internal_medicine.core', 'orthopedics.core', 'ophthalmology.core', 'psychiatry.core',
-  'pulmonology.core', 'nephrology.core', 'oncology.core', 'dentistry.core', 'nursing.core', 'midwifery.core',
+  'pulmonology.core', 'nephrology.core', 'oncology.core', 'surgery.core', 'dentistry.core', 'nursing.core', 'midwifery.core',
 ]
 
 const FUTURE_LISTS: (keyof CopilotPackManifest)[] = [
@@ -38,10 +38,10 @@ const P = (id: string, deps: { id: string; minVersion?: string }[] = [], version
 
 // ── Registry integrity ──────────────────────────────────────────────
 describe('Copilot Pack Registry — integrity', () => {
-  it('contains all 19 required core packs', () => {
+  it('contains all 20 required core packs', () => {
     const ids = COPILOT_PACKS.map(p => p.id)
     for (const id of REQUIRED_PACKS) expect(ids).toContain(id)
-    expect(COPILOT_PACKS.length).toBe(19)
+    expect(COPILOT_PACKS.length).toBe(20)
   })
 
   it('has unique pack ids and unique codes (duplicate detection)', () => {
@@ -51,9 +51,9 @@ describe('Copilot Pack Registry — integrity', () => {
   })
 
   it('placeholder cores are METADATA ONLY (empty future*); the shipped copilots are populated', () => {
-    // Phases 16-30 populated GP / pediatrics / obstetrics / ENT / cardiology / emergency /
-    // internal-medicine / orthopedics / ophthalmology / psychiatry / pulmonology / nephrology / oncology.
-    const REAL = new Set(['general_practice.core', 'pediatrics.core', 'obstetrics.core', 'ent.core', 'cardiology.core', 'emergency.core', 'internal_medicine.core', 'orthopedics.core', 'ophthalmology.core', 'psychiatry.core', 'pulmonology.core', 'nephrology.core', 'oncology.core'])
+    // Phases 16-31 populated GP / pediatrics / obstetrics / ENT / cardiology / emergency /
+    // internal-medicine / orthopedics / ophthalmology / psychiatry / pulmonology / nephrology / oncology / general-surgery.
+    const REAL = new Set(['general_practice.core', 'pediatrics.core', 'obstetrics.core', 'ent.core', 'cardiology.core', 'emergency.core', 'internal_medicine.core', 'orthopedics.core', 'ophthalmology.core', 'psychiatry.core', 'pulmonology.core', 'nephrology.core', 'oncology.core', 'surgery.core'])
     for (const p of COPILOT_PACKS) {
       if (REAL.has(p.id)) continue
       for (const key of FUTURE_LISTS) expect(p[key]).toEqual([])
@@ -105,7 +105,7 @@ describe('Copilot Pack Registry — integrity', () => {
     expect(isRegisteredPack('pharmacy.core')).toBe(true)
     expect(isRegisteredPack('')).toBe(false)
     expect(packsByCategory('diagnostic').map(p => p.id).sort()).toEqual(['laboratory.core', 'radiology.core'])
-    expect(activePacks().length).toBe(19)
+    expect(activePacks().length).toBe(20)
   })
 })
 
