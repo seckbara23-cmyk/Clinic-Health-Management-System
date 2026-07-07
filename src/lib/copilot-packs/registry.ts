@@ -206,6 +206,19 @@ export const COPILOT_PACKS: CopilotPackManifest[] = [
     futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
   },
   {
+    // Phase 29 — the TWELFTH real Copilot Pack (Nephrology, extends the GP reference).
+    ...BASE, id: 'nephrology.core', code: 'NEPHRO-CORE',
+    labelKey: 'pk_nephrology_core', descKey: 'pkd_nephrology_core',
+    category: 'clinical', requiredProfessions: ['doctor'],
+    supportedSpecialties: ['nephrology'], capabilityLevels: [...PROFICIENCY],
+    futureWidgetIds: ['ai_brief', 'kpis', 'today_queue', 'quick_actions'],
+    futureQuickActionIds: ['new_consultation', 'new_prescription', 'order_lab', 'schedule_appointment', 'new_invoice'],
+    futureTemplateIds: ['nephro_initial_visit', 'nephro_ckd_followup', 'nephro_dialysis_review', 'nephro_biopsy_followup', 'nephro_transplant_followup', 'nephro_hypertension_followup', 'nephro_nutrition_review', 'nephro_post_discharge_review'],
+    futureAiToolIds: ['get_patient_consultations', 'get_patient_prescriptions', 'get_patient_lab_results', 'get_patient_outstanding', 'get_patient_followups'],
+    futureDocHelperIds: ['nephro_brief', 'nephro_completeness', 'nephro_event_tracker', 'nephro_lab_followup', 'nephro_medication_review', 'nephro_followup'],
+    futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
+  },
+  {
     ...BASE, id: 'dentistry.core', code: 'DENT-CORE',
     labelKey: 'pk_dentistry_core', descKey: 'pkd_dentistry_core',
     category: 'clinical', requiredProfessions: ['doctor'],

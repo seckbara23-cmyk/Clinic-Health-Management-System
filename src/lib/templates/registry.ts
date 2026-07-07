@@ -299,6 +299,29 @@ const PULM_SMART_TEMPLATES: ConsultationTemplate[] = [
   pulmTemplate('pulm_rehab_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
 ]
 
+// ── Nephrology Copilot — smart templates (Phase 29) ──────────────
+// Kidney-care visit scaffolds mapping ONLY to existing consultation columns (no
+// schema change). Documentation guides — they generate NO diagnosis or content.
+function nephroTemplate(id: string, sections: Sec[]): ConsultationTemplate {
+  return { id, specialty: 'nephrology', noteStyle: 'soap', sections }
+}
+
+export const NEPHRO_SMART_TEMPLATE_IDS = [
+  'nephro_initial_visit', 'nephro_ckd_followup', 'nephro_dialysis_review', 'nephro_biopsy_followup',
+  'nephro_transplant_followup', 'nephro_hypertension_followup', 'nephro_nutrition_review', 'nephro_post_discharge_review',
+] as const
+
+const NEPHRO_SMART_TEMPLATES: ConsultationTemplate[] = [
+  nephroTemplate('nephro_initial_visit', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  nephroTemplate('nephro_ckd_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  nephroTemplate('nephro_dialysis_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  nephroTemplate('nephro_biopsy_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  nephroTemplate('nephro_transplant_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  nephroTemplate('nephro_hypertension_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  nephroTemplate('nephro_nutrition_review', [S.cc(), S.assessment(), S.plan(true)]),
+  nephroTemplate('nephro_post_discharge_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+]
+
 export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   GP_CONSULTATION,
   ...GP_SMART_TEMPLATES,
@@ -312,6 +335,7 @@ export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   ...OPHTH_SMART_TEMPLATES,
   ...MH_SMART_TEMPLATES,
   ...PULM_SMART_TEMPLATES,
+  ...NEPHRO_SMART_TEMPLATES,
 ]
 
 export function getTemplate(id: string): ConsultationTemplate | undefined {
