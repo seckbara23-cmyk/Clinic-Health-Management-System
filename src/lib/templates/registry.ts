@@ -394,6 +394,30 @@ const NEURO_SMART_TEMPLATES: ConsultationTemplate[] = [
   neuroTemplate('neuro_neurophysiology_review', [S.cc(), S.assessment(), S.plan(true)]),
 ]
 
+// ── Endocrinology Copilot — smart templates (Phase 33) ───────────
+// Endocrinology visit scaffolds mapping ONLY to existing consultation columns (no
+// schema change). Documentation guides — they generate NO diagnosis, laboratory
+// interpretation or content.
+function endoTemplate(id: string, sections: Sec[]): ConsultationTemplate {
+  return { id, specialty: 'endocrinology', noteStyle: 'soap', sections }
+}
+
+export const ENDO_SMART_TEMPLATE_IDS = [
+  'endo_consultation', 'endo_diabetes_followup', 'endo_thyroid_followup', 'endo_pituitary_review',
+  'endo_adrenal_review', 'endo_obesity_followup', 'endo_hospital_followup', 'endo_hormone_review',
+] as const
+
+const ENDO_SMART_TEMPLATES: ConsultationTemplate[] = [
+  endoTemplate('endo_consultation', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  endoTemplate('endo_diabetes_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  endoTemplate('endo_thyroid_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  endoTemplate('endo_pituitary_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  endoTemplate('endo_adrenal_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  endoTemplate('endo_obesity_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  endoTemplate('endo_hospital_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  endoTemplate('endo_hormone_review', [S.cc(), S.assessment(), S.plan(true)]),
+]
+
 export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   GP_CONSULTATION,
   ...GP_SMART_TEMPLATES,
@@ -411,6 +435,7 @@ export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   ...ONCO_SMART_TEMPLATES,
   ...SURGERY_SMART_TEMPLATES,
   ...NEURO_SMART_TEMPLATES,
+  ...ENDO_SMART_TEMPLATES,
 ]
 
 export function getTemplate(id: string): ConsultationTemplate | undefined {

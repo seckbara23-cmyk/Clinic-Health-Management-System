@@ -258,6 +258,19 @@ export const COPILOT_PACKS: CopilotPackManifest[] = [
     futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
   },
   {
+    // Phase 33 — the SIXTEENTH real Copilot Pack (Endocrinology, extends the GP reference).
+    ...BASE, id: 'endocrinology.core', code: 'ENDO-CORE',
+    labelKey: 'pk_endocrinology_core', descKey: 'pkd_endocrinology_core',
+    category: 'clinical', requiredProfessions: ['doctor'],
+    supportedSpecialties: ['endocrinology'], capabilityLevels: [...PROFICIENCY],
+    futureWidgetIds: ['ai_brief', 'kpis', 'today_queue', 'quick_actions'],
+    futureQuickActionIds: ['new_consultation', 'new_prescription', 'order_lab', 'schedule_appointment', 'new_invoice'],
+    futureTemplateIds: ['endo_consultation', 'endo_diabetes_followup', 'endo_thyroid_followup', 'endo_pituitary_review', 'endo_adrenal_review', 'endo_obesity_followup', 'endo_hospital_followup', 'endo_hormone_review'],
+    futureAiToolIds: ['get_patient_consultations', 'get_patient_prescriptions', 'get_patient_lab_results', 'get_patient_outstanding', 'get_patient_followups'],
+    futureDocHelperIds: ['endo_brief', 'endo_completeness', 'endo_event_tracker', 'endo_lab_followup', 'endo_medication_review', 'endo_followup'],
+    futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
+  },
+  {
     ...BASE, id: 'dentistry.core', code: 'DENT-CORE',
     labelKey: 'pk_dentistry_core', descKey: 'pkd_dentistry_core',
     category: 'clinical', requiredProfessions: ['doctor'],

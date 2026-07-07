@@ -32,7 +32,7 @@ export type ClinicalSpecialtyId =
   | 'obgyn' | 'midwifery' | 'cardiology' | 'dermatology' | 'neurology'
   | 'psychiatry' | 'general_surgery' | 'orthopedics' | 'ent' | 'ophthalmology'
   | 'emergency_medicine' | 'anesthesiology' | 'radiology' | 'laboratory_medicine'
-  | 'oncology' | 'urology' | 'nephrology' | 'pulmonology' | 'dentistry' | 'nutrition'
+  | 'oncology' | 'urology' | 'nephrology' | 'pulmonology' | 'endocrinology' | 'dentistry' | 'nutrition'
   | 'physiotherapy' | 'pharmacy' | 'nursing'
 
 export interface SubSpecialtyDef {
@@ -179,6 +179,11 @@ export const SPECIALTY_TAXONOMY: ClinicalSpecialty[] = [
   },
   {
     id: 'pulmonology', labelKey: 'sp_pulmonology', descKey: 'spd_pulmonology',
+    category: 'medical', usesSubspecialties: false, subSpecialties: [],
+    defaultProfessions: ['doctor'], futurePackIds: [], status: 'active', version: 1,
+  },
+  {
+    id: 'endocrinology', labelKey: 'sp_endocrinology', descKey: 'spd_endocrinology',
     category: 'medical', usesSubspecialties: false, subSpecialties: [],
     defaultProfessions: ['doctor'], futurePackIds: [], status: 'active', version: 1,
   },

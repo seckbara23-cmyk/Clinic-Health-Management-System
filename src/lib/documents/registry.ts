@@ -323,6 +323,28 @@ export const DOCUMENT_DEFINITIONS: DocumentDefinition[] = [
       area('current_management', 'df_current_management', 'consultation.treatment_plan'),
       date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
     ]; return { ...BASE, id: 'neurology_followup_summary', specialty: 'neurology' as const, category: 'summary' as const, titleKey: 'doc_neurology_followup_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+
+  // ── Endocrinology (Phase 33) ──
+  (() => { const f = [
+      text('recipient', 'df_recipient'),
+      area('reason', 'df_reason', 'consultation.chief_complaint', true),
+      area('clinical_summary', 'df_clinical_summary', 'consultation.diagnosis'),
+      area('request', 'df_request'),
+    ]; return { ...BASE, id: 'endocrinology_referral', specialty: 'endocrinology' as const, category: 'referral' as const, titleKey: 'doc_endocrinology_referral', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      area('summary', 'df_summary', 'consultation.notes'),
+      area('current_management', 'df_current_management', 'consultation.treatment_plan'),
+      date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
+    ]; return { ...BASE, id: 'diabetes_followup_summary', specialty: 'endocrinology' as const, category: 'summary' as const, titleKey: 'doc_diabetes_followup_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      area('summary', 'df_summary', 'consultation.notes'),
+      area('current_management', 'df_current_management', 'consultation.treatment_plan'),
+      date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
+    ]; return { ...BASE, id: 'thyroid_followup_summary', specialty: 'endocrinology' as const, category: 'summary' as const, titleKey: 'doc_thyroid_followup_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      area('summary', 'df_summary', 'consultation.notes'),
+      date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
+    ]; return { ...BASE, id: 'hormone_investigation_summary', specialty: 'endocrinology' as const, category: 'summary' as const, titleKey: 'doc_hormone_investigation_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
 ]
 
 // ── Lookups / access ────────────────────────────────────────────────
