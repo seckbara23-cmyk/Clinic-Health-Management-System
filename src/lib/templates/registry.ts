@@ -183,6 +183,29 @@ const EMERGENCY_SMART_TEMPLATES: ConsultationTemplate[] = [
   emTemplate('em_general_assessment', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
 ]
 
+// ── Internal Medicine Copilot — smart templates (Phase 24) ────────
+// Chronic-disease visit scaffolds mapping ONLY to existing consultation columns
+// (no schema change). Documentation guides — they generate NO diagnosis or content.
+function imTemplate(id: string, sections: Sec[]): ConsultationTemplate {
+  return { id, specialty: 'internal_medicine', noteStyle: 'soap', sections }
+}
+
+export const IM_SMART_TEMPLATE_IDS = [
+  'im_initial_consult', 'im_diabetes_followup', 'im_hypertension_followup', 'im_ckd_followup',
+  'im_asthma_copd_followup', 'im_dyslipidemia_followup', 'im_thyroid_followup', 'im_discharge_followup',
+] as const
+
+const IM_SMART_TEMPLATES: ConsultationTemplate[] = [
+  imTemplate('im_initial_consult', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  imTemplate('im_diabetes_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  imTemplate('im_hypertension_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  imTemplate('im_ckd_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  imTemplate('im_asthma_copd_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  imTemplate('im_dyslipidemia_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  imTemplate('im_thyroid_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  imTemplate('im_discharge_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+]
+
 export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   GP_CONSULTATION,
   ...GP_SMART_TEMPLATES,
@@ -191,6 +214,7 @@ export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   ...ORL_SMART_TEMPLATES,
   ...CARDIO_SMART_TEMPLATES,
   ...EMERGENCY_SMART_TEMPLATES,
+  ...IM_SMART_TEMPLATES,
 ]
 
 export function getTemplate(id: string): ConsultationTemplate | undefined {

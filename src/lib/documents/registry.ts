@@ -123,6 +123,30 @@ export const DOCUMENT_DEFINITIONS: DocumentDefinition[] = [
       area('disposition', 'df_disposition'),
       date('follow_up', 'df_next_visit', 'consultation.follow_up_date'),
     ]; return { ...BASE, id: 'observation_summary', specialty: 'emergency_medicine' as const, category: 'summary' as const, titleKey: 'doc_observation_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+
+  // ── Internal Medicine (Phase 24) ──
+  (() => { const f = [
+      text('recipient', 'df_recipient'),
+      area('reason', 'df_reason', 'consultation.chief_complaint', true),
+      area('clinical_summary', 'df_clinical_summary', 'consultation.diagnosis'),
+      area('current_management', 'df_current_management', 'consultation.treatment_plan'),
+      area('request', 'df_request'),
+    ]; return { ...BASE, id: 'internal_medicine_referral', specialty: 'internal_medicine' as const, category: 'referral' as const, titleKey: 'doc_internal_medicine_referral', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      area('summary', 'df_summary'),
+      area('current_management', 'df_current_management', 'consultation.treatment_plan'),
+      date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
+    ]; return { ...BASE, id: 'chronic_disease_followup_summary', specialty: 'internal_medicine' as const, category: 'summary' as const, titleKey: 'doc_chronic_disease_followup_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      area('summary', 'df_summary', 'consultation.notes'),
+      area('current_management', 'df_current_management', 'consultation.treatment_plan'),
+      date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
+    ]; return { ...BASE, id: 'hospital_discharge_followup_note', specialty: 'internal_medicine' as const, category: 'note' as const, titleKey: 'doc_hospital_discharge_followup_note', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      area('medications', 'df_medications', undefined, true),
+      area('summary', 'df_summary'),
+      date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
+    ]; return { ...BASE, id: 'medication_review_summary', specialty: 'internal_medicine' as const, category: 'summary' as const, titleKey: 'doc_medication_review_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
 ]
 
 // ── Lookups / access ────────────────────────────────────────────────

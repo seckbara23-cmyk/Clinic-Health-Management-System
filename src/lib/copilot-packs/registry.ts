@@ -141,6 +141,19 @@ export const COPILOT_PACKS: CopilotPackManifest[] = [
     futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
   },
   {
+    // Phase 24 — the SEVENTH real Copilot Pack (Internal Medicine, extends the GP reference).
+    ...BASE, id: 'internal_medicine.core', code: 'IM-CORE',
+    labelKey: 'pk_internal_medicine_core', descKey: 'pkd_internal_medicine_core',
+    category: 'clinical', requiredProfessions: ['doctor'],
+    supportedSpecialties: ['internal_medicine'], capabilityLevels: [...PROFICIENCY],
+    futureWidgetIds: ['ai_brief', 'kpis', 'today_queue', 'quick_actions'],
+    futureQuickActionIds: ['new_consultation', 'new_prescription', 'order_lab', 'schedule_appointment', 'new_invoice'],
+    futureTemplateIds: ['im_initial_consult', 'im_diabetes_followup', 'im_hypertension_followup', 'im_ckd_followup', 'im_asthma_copd_followup', 'im_dyslipidemia_followup', 'im_thyroid_followup', 'im_discharge_followup'],
+    futureAiToolIds: ['get_patient_consultations', 'get_patient_prescriptions', 'get_patient_lab_results', 'get_patient_outstanding', 'get_patient_followups'],
+    futureDocHelperIds: ['im_brief', 'im_completeness', 'chronic_disease_tracker', 'im_lab_followup', 'im_medication_review', 'discharge_followup'],
+    futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
+  },
+  {
     ...BASE, id: 'dentistry.core', code: 'DENT-CORE',
     labelKey: 'pk_dentistry_core', descKey: 'pkd_dentistry_core',
     category: 'clinical', requiredProfessions: ['doctor'],
