@@ -229,6 +229,29 @@ const ORTHO_SMART_TEMPLATES: ConsultationTemplate[] = [
   orthoTemplate('ortho_sports_injury_review', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
 ]
 
+// ── Ophthalmology Copilot — smart templates (Phase 26) ───────────
+// Eye-care visit scaffolds mapping ONLY to existing consultation columns (no
+// schema change). Documentation guides — they generate NO diagnosis or content.
+function ophthTemplate(id: string, sections: Sec[]): ConsultationTemplate {
+  return { id, specialty: 'ophthalmology', noteStyle: 'soap', sections }
+}
+
+export const OPHTH_SMART_TEMPLATE_IDS = [
+  'ophth_initial_consult', 'ophth_visual_acuity_review', 'ophth_cataract_followup', 'ophth_glaucoma_followup',
+  'ophth_diabetic_eye_screening', 'ophth_eye_procedure_followup', 'ophth_post_op_review', 'ophth_refraction_visit',
+] as const
+
+const OPHTH_SMART_TEMPLATES: ConsultationTemplate[] = [
+  ophthTemplate('ophth_initial_consult', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  ophthTemplate('ophth_visual_acuity_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  ophthTemplate('ophth_cataract_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  ophthTemplate('ophth_glaucoma_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  ophthTemplate('ophth_diabetic_eye_screening', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  ophthTemplate('ophth_eye_procedure_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  ophthTemplate('ophth_post_op_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  ophthTemplate('ophth_refraction_visit', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+]
+
 export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   GP_CONSULTATION,
   ...GP_SMART_TEMPLATES,
@@ -239,6 +262,7 @@ export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   ...EMERGENCY_SMART_TEMPLATES,
   ...IM_SMART_TEMPLATES,
   ...ORTHO_SMART_TEMPLATES,
+  ...OPHTH_SMART_TEMPLATES,
 ]
 
 export function getTemplate(id: string): ConsultationTemplate | undefined {

@@ -19,7 +19,7 @@ const CTX: DocumentContext = {
 
 // ── Registry integrity ──────────────────────────────────────────────
 describe('document registry — integrity', () => {
-  it('defines the required documents (9 initial + 4 cardiology + 3 emergency + 4 internal medicine + 4 orthopedics)', () => {
+  it('defines the required documents (9 initial + 4 cardiology + 3 emergency + 4 internal medicine + 4 orthopedics + 4 ophthalmology)', () => {
     const ids = DOCUMENT_DEFINITIONS.map(d => d.id)
     for (const id of [
       'gp_referral_letter', 'gp_medical_certificate', 'gp_sick_leave',
@@ -30,8 +30,9 @@ describe('document registry — integrity', () => {
       'emergency_summary', 'transfer_summary', 'observation_summary',
       'internal_medicine_referral', 'chronic_disease_followup_summary', 'hospital_discharge_followup_note', 'medication_review_summary',
       'orthopedic_referral', 'ortho_physiotherapy_referral', 'cast_review_summary', 'post_op_orthopedic_summary',
+      'ophthalmology_referral', 'eye_examination_summary', 'visual_acuity_certificate', 'post_op_ophthalmology_summary',
     ]) expect(ids).toContain(id)
-    expect(DOCUMENT_DEFINITIONS.length).toBe(24)
+    expect(DOCUMENT_DEFINITIONS.length).toBe(28)
   })
   it('has unique ids and every field/section is coherent', () => {
     const ids = DOCUMENT_DEFINITIONS.map(d => d.id)

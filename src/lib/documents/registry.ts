@@ -169,6 +169,28 @@ export const DOCUMENT_DEFINITIONS: DocumentDefinition[] = [
       area('current_management', 'df_current_management', 'consultation.treatment_plan'),
       date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
     ]; return { ...BASE, id: 'post_op_orthopedic_summary', specialty: 'orthopedics' as const, category: 'summary' as const, titleKey: 'doc_post_op_orthopedic_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+
+  // ── Ophthalmology (Phase 26) ──
+  (() => { const f = [
+      text('recipient', 'df_recipient'),
+      area('reason', 'df_reason', 'consultation.chief_complaint', true),
+      area('clinical_summary', 'df_clinical_summary', 'consultation.diagnosis'),
+      area('request', 'df_request'),
+    ]; return { ...BASE, id: 'ophthalmology_referral', specialty: 'ophthalmology' as const, category: 'referral' as const, titleKey: 'doc_ophthalmology_referral', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      area('summary', 'df_summary', 'consultation.notes'),
+      area('current_management', 'df_current_management', 'consultation.treatment_plan'),
+      date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
+    ]; return { ...BASE, id: 'eye_examination_summary', specialty: 'ophthalmology' as const, category: 'summary' as const, titleKey: 'doc_eye_examination_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      area('statement', 'df_statement', undefined, true),
+      area('notes', 'df_notes'),
+    ]; return { ...BASE, id: 'visual_acuity_certificate', specialty: 'ophthalmology' as const, category: 'certificate' as const, titleKey: 'doc_visual_acuity_certificate', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      area('summary', 'df_summary', 'consultation.notes'),
+      area('current_management', 'df_current_management', 'consultation.treatment_plan'),
+      date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
+    ]; return { ...BASE, id: 'post_op_ophthalmology_summary', specialty: 'ophthalmology' as const, category: 'summary' as const, titleKey: 'doc_post_op_ophthalmology_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
 ]
 
 // ── Lookups / access ────────────────────────────────────────────────

@@ -25,6 +25,7 @@ import { CardiologyCopilot } from '@/components/consultations/CardiologyCopilot'
 import { EmergencyCopilot } from '@/components/consultations/EmergencyCopilot'
 import { InternalMedicineCopilot } from '@/components/consultations/InternalMedicineCopilot'
 import { OrthopedicsCopilot } from '@/components/consultations/OrthopedicsCopilot'
+import { OphthalmologyCopilot } from '@/components/consultations/OphthalmologyCopilot'
 import { DocumentsPanel } from '@/components/documents/DocumentsPanel'
 import { InsightsPanel } from '@/components/ai/InsightsPanel'
 import { DraftLauncher } from '@/components/ai/DraftLauncher'
@@ -413,6 +414,24 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
               {/* Orthopedics Clinical Copilot — read-only + musculoskeletal tracking.
                   Renders only for an orthopedics doctor with AI enabled. */}
               <OrthopedicsCopilot
+                patientId={consultation.patient_id}
+                consultation={{ id, created_at: consultation.created_at }}
+                patient={{ allergies }}
+                doc={{
+                  chief_complaint: watch('chief_complaint'),
+                  symptoms: watch('symptoms'),
+                  notes: watch('notes'),
+                  diagnosis: watch('diagnosis'),
+                  treatment_plan: watch('treatment_plan'),
+                }}
+                activeMeds={activeMeds}
+                prescriptions={patientRx}
+                consultations={patientConsults}
+                invoices={patientInvoices}
+              />
+              {/* Ophthalmology Clinical Copilot — read-only + eye-care tracking.
+                  Renders only for an ophthalmology doctor with AI enabled. */}
+              <OphthalmologyCopilot
                 patientId={consultation.patient_id}
                 consultation={{ id, created_at: consultation.created_at }}
                 patient={{ allergies }}
