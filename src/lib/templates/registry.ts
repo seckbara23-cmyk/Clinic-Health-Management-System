@@ -370,6 +370,30 @@ const SURGERY_SMART_TEMPLATES: ConsultationTemplate[] = [
   surgeryTemplate('surg_discharge_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
 ]
 
+// ── Neurology Copilot — smart templates (Phase 32) ───────────────
+// Neurology visit scaffolds mapping ONLY to existing consultation columns (no
+// schema change). Documentation guides — they generate NO diagnosis, imaging
+// interpretation or content.
+function neuroTemplate(id: string, sections: Sec[]): ConsultationTemplate {
+  return { id, specialty: 'neurology', noteStyle: 'soap', sections }
+}
+
+export const NEURO_SMART_TEMPLATE_IDS = [
+  'neuro_consultation', 'neuro_stroke_followup', 'neuro_headache_followup', 'neuro_epilepsy_review',
+  'neuro_neuropathy_review', 'neuro_rehab_followup', 'neuro_hospital_followup', 'neuro_neurophysiology_review',
+] as const
+
+const NEURO_SMART_TEMPLATES: ConsultationTemplate[] = [
+  neuroTemplate('neuro_consultation', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  neuroTemplate('neuro_stroke_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  neuroTemplate('neuro_headache_followup', [S.cc(), S.hpi(), S.assessment(), S.plan(true)]),
+  neuroTemplate('neuro_epilepsy_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  neuroTemplate('neuro_neuropathy_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  neuroTemplate('neuro_rehab_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  neuroTemplate('neuro_hospital_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  neuroTemplate('neuro_neurophysiology_review', [S.cc(), S.assessment(), S.plan(true)]),
+]
+
 export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   GP_CONSULTATION,
   ...GP_SMART_TEMPLATES,
@@ -386,6 +410,7 @@ export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   ...NEPHRO_SMART_TEMPLATES,
   ...ONCO_SMART_TEMPLATES,
   ...SURGERY_SMART_TEMPLATES,
+  ...NEURO_SMART_TEMPLATES,
 ]
 
 export function getTemplate(id: string): ConsultationTemplate | undefined {

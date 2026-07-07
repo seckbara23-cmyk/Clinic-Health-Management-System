@@ -301,6 +301,28 @@ export const DOCUMENT_DEFINITIONS: DocumentDefinition[] = [
       area('current_management', 'df_current_management', 'consultation.treatment_plan'),
       date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
     ]; return { ...BASE, id: 'surgical_discharge_summary', specialty: 'general_surgery' as const, category: 'summary' as const, titleKey: 'doc_surgical_discharge_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+
+  // ── Neurology (Phase 32) ──
+  (() => { const f = [
+      text('recipient', 'df_recipient'),
+      area('reason', 'df_reason', 'consultation.chief_complaint', true),
+      area('clinical_summary', 'df_clinical_summary', 'consultation.diagnosis'),
+      area('request', 'df_request'),
+    ]; return { ...BASE, id: 'neurology_referral', specialty: 'neurology' as const, category: 'referral' as const, titleKey: 'doc_neurology_referral', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      area('summary', 'df_summary', 'consultation.notes'),
+      date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
+    ]; return { ...BASE, id: 'neurophysiology_summary', specialty: 'neurology' as const, category: 'summary' as const, titleKey: 'doc_neurophysiology_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      area('summary', 'df_summary', 'consultation.notes'),
+      area('current_management', 'df_current_management', 'consultation.treatment_plan'),
+      date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
+    ]; return { ...BASE, id: 'rehabilitation_summary', specialty: 'neurology' as const, category: 'summary' as const, titleKey: 'doc_rehabilitation_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      area('summary', 'df_summary', 'consultation.notes'),
+      area('current_management', 'df_current_management', 'consultation.treatment_plan'),
+      date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
+    ]; return { ...BASE, id: 'neurology_followup_summary', specialty: 'neurology' as const, category: 'summary' as const, titleKey: 'doc_neurology_followup_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
 ]
 
 // ── Lookups / access ────────────────────────────────────────────────

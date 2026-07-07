@@ -245,6 +245,19 @@ export const COPILOT_PACKS: CopilotPackManifest[] = [
     futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
   },
   {
+    // Phase 32 — the FIFTEENTH real Copilot Pack (Neurology, extends the GP reference).
+    ...BASE, id: 'neurology.core', code: 'NEURO-CORE',
+    labelKey: 'pk_neurology_core', descKey: 'pkd_neurology_core',
+    category: 'clinical', requiredProfessions: ['doctor'],
+    supportedSpecialties: ['neurology'], capabilityLevels: [...PROFICIENCY],
+    futureWidgetIds: ['ai_brief', 'kpis', 'today_queue', 'quick_actions'],
+    futureQuickActionIds: ['new_consultation', 'new_prescription', 'order_lab', 'schedule_appointment', 'new_invoice'],
+    futureTemplateIds: ['neuro_consultation', 'neuro_stroke_followup', 'neuro_headache_followup', 'neuro_epilepsy_review', 'neuro_neuropathy_review', 'neuro_rehab_followup', 'neuro_hospital_followup', 'neuro_neurophysiology_review'],
+    futureAiToolIds: ['get_patient_consultations', 'get_patient_prescriptions', 'get_patient_lab_results', 'get_patient_outstanding', 'get_patient_followups'],
+    futureDocHelperIds: ['neuro_brief', 'neuro_completeness', 'neuro_event_tracker', 'neuro_investigation_followup', 'neuro_medication_review', 'neuro_followup'],
+    futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
+  },
+  {
     ...BASE, id: 'dentistry.core', code: 'DENT-CORE',
     labelKey: 'pk_dentistry_core', descKey: 'pkd_dentistry_core',
     category: 'clinical', requiredProfessions: ['doctor'],
