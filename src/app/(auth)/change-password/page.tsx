@@ -110,7 +110,17 @@ export default function ChangePasswordPage() {
         return
       }
       setStep('redirecting')
-      router.replace(json.redirect_to ?? '/dashboard')
+      // HARD navigation (full document load) — NOT router.replace. The password was
+      // just changed under the live browser Supabase client, so its session is now
+      // stale. A soft client navigation keeps that client alive, and its token
+      // auto-refresh deadlocks on the Web Lock (the same hang the page gate above
+      // avoids), leaving the button stuck on "Redirecting…" forever. A full reload
+      // tears the client down and lets the server resolve auth cleanly from cookies.
+      // Guard to an internal path (defence-in-depth against an open redirect).
+      const dest = typeof json.redirect_to === 'string' && json.redirect_to.startsWith('/')
+        ? json.redirect_to
+        : '/dashboard'
+      window.location.replace(dest)
     } catch (err: unknown) {
       setError(
         err instanceof Error && err.name === 'AbortError'

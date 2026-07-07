@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -22,7 +21,6 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>
 
 export default function ResetPasswordPage() {
-  const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const supabase = createClient()
 
@@ -39,7 +37,11 @@ export default function ResetPasswordPage() {
     }
     // Clear must_change_password if it was set (no-op if already false)
     await fetch('/api/auth/change-password', { method: 'POST' })
-    router.push('/dashboard')
+    // HARD navigation (full reload), NOT router.push: the password just changed
+    // under the live Supabase client, leaving its session stale. A soft client nav
+    // keeps that client alive and its token refresh can deadlock, hanging the page.
+    // A full document load re-resolves auth from cookies cleanly.
+    window.location.replace('/dashboard')
   }
 
   return (
