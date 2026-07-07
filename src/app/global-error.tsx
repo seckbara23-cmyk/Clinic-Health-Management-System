@@ -21,7 +21,7 @@ export default function GlobalError({
   }, [error])
 
   return (
-    <html lang="fr">
+    <html lang="fr-SN">
       <body style={{
         margin: 0, fontFamily: 'system-ui, sans-serif', background: '#f9fafb',
         display: 'flex', minHeight: '100vh', alignItems: 'center',
