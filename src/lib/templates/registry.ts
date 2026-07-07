@@ -322,6 +322,30 @@ const NEPHRO_SMART_TEMPLATES: ConsultationTemplate[] = [
   nephroTemplate('nephro_post_discharge_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
 ]
 
+// ── Oncology Copilot — smart templates (Phase 30) ────────────────
+// Cancer-care visit scaffolds mapping ONLY to existing consultation columns (no
+// schema change). Documentation guides — they generate NO diagnosis, staging or
+// treatment content.
+function oncoTemplate(id: string, sections: Sec[]): ConsultationTemplate {
+  return { id, specialty: 'oncology', noteStyle: 'soap', sections }
+}
+
+export const ONCO_SMART_TEMPLATE_IDS = [
+  'onco_initial_visit', 'onco_chemo_followup', 'onco_radio_followup', 'onco_immuno_review',
+  'onco_tumor_board_followup', 'onco_survivorship_visit', 'onco_supportive_care_review', 'onco_nutrition_followup',
+] as const
+
+const ONCO_SMART_TEMPLATES: ConsultationTemplate[] = [
+  oncoTemplate('onco_initial_visit', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  oncoTemplate('onco_chemo_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  oncoTemplate('onco_radio_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  oncoTemplate('onco_immuno_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  oncoTemplate('onco_tumor_board_followup', [S.cc(), S.assessment(), S.plan(true)]),
+  oncoTemplate('onco_survivorship_visit', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  oncoTemplate('onco_supportive_care_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  oncoTemplate('onco_nutrition_followup', [S.cc(), S.assessment(), S.plan(true)]),
+]
+
 export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   GP_CONSULTATION,
   ...GP_SMART_TEMPLATES,
@@ -336,6 +360,7 @@ export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   ...MH_SMART_TEMPLATES,
   ...PULM_SMART_TEMPLATES,
   ...NEPHRO_SMART_TEMPLATES,
+  ...ONCO_SMART_TEMPLATES,
 ]
 
 export function getTemplate(id: string): ConsultationTemplate | undefined {

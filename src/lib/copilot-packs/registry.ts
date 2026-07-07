@@ -219,6 +219,19 @@ export const COPILOT_PACKS: CopilotPackManifest[] = [
     futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
   },
   {
+    // Phase 30 — the THIRTEENTH real Copilot Pack (Oncology, extends the GP reference).
+    ...BASE, id: 'oncology.core', code: 'ONCO-CORE',
+    labelKey: 'pk_oncology_core', descKey: 'pkd_oncology_core',
+    category: 'clinical', requiredProfessions: ['doctor'],
+    supportedSpecialties: ['oncology'], capabilityLevels: [...PROFICIENCY],
+    futureWidgetIds: ['ai_brief', 'kpis', 'today_queue', 'quick_actions'],
+    futureQuickActionIds: ['new_consultation', 'new_prescription', 'order_lab', 'schedule_appointment', 'new_invoice'],
+    futureTemplateIds: ['onco_initial_visit', 'onco_chemo_followup', 'onco_radio_followup', 'onco_immuno_review', 'onco_tumor_board_followup', 'onco_survivorship_visit', 'onco_supportive_care_review', 'onco_nutrition_followup'],
+    futureAiToolIds: ['get_patient_consultations', 'get_patient_prescriptions', 'get_patient_lab_results', 'get_patient_outstanding', 'get_patient_followups'],
+    futureDocHelperIds: ['onco_brief', 'onco_completeness', 'onco_event_tracker', 'onco_pathology_followup', 'onco_medication_review', 'onco_followup'],
+    futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
+  },
+  {
     ...BASE, id: 'dentistry.core', code: 'DENT-CORE',
     labelKey: 'pk_dentistry_core', descKey: 'pkd_dentistry_core',
     category: 'clinical', requiredProfessions: ['doctor'],
