@@ -193,6 +193,19 @@ export const COPILOT_PACKS: CopilotPackManifest[] = [
     futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
   },
   {
+    // Phase 28 — the ELEVENTH real Copilot Pack (Pulmonology, extends the GP reference).
+    ...BASE, id: 'pulmonology.core', code: 'PULM-CORE',
+    labelKey: 'pk_pulmonology_core', descKey: 'pkd_pulmonology_core',
+    category: 'clinical', requiredProfessions: ['doctor'],
+    supportedSpecialties: ['pulmonology'], capabilityLevels: [...PROFICIENCY],
+    futureWidgetIds: ['ai_brief', 'kpis', 'today_queue', 'quick_actions'],
+    futureQuickActionIds: ['new_consultation', 'new_prescription', 'order_lab', 'schedule_appointment', 'new_invoice'],
+    futureTemplateIds: ['pulm_initial_visit', 'pulm_asthma_followup', 'pulm_copd_followup', 'pulm_pft_review', 'pulm_bronchoscopy_followup', 'pulm_sleep_study_review', 'pulm_smoking_cessation', 'pulm_rehab_review'],
+    futureAiToolIds: ['get_patient_consultations', 'get_patient_prescriptions', 'get_patient_lab_results', 'get_patient_outstanding', 'get_patient_followups'],
+    futureDocHelperIds: ['pulm_brief', 'pulm_completeness', 'pulm_event_tracker', 'pulm_test_followup', 'pulm_medication_review', 'pulm_followup'],
+    futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
+  },
+  {
     ...BASE, id: 'dentistry.core', code: 'DENT-CORE',
     labelKey: 'pk_dentistry_core', descKey: 'pkd_dentistry_core',
     category: 'clinical', requiredProfessions: ['doctor'],

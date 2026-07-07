@@ -276,6 +276,29 @@ const MH_SMART_TEMPLATES: ConsultationTemplate[] = [
   mhTemplate('mh_return_visit', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
 ]
 
+// ── Pulmonology Copilot — smart templates (Phase 28) ─────────────
+// Respiratory visit scaffolds mapping ONLY to existing consultation columns (no
+// schema change). Documentation guides — they generate NO diagnosis or content.
+function pulmTemplate(id: string, sections: Sec[]): ConsultationTemplate {
+  return { id, specialty: 'pulmonology', noteStyle: 'soap', sections }
+}
+
+export const PULM_SMART_TEMPLATE_IDS = [
+  'pulm_initial_visit', 'pulm_asthma_followup', 'pulm_copd_followup', 'pulm_pft_review',
+  'pulm_bronchoscopy_followup', 'pulm_sleep_study_review', 'pulm_smoking_cessation', 'pulm_rehab_review',
+] as const
+
+const PULM_SMART_TEMPLATES: ConsultationTemplate[] = [
+  pulmTemplate('pulm_initial_visit', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  pulmTemplate('pulm_asthma_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  pulmTemplate('pulm_copd_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  pulmTemplate('pulm_pft_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  pulmTemplate('pulm_bronchoscopy_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  pulmTemplate('pulm_sleep_study_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  pulmTemplate('pulm_smoking_cessation', [S.cc(), S.assessment(), S.plan(true)]),
+  pulmTemplate('pulm_rehab_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+]
+
 export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   GP_CONSULTATION,
   ...GP_SMART_TEMPLATES,
@@ -288,6 +311,7 @@ export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   ...ORTHO_SMART_TEMPLATES,
   ...OPHTH_SMART_TEMPLATES,
   ...MH_SMART_TEMPLATES,
+  ...PULM_SMART_TEMPLATES,
 ]
 
 export function getTemplate(id: string): ConsultationTemplate | undefined {

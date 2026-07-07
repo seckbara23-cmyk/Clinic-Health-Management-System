@@ -27,6 +27,7 @@ import { InternalMedicineCopilot } from '@/components/consultations/InternalMedi
 import { OrthopedicsCopilot } from '@/components/consultations/OrthopedicsCopilot'
 import { OphthalmologyCopilot } from '@/components/consultations/OphthalmologyCopilot'
 import { PsychiatryCopilot } from '@/components/consultations/PsychiatryCopilot'
+import { PulmonologyCopilot } from '@/components/consultations/PulmonologyCopilot'
 import { DocumentsPanel } from '@/components/documents/DocumentsPanel'
 import { InsightsPanel } from '@/components/ai/InsightsPanel'
 import { DraftLauncher } from '@/components/ai/DraftLauncher'
@@ -451,6 +452,24 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
               {/* Psychiatry / Mental Health Clinical Copilot — read-only + MH workflow.
                   Renders only for a psychiatry doctor with AI enabled. */}
               <PsychiatryCopilot
+                patientId={consultation.patient_id}
+                consultation={{ id, created_at: consultation.created_at }}
+                patient={{ allergies }}
+                doc={{
+                  chief_complaint: watch('chief_complaint'),
+                  symptoms: watch('symptoms'),
+                  notes: watch('notes'),
+                  diagnosis: watch('diagnosis'),
+                  treatment_plan: watch('treatment_plan'),
+                }}
+                activeMeds={activeMeds}
+                prescriptions={patientRx}
+                consultations={patientConsults}
+                invoices={patientInvoices}
+              />
+              {/* Pulmonology Clinical Copilot — read-only + respiratory workflow.
+                  Renders only for a pulmonology doctor with AI enabled. */}
+              <PulmonologyCopilot
                 patientId={consultation.patient_id}
                 consultation={{ id, created_at: consultation.created_at }}
                 patient={{ allergies }}

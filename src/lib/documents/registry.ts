@@ -213,6 +213,28 @@ export const DOCUMENT_DEFINITIONS: DocumentDefinition[] = [
       area('statement', 'df_statement', undefined, true),
       date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
     ]; return { ...BASE, id: 'return_to_care_reminder', specialty: 'psychiatry' as const, category: 'note' as const, titleKey: 'doc_return_to_care_reminder', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+
+  // ── Pulmonology (Phase 28) ──
+  (() => { const f = [
+      text('recipient', 'df_recipient'),
+      area('reason', 'df_reason', 'consultation.chief_complaint', true),
+      area('clinical_summary', 'df_clinical_summary', 'consultation.diagnosis'),
+      area('request', 'df_request'),
+    ]; return { ...BASE, id: 'pulmonology_referral', specialty: 'pulmonology' as const, category: 'referral' as const, titleKey: 'doc_pulmonology_referral', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      area('summary', 'df_summary', 'consultation.notes'),
+      area('current_management', 'df_current_management', 'consultation.treatment_plan'),
+      date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
+    ]; return { ...BASE, id: 'respiratory_followup_summary', specialty: 'pulmonology' as const, category: 'summary' as const, titleKey: 'doc_respiratory_followup_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      text('recipient', 'df_recipient'),
+      area('reason', 'df_reason', 'consultation.chief_complaint', true),
+      area('summary', 'df_summary'),
+    ]; return { ...BASE, id: 'pulmonary_rehab_referral', specialty: 'pulmonology' as const, category: 'referral' as const, titleKey: 'doc_pulmonary_rehab_referral', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      area('summary', 'df_summary'),
+      date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
+    ]; return { ...BASE, id: 'pulmonary_function_summary', specialty: 'pulmonology' as const, category: 'summary' as const, titleKey: 'doc_pulmonary_function_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
 ]
 
 // ── Lookups / access ────────────────────────────────────────────────

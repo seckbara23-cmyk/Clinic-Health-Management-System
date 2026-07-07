@@ -26,7 +26,7 @@ export type SpecialtyId =
   | 'general_practice' | 'internal_medicine' | 'family_medicine'
   | 'pediatrics' | 'obgyn' | 'emergency' | 'emergency_medicine' | 'general_surgery' | 'orthopedics'
   | 'cardiology' | 'dermatology' | 'ent' | 'ophthalmology' | 'psychiatry'
-  | 'neurology' | 'oncology' | 'urology' | 'nephrology' | 'radiology_spec'
+  | 'neurology' | 'oncology' | 'urology' | 'nephrology' | 'pulmonology' | 'radiology_spec'
   | 'dentistry' | 'physiotherapy' | 'nutrition_spec' | 'mental_health'
 
 export type SpecialtyCategory = 'primary_care' | 'medical' | 'surgical' | 'diagnostic' | 'support'
