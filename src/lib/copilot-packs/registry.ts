@@ -284,6 +284,19 @@ export const COPILOT_PACKS: CopilotPackManifest[] = [
     futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
   },
   {
+    // Phase 35 — the EIGHTEENTH real Copilot Pack (Urology, extends the GP reference).
+    ...BASE, id: 'urology.core', code: 'URO-CORE',
+    labelKey: 'pk_urology_core', descKey: 'pkd_urology_core',
+    category: 'clinical', requiredProfessions: ['doctor'],
+    supportedSpecialties: ['urology'], capabilityLevels: [...PROFICIENCY],
+    futureWidgetIds: ['ai_brief', 'kpis', 'today_queue', 'quick_actions'],
+    futureQuickActionIds: ['new_consultation', 'new_prescription', 'order_lab', 'schedule_appointment', 'new_invoice'],
+    futureTemplateIds: ['uro_consultation', 'uro_stone_followup', 'uro_hematuria_followup', 'uro_prostate_review', 'uro_catheter_review', 'uro_cystoscopy_followup', 'uro_postop_review', 'uro_hospital_followup'],
+    futureAiToolIds: ['get_patient_consultations', 'get_patient_prescriptions', 'get_patient_lab_results', 'get_patient_outstanding', 'get_patient_followups'],
+    futureDocHelperIds: ['uro_brief', 'uro_completeness', 'uro_event_tracker', 'uro_investigation_followup', 'uro_medication_review', 'uro_followup'],
+    futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
+  },
+  {
     ...BASE, id: 'dentistry.core', code: 'DENT-CORE',
     labelKey: 'pk_dentistry_core', descKey: 'pkd_dentistry_core',
     category: 'clinical', requiredProfessions: ['doctor'],

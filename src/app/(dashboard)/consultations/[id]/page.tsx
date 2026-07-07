@@ -34,6 +34,7 @@ import { SurgeryCopilot } from '@/components/consultations/SurgeryCopilot'
 import { NeurologyCopilot } from '@/components/consultations/NeurologyCopilot'
 import { EndocrinologyCopilot } from '@/components/consultations/EndocrinologyCopilot'
 import { DermatologyCopilot } from '@/components/consultations/DermatologyCopilot'
+import { UrologyCopilot } from '@/components/consultations/UrologyCopilot'
 import { DocumentsPanel } from '@/components/documents/DocumentsPanel'
 import { InsightsPanel } from '@/components/ai/InsightsPanel'
 import { DraftLauncher } from '@/components/ai/DraftLauncher'
@@ -584,6 +585,24 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
               {/* Dermatology Clinical Copilot — read-only + dermatology workflow.
                   Renders only for a dermatology doctor with AI enabled. */}
               <DermatologyCopilot
+                patientId={consultation.patient_id}
+                consultation={{ id, created_at: consultation.created_at }}
+                patient={{ allergies }}
+                doc={{
+                  chief_complaint: watch('chief_complaint'),
+                  symptoms: watch('symptoms'),
+                  notes: watch('notes'),
+                  diagnosis: watch('diagnosis'),
+                  treatment_plan: watch('treatment_plan'),
+                }}
+                activeMeds={activeMeds}
+                prescriptions={patientRx}
+                consultations={patientConsults}
+                invoices={patientInvoices}
+              />
+              {/* Urology Clinical Copilot — read-only + urology workflow.
+                  Renders only for a urology doctor with AI enabled. */}
+              <UrologyCopilot
                 patientId={consultation.patient_id}
                 consultation={{ id, created_at: consultation.created_at }}
                 patient={{ allergies }}

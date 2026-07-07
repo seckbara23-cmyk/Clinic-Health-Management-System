@@ -442,6 +442,30 @@ const DERM_SMART_TEMPLATES: ConsultationTemplate[] = [
   dermTemplate('derm_hospital_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
 ]
 
+// ── Urology Copilot — smart templates (Phase 35) ─────────────────
+// Urology visit scaffolds mapping ONLY to existing consultation columns (no
+// schema change). Documentation guides — they generate NO diagnosis, laboratory
+// interpretation or content.
+function uroTemplate(id: string, sections: Sec[]): ConsultationTemplate {
+  return { id, specialty: 'urology', noteStyle: 'soap', sections }
+}
+
+export const URO_SMART_TEMPLATE_IDS = [
+  'uro_consultation', 'uro_stone_followup', 'uro_hematuria_followup', 'uro_prostate_review',
+  'uro_catheter_review', 'uro_cystoscopy_followup', 'uro_postop_review', 'uro_hospital_followup',
+] as const
+
+const URO_SMART_TEMPLATES: ConsultationTemplate[] = [
+  uroTemplate('uro_consultation', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  uroTemplate('uro_stone_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  uroTemplate('uro_hematuria_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  uroTemplate('uro_prostate_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  uroTemplate('uro_catheter_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  uroTemplate('uro_cystoscopy_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  uroTemplate('uro_postop_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  uroTemplate('uro_hospital_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+]
+
 export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   GP_CONSULTATION,
   ...GP_SMART_TEMPLATES,
@@ -461,6 +485,7 @@ export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   ...NEURO_SMART_TEMPLATES,
   ...ENDO_SMART_TEMPLATES,
   ...DERM_SMART_TEMPLATES,
+  ...URO_SMART_TEMPLATES,
 ]
 
 export function getTemplate(id: string): ConsultationTemplate | undefined {
