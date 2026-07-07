@@ -271,6 +271,19 @@ export const COPILOT_PACKS: CopilotPackManifest[] = [
     futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
   },
   {
+    // Phase 34 — the SEVENTEENTH real Copilot Pack (Dermatology, extends the GP reference).
+    ...BASE, id: 'dermatology.core', code: 'DERM-CORE',
+    labelKey: 'pk_dermatology_core', descKey: 'pkd_dermatology_core',
+    category: 'clinical', requiredProfessions: ['doctor'],
+    supportedSpecialties: ['dermatology'], capabilityLevels: [...PROFICIENCY],
+    futureWidgetIds: ['ai_brief', 'kpis', 'today_queue', 'quick_actions'],
+    futureQuickActionIds: ['new_consultation', 'new_prescription', 'order_lab', 'schedule_appointment', 'new_invoice'],
+    futureTemplateIds: ['derm_consultation', 'derm_skin_lesion_review', 'derm_mole_followup', 'derm_biopsy_followup', 'derm_patch_test_review', 'derm_cryotherapy_followup', 'derm_procedure_followup', 'derm_hospital_followup'],
+    futureAiToolIds: ['get_patient_consultations', 'get_patient_prescriptions', 'get_patient_lab_results', 'get_patient_outstanding', 'get_patient_followups'],
+    futureDocHelperIds: ['derm_brief', 'derm_completeness', 'derm_event_tracker', 'derm_investigation_followup', 'derm_medication_review', 'derm_followup'],
+    futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
+  },
+  {
     ...BASE, id: 'dentistry.core', code: 'DENT-CORE',
     labelKey: 'pk_dentistry_core', descKey: 'pkd_dentistry_core',
     category: 'clinical', requiredProfessions: ['doctor'],

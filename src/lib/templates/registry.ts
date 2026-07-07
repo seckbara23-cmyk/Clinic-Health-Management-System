@@ -418,6 +418,30 @@ const ENDO_SMART_TEMPLATES: ConsultationTemplate[] = [
   endoTemplate('endo_hormone_review', [S.cc(), S.assessment(), S.plan(true)]),
 ]
 
+// ── Dermatology Copilot — smart templates (Phase 34) ─────────────
+// Dermatology visit scaffolds mapping ONLY to existing consultation columns (no
+// schema change). Documentation guides — they generate NO diagnosis, lesion
+// classification or content.
+function dermTemplate(id: string, sections: Sec[]): ConsultationTemplate {
+  return { id, specialty: 'dermatology', noteStyle: 'soap', sections }
+}
+
+export const DERM_SMART_TEMPLATE_IDS = [
+  'derm_consultation', 'derm_skin_lesion_review', 'derm_mole_followup', 'derm_biopsy_followup',
+  'derm_patch_test_review', 'derm_cryotherapy_followup', 'derm_procedure_followup', 'derm_hospital_followup',
+] as const
+
+const DERM_SMART_TEMPLATES: ConsultationTemplate[] = [
+  dermTemplate('derm_consultation', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  dermTemplate('derm_skin_lesion_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  dermTemplate('derm_mole_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  dermTemplate('derm_biopsy_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  dermTemplate('derm_patch_test_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  dermTemplate('derm_cryotherapy_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  dermTemplate('derm_procedure_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  dermTemplate('derm_hospital_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+]
+
 export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   GP_CONSULTATION,
   ...GP_SMART_TEMPLATES,
@@ -436,6 +460,7 @@ export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   ...SURGERY_SMART_TEMPLATES,
   ...NEURO_SMART_TEMPLATES,
   ...ENDO_SMART_TEMPLATES,
+  ...DERM_SMART_TEMPLATES,
 ]
 
 export function getTemplate(id: string): ConsultationTemplate | undefined {
