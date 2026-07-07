@@ -180,6 +180,19 @@ export const COPILOT_PACKS: CopilotPackManifest[] = [
     futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
   },
   {
+    // Phase 27 — the TENTH real Copilot Pack (Psychiatry / Mental Health, extends GP).
+    ...BASE, id: 'psychiatry.core', code: 'PSYCH-CORE',
+    labelKey: 'pk_psychiatry_core', descKey: 'pkd_psychiatry_core',
+    category: 'clinical', requiredProfessions: ['doctor'],
+    supportedSpecialties: ['psychiatry'], capabilityLevels: [...PROFICIENCY],
+    futureWidgetIds: ['ai_brief', 'kpis', 'today_queue', 'quick_actions'],
+    futureQuickActionIds: ['new_consultation', 'new_prescription', 'order_lab', 'schedule_appointment', 'new_invoice'],
+    futureTemplateIds: ['mh_initial_assessment', 'mh_therapy_session', 'mh_medication_review', 'mh_crisis_followup', 'mh_safety_plan_review', 'mh_family_meeting', 'mh_referral_followup', 'mh_return_visit'],
+    futureAiToolIds: ['get_patient_consultations', 'get_patient_prescriptions', 'get_patient_lab_results', 'get_patient_outstanding', 'get_patient_followups'],
+    futureDocHelperIds: ['mh_brief', 'mh_completeness', 'mh_event_tracker', 'mh_medication_review', 'mh_followup', 'safety_plan_presence'],
+    futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
+  },
+  {
     ...BASE, id: 'dentistry.core', code: 'DENT-CORE',
     labelKey: 'pk_dentistry_core', descKey: 'pkd_dentistry_core',
     category: 'clinical', requiredProfessions: ['doctor'],

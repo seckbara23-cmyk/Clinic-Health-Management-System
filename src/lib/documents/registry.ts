@@ -191,6 +191,28 @@ export const DOCUMENT_DEFINITIONS: DocumentDefinition[] = [
       area('current_management', 'df_current_management', 'consultation.treatment_plan'),
       date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
     ]; return { ...BASE, id: 'post_op_ophthalmology_summary', specialty: 'ophthalmology' as const, category: 'summary' as const, titleKey: 'doc_post_op_ophthalmology_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+
+  // ── Psychiatry / Mental Health (Phase 27) ──
+  // The clinician writes and confirms every field; prefill copies existing
+  // recorded data only — no generated psychiatric conclusion.
+  (() => { const f = [
+      text('recipient', 'df_recipient'),
+      area('reason', 'df_reason', 'consultation.chief_complaint', true),
+      area('summary', 'df_summary'),
+      area('request', 'df_request'),
+    ]; return { ...BASE, id: 'mental_health_referral', specialty: 'psychiatry' as const, category: 'referral' as const, titleKey: 'doc_mental_health_referral', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      area('summary', 'df_summary'),
+      date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
+    ]; return { ...BASE, id: 'therapy_followup_summary', specialty: 'psychiatry' as const, category: 'summary' as const, titleKey: 'doc_therapy_followup_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      area('summary', 'df_summary'),
+      date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
+    ]; return { ...BASE, id: 'crisis_followup_summary', specialty: 'psychiatry' as const, category: 'summary' as const, titleKey: 'doc_crisis_followup_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      area('statement', 'df_statement', undefined, true),
+      date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
+    ]; return { ...BASE, id: 'return_to_care_reminder', specialty: 'psychiatry' as const, category: 'note' as const, titleKey: 'doc_return_to_care_reminder', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
 ]
 
 // ── Lookups / access ────────────────────────────────────────────────

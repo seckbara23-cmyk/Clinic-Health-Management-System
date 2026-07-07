@@ -252,6 +252,30 @@ const OPHTH_SMART_TEMPLATES: ConsultationTemplate[] = [
   ophthTemplate('ophth_refraction_visit', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
 ]
 
+// ── Psychiatry / Mental Health Copilot — smart templates (Phase 27) ─
+// Mental-health visit scaffolds mapping ONLY to existing consultation columns
+// (no schema change). Documentation guides — they generate NO diagnosis, no risk
+// assessment, no sensitive conclusion.
+function mhTemplate(id: string, sections: Sec[]): ConsultationTemplate {
+  return { id, specialty: 'psychiatry', noteStyle: 'soap', sections }
+}
+
+export const MH_SMART_TEMPLATE_IDS = [
+  'mh_initial_assessment', 'mh_therapy_session', 'mh_medication_review', 'mh_crisis_followup',
+  'mh_safety_plan_review', 'mh_family_meeting', 'mh_referral_followup', 'mh_return_visit',
+] as const
+
+const MH_SMART_TEMPLATES: ConsultationTemplate[] = [
+  mhTemplate('mh_initial_assessment', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  mhTemplate('mh_therapy_session', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  mhTemplate('mh_medication_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  mhTemplate('mh_crisis_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  mhTemplate('mh_safety_plan_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  mhTemplate('mh_family_meeting', [S.cc(), S.assessment(), S.plan(true)]),
+  mhTemplate('mh_referral_followup', [S.cc(), S.assessment(), S.plan(true)]),
+  mhTemplate('mh_return_visit', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+]
+
 export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   GP_CONSULTATION,
   ...GP_SMART_TEMPLATES,
@@ -263,6 +287,7 @@ export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   ...IM_SMART_TEMPLATES,
   ...ORTHO_SMART_TEMPLATES,
   ...OPHTH_SMART_TEMPLATES,
+  ...MH_SMART_TEMPLATES,
 ]
 
 export function getTemplate(id: string): ConsultationTemplate | undefined {
