@@ -154,6 +154,19 @@ export const COPILOT_PACKS: CopilotPackManifest[] = [
     futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
   },
   {
+    // Phase 25 — the EIGHTH real Copilot Pack (Orthopedics, extends the GP reference).
+    ...BASE, id: 'orthopedics.core', code: 'ORTHO-CORE',
+    labelKey: 'pk_orthopedics_core', descKey: 'pkd_orthopedics_core',
+    category: 'clinical', requiredProfessions: ['doctor'],
+    supportedSpecialties: ['orthopedics'], capabilityLevels: [...PROFICIENCY],
+    futureWidgetIds: ['ai_brief', 'kpis', 'today_queue', 'quick_actions'],
+    futureQuickActionIds: ['new_consultation', 'new_prescription', 'order_lab', 'schedule_appointment', 'new_invoice'],
+    futureTemplateIds: ['ortho_initial_consult', 'ortho_fracture_followup', 'ortho_cast_review', 'ortho_joint_pain_review', 'ortho_post_op_review', 'ortho_wound_review', 'ortho_physiotherapy_referral', 'ortho_sports_injury_review'],
+    futureAiToolIds: ['get_patient_consultations', 'get_patient_prescriptions', 'get_patient_lab_results', 'get_patient_outstanding', 'get_patient_followups'],
+    futureDocHelperIds: ['ortho_brief', 'ortho_completeness', 'ortho_event_tracker', 'ortho_imaging_followup', 'ortho_medication_review', 'ortho_followup'],
+    futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
+  },
+  {
     ...BASE, id: 'dentistry.core', code: 'DENT-CORE',
     labelKey: 'pk_dentistry_core', descKey: 'pkd_dentistry_core',
     category: 'clinical', requiredProfessions: ['doctor'],

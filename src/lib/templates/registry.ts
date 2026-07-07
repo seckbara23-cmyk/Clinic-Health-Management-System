@@ -206,6 +206,29 @@ const IM_SMART_TEMPLATES: ConsultationTemplate[] = [
   imTemplate('im_discharge_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
 ]
 
+// ── Orthopedics Copilot — smart templates (Phase 25) ─────────────
+// Musculoskeletal visit scaffolds mapping ONLY to existing consultation columns
+// (no schema change). Documentation guides — they generate NO diagnosis or content.
+function orthoTemplate(id: string, sections: Sec[]): ConsultationTemplate {
+  return { id, specialty: 'orthopedics', noteStyle: 'soap', sections }
+}
+
+export const ORTHO_SMART_TEMPLATE_IDS = [
+  'ortho_initial_consult', 'ortho_fracture_followup', 'ortho_cast_review', 'ortho_joint_pain_review',
+  'ortho_post_op_review', 'ortho_wound_review', 'ortho_physiotherapy_referral', 'ortho_sports_injury_review',
+] as const
+
+const ORTHO_SMART_TEMPLATES: ConsultationTemplate[] = [
+  orthoTemplate('ortho_initial_consult', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  orthoTemplate('ortho_fracture_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  orthoTemplate('ortho_cast_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  orthoTemplate('ortho_joint_pain_review', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  orthoTemplate('ortho_post_op_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  orthoTemplate('ortho_wound_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  orthoTemplate('ortho_physiotherapy_referral', [S.cc(), S.assessment(), S.plan(true)]),
+  orthoTemplate('ortho_sports_injury_review', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+]
+
 export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   GP_CONSULTATION,
   ...GP_SMART_TEMPLATES,
@@ -215,6 +238,7 @@ export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   ...CARDIO_SMART_TEMPLATES,
   ...EMERGENCY_SMART_TEMPLATES,
   ...IM_SMART_TEMPLATES,
+  ...ORTHO_SMART_TEMPLATES,
 ]
 
 export function getTemplate(id: string): ConsultationTemplate | undefined {
