@@ -33,7 +33,7 @@ export type ClinicalSpecialtyId =
   | 'psychiatry' | 'general_surgery' | 'orthopedics' | 'ent' | 'ophthalmology'
   | 'emergency_medicine' | 'anesthesiology' | 'radiology' | 'laboratory_medicine'
   | 'oncology' | 'urology' | 'nephrology' | 'pulmonology' | 'endocrinology' | 'gastroenterology'
-  | 'dentistry' | 'nutrition' | 'physiotherapy' | 'pharmacy' | 'nursing'
+  | 'infectious_diseases' | 'dentistry' | 'nutrition' | 'physiotherapy' | 'pharmacy' | 'nursing'
 
 export interface SubSpecialtyDef {
   id: string
@@ -189,6 +189,11 @@ export const SPECIALTY_TAXONOMY: ClinicalSpecialty[] = [
   },
   {
     id: 'gastroenterology', labelKey: 'sp_gastroenterology', descKey: 'spd_gastroenterology',
+    category: 'medical', usesSubspecialties: false, subSpecialties: [],
+    defaultProfessions: ['doctor'], futurePackIds: [], status: 'active', version: 1,
+  },
+  {
+    id: 'infectious_diseases', labelKey: 'sp_infectious_diseases', descKey: 'spd_infectious_diseases',
     category: 'medical', usesSubspecialties: false, subSpecialties: [],
     defaultProfessions: ['doctor'], futurePackIds: [], status: 'active', version: 1,
   },

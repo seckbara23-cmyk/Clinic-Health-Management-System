@@ -413,6 +413,29 @@ export const DOCUMENT_DEFINITIONS: DocumentDefinition[] = [
       area('current_management', 'df_current_management', 'consultation.treatment_plan'),
       date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
     ]; return { ...BASE, id: 'gastroenterology_followup_summary', specialty: 'gastroenterology' as const, category: 'summary' as const, titleKey: 'doc_gastroenterology_followup_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+
+  // ── Infectious Diseases (Phase 37) ──
+  (() => { const f = [
+      text('recipient', 'df_recipient'),
+      area('reason', 'df_reason', 'consultation.chief_complaint', true),
+      area('clinical_summary', 'df_clinical_summary', 'consultation.diagnosis'),
+      area('request', 'df_request'),
+    ]; return { ...BASE, id: 'infectious_disease_referral', specialty: 'infectious_diseases' as const, category: 'referral' as const, titleKey: 'doc_infectious_disease_referral', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      area('summary', 'df_summary', 'consultation.notes'),
+      area('current_management', 'df_current_management', 'consultation.treatment_plan'),
+      date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
+    ]; return { ...BASE, id: 'microbiology_followup_summary', specialty: 'infectious_diseases' as const, category: 'summary' as const, titleKey: 'doc_microbiology_followup_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      area('summary', 'df_summary', 'consultation.notes'),
+      area('current_management', 'df_current_management', 'consultation.treatment_plan'),
+      date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
+    ]; return { ...BASE, id: 'hospital_infection_followup_summary', specialty: 'infectious_diseases' as const, category: 'summary' as const, titleKey: 'doc_hospital_infection_followup_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
+  (() => { const f = [
+      area('summary', 'df_summary', 'consultation.notes'),
+      area('current_management', 'df_current_management', 'consultation.treatment_plan'),
+      date('next_visit', 'df_next_visit', 'consultation.follow_up_date'),
+    ]; return { ...BASE, id: 'infectious_disease_followup_summary', specialty: 'infectious_diseases' as const, category: 'summary' as const, titleKey: 'doc_infectious_disease_followup_summary', allowedRoles: DOCTOR, fields: f, sections: sec(f) } })(),
 ]
 
 // ── Lookups / access ────────────────────────────────────────────────

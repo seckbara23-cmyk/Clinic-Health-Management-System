@@ -490,6 +490,30 @@ const GI_SMART_TEMPLATES: ConsultationTemplate[] = [
   giTemplate('gi_discharge_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
 ]
 
+// ── Infectious Diseases Copilot — smart templates (Phase 37) ─────
+// ID visit scaffolds mapping ONLY to existing consultation columns (no schema
+// change). Documentation guides — they generate NO diagnosis, laboratory/culture
+// interpretation or content.
+function infxTemplate(id: string, sections: Sec[]): ConsultationTemplate {
+  return { id, specialty: 'infectious_diseases', noteStyle: 'soap', sections }
+}
+
+export const INFX_SMART_TEMPLATE_IDS = [
+  'infx_consultation', 'infx_fever_review', 'infx_malaria_followup', 'infx_tb_clinic_followup',
+  'infx_hiv_clinic_followup', 'infx_microbiology_review', 'infx_travel_medicine_review', 'infx_discharge_followup',
+] as const
+
+const INFX_SMART_TEMPLATES: ConsultationTemplate[] = [
+  infxTemplate('infx_consultation', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  infxTemplate('infx_fever_review', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  infxTemplate('infx_malaria_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  infxTemplate('infx_tb_clinic_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  infxTemplate('infx_hiv_clinic_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  infxTemplate('infx_microbiology_review', [S.cc(), S.assessment(), S.plan(true)]),
+  infxTemplate('infx_travel_medicine_review', [S.cc(), S.assessment(), S.plan(true)]),
+  infxTemplate('infx_discharge_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+]
+
 export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   GP_CONSULTATION,
   ...GP_SMART_TEMPLATES,
@@ -511,6 +535,7 @@ export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   ...DERM_SMART_TEMPLATES,
   ...URO_SMART_TEMPLATES,
   ...GI_SMART_TEMPLATES,
+  ...INFX_SMART_TEMPLATES,
 ]
 
 export function getTemplate(id: string): ConsultationTemplate | undefined {

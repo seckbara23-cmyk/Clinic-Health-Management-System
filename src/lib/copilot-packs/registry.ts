@@ -310,6 +310,19 @@ export const COPILOT_PACKS: CopilotPackManifest[] = [
     futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
   },
   {
+    // Phase 37 — the TWENTIETH real Copilot Pack (Infectious Diseases, extends the GP reference).
+    ...BASE, id: 'infectious_diseases.core', code: 'INFX-CORE',
+    labelKey: 'pk_infectious_diseases_core', descKey: 'pkd_infectious_diseases_core',
+    category: 'clinical', requiredProfessions: ['doctor'],
+    supportedSpecialties: ['infectious_diseases'], capabilityLevels: [...PROFICIENCY],
+    futureWidgetIds: ['ai_brief', 'kpis', 'today_queue', 'quick_actions'],
+    futureQuickActionIds: ['new_consultation', 'new_prescription', 'order_lab', 'schedule_appointment', 'new_invoice'],
+    futureTemplateIds: ['infx_consultation', 'infx_fever_review', 'infx_malaria_followup', 'infx_tb_clinic_followup', 'infx_hiv_clinic_followup', 'infx_microbiology_review', 'infx_travel_medicine_review', 'infx_discharge_followup'],
+    futureAiToolIds: ['get_patient_consultations', 'get_patient_prescriptions', 'get_patient_lab_results', 'get_patient_outstanding', 'get_patient_followups'],
+    futureDocHelperIds: ['infx_brief', 'infx_completeness', 'infx_event_tracker', 'infx_investigation_followup', 'infx_medication_review', 'infx_followup'],
+    futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
+  },
+  {
     ...BASE, id: 'dentistry.core', code: 'DENT-CORE',
     labelKey: 'pk_dentistry_core', descKey: 'pkd_dentistry_core',
     category: 'clinical', requiredProfessions: ['doctor'],
