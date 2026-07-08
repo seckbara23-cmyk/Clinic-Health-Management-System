@@ -466,6 +466,30 @@ const URO_SMART_TEMPLATES: ConsultationTemplate[] = [
   uroTemplate('uro_hospital_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
 ]
 
+// ── Gastroenterology Copilot — smart templates (Phase 36) ────────
+// GI visit scaffolds mapping ONLY to existing consultation columns (no schema
+// change). Documentation guides — they generate NO diagnosis, endoscopy/pathology
+// interpretation or content.
+function giTemplate(id: string, sections: Sec[]): ConsultationTemplate {
+  return { id, specialty: 'gastroenterology', noteStyle: 'soap', sections }
+}
+
+export const GI_SMART_TEMPLATE_IDS = [
+  'gi_consultation', 'gi_endoscopy_followup', 'gi_colonoscopy_followup', 'gi_liver_clinic_followup',
+  'gi_ibd_followup', 'gi_abdominal_pain_review', 'gi_nutrition_review', 'gi_discharge_followup',
+] as const
+
+const GI_SMART_TEMPLATES: ConsultationTemplate[] = [
+  giTemplate('gi_consultation', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  giTemplate('gi_endoscopy_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  giTemplate('gi_colonoscopy_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  giTemplate('gi_liver_clinic_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  giTemplate('gi_ibd_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  giTemplate('gi_abdominal_pain_review', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  giTemplate('gi_nutrition_review', [S.cc(), S.assessment(), S.plan(true)]),
+  giTemplate('gi_discharge_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+]
+
 export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   GP_CONSULTATION,
   ...GP_SMART_TEMPLATES,
@@ -486,6 +510,7 @@ export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   ...ENDO_SMART_TEMPLATES,
   ...DERM_SMART_TEMPLATES,
   ...URO_SMART_TEMPLATES,
+  ...GI_SMART_TEMPLATES,
 ]
 
 export function getTemplate(id: string): ConsultationTemplate | undefined {

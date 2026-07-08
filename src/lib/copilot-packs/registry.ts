@@ -297,6 +297,19 @@ export const COPILOT_PACKS: CopilotPackManifest[] = [
     futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
   },
   {
+    // Phase 36 — the NINETEENTH real Copilot Pack (Gastroenterology, extends the GP reference).
+    ...BASE, id: 'gastroenterology.core', code: 'GASTRO-CORE',
+    labelKey: 'pk_gastroenterology_core', descKey: 'pkd_gastroenterology_core',
+    category: 'clinical', requiredProfessions: ['doctor'],
+    supportedSpecialties: ['gastroenterology'], capabilityLevels: [...PROFICIENCY],
+    futureWidgetIds: ['ai_brief', 'kpis', 'today_queue', 'quick_actions'],
+    futureQuickActionIds: ['new_consultation', 'new_prescription', 'order_lab', 'schedule_appointment', 'new_invoice'],
+    futureTemplateIds: ['gi_consultation', 'gi_endoscopy_followup', 'gi_colonoscopy_followup', 'gi_liver_clinic_followup', 'gi_ibd_followup', 'gi_abdominal_pain_review', 'gi_nutrition_review', 'gi_discharge_followup'],
+    futureAiToolIds: ['get_patient_consultations', 'get_patient_prescriptions', 'get_patient_lab_results', 'get_patient_outstanding', 'get_patient_followups'],
+    futureDocHelperIds: ['gi_brief', 'gi_completeness', 'gi_event_tracker', 'gi_investigation_followup', 'gi_medication_review', 'gi_followup'],
+    futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
+  },
+  {
     ...BASE, id: 'dentistry.core', code: 'DENT-CORE',
     labelKey: 'pk_dentistry_core', descKey: 'pkd_dentistry_core',
     category: 'clinical', requiredProfessions: ['doctor'],
