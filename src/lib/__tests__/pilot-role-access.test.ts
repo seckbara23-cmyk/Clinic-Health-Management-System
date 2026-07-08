@@ -15,10 +15,14 @@ import { join } from 'path'
 // It also forward-guards the "no auth.users in RLS policies" invariant for every
 // migration authored after the 048 fix.
 
-import { can, canField, aiDomainsFor, visibleModules, type Principal } from '@/lib/authz'
+import { can, canAny, canField, aiDomainsFor, visibleModules, type Principal } from '@/lib/authz'
 import type { Role } from '@/types/database'
 
 const P = (role: Role, extra: Partial<Principal> = {}): Principal => ({ role, ...extra })
+
+// The exact predicate the dashboard uses to decide whether to render the clinic
+// revenue KPI cards ("Recettes du jour" / "Recettes du mois").
+const canSeeRevenue = (p: Principal) => canAny(p, ['finance.view', 'billing.payment'])
 
 // Positive expectations: a representative permission each role MUST have.
 const MUST_HAVE: Record<Role, string[]> = {
@@ -98,6 +102,31 @@ describe('pilot STOP conditions — data isolation', () => {
     expect(can(P('admin'), 'radiology.sign')).toBe(true)
     expect(can(P('doctor', { primarySpecialtyId: 'cardiology' }), 'radiology.sign')).toBe(false)
     expect(can(P('lab_technician'), 'radiology.sign')).toBe(false)
+  })
+})
+
+describe('dashboard revenue KPI visibility (Recettes du jour / du mois)', () => {
+  it('hides revenue cards from clinical & non-finance roles', () => {
+    // doctor / nurse / lab_technician / pharmacist / receptionist must NOT see revenue.
+    for (const r of ['doctor', 'nurse', 'lab_technician', 'pharmacist', 'receptionist'] as Role[]) {
+      expect(canSeeRevenue(P(r))).toBe(false)
+    }
+    // a radiologist is a doctor with radiology specialty — still no revenue access.
+    expect(canSeeRevenue(P('doctor', { primarySpecialtyId: 'radiology' }))).toBe(false)
+  })
+
+  it('shows revenue/payment cards to cashier, admin and super_admin', () => {
+    for (const r of ['cashier', 'admin', 'super_admin'] as Role[]) {
+      expect(canSeeRevenue(P(r))).toBe(true)
+    }
+  })
+
+  it('a plain billing.view holder (doctor/receptionist) still cannot see revenue', () => {
+    // Guards against regressing the gate to the broader billing.view permission.
+    expect(can(P('doctor'), 'billing.view')).toBe(true)
+    expect(can(P('receptionist'), 'billing.view')).toBe(true)
+    expect(canSeeRevenue(P('doctor'))).toBe(false)
+    expect(canSeeRevenue(P('receptionist'))).toBe(false)
   })
 })
 

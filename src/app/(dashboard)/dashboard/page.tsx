@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { useDashboardStats } from '@/hooks/useInvoices'
 import { useTodayQueue } from '@/hooks/useAppointments'
 import { useClinic } from '@/context/ClinicContext'
+import { usePermissions } from '@/hooks/usePermissions'
 import { useFormatters } from '@/hooks/useFormatters'
 import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
@@ -20,6 +21,14 @@ export default function DashboardPage() {
   const { data: queue } = useTodayQueue()
   const t = useTranslations('dashboard')
   const { formatCurrency, formatTime, intlLocale } = useFormatters()
+  const { canAny } = usePermissions()
+
+  // Clinic revenue KPIs are financial data. Show them only to roles that handle
+  // money — finance viewers (admin/super_admin via finance.view) or payment
+  // handlers (cashier/admin/super_admin via billing.payment). This deliberately
+  // EXCLUDES doctor/receptionist, who hold only billing.view (see-own-invoice).
+  // Enforced here for the UI; the database RLS remains the real boundary.
+  const canSeeRevenue = canAny(['finance.view', 'billing.payment'])
 
   const statusConfig: Record<string, { label: string; variant: 'default' | 'success' | 'warning' | 'info' | 'destructive' }> = {
     scheduled:   { label: t('statusScheduled'),   variant: 'info' },
@@ -62,6 +71,7 @@ export default function DashboardPage() {
       color: 'text-amber-700',
       bg: 'bg-amber-50',
       desc: t('statRevenueTodayDesc'),
+      financial: true,
     },
     {
       title: t('statRevenueMonth'),
@@ -70,6 +80,7 @@ export default function DashboardPage() {
       color: 'text-emerald-600',
       bg: 'bg-emerald-50',
       desc: `${new Date().toLocaleString(intlLocale, { month: 'long' })} ${new Date().getFullYear()}`,
+      financial: true,
     },
     {
       title: t('statUnpaidInvoices'),
@@ -174,9 +185,11 @@ export default function DashboardPage() {
         {/* Executive briefing — prioritized, read-only; hidden when AI flags off */}
         <ExecutiveBriefing />
 
-        {/* Stat cards */}
+        {/* Stat cards — financial (revenue) cards are hidden from non-finance roles */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {statCards.map((card) => (
+          {statCards
+            .filter(card => canSeeRevenue || !('financial' in card && card.financial))
+            .map((card) => (
             <Card key={card.title} className="relative overflow-hidden">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
