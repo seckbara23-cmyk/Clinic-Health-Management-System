@@ -323,6 +323,19 @@ export const COPILOT_PACKS: CopilotPackManifest[] = [
     futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
   },
   {
+    // Phase 38 — the TWENTY-FIRST real Copilot Pack (Rheumatology, extends the GP reference).
+    ...BASE, id: 'rheumatology.core', code: 'RHEUM-CORE',
+    labelKey: 'pk_rheumatology_core', descKey: 'pkd_rheumatology_core',
+    category: 'clinical', requiredProfessions: ['doctor'],
+    supportedSpecialties: ['rheumatology'], capabilityLevels: [...PROFICIENCY],
+    futureWidgetIds: ['ai_brief', 'kpis', 'today_queue', 'quick_actions'],
+    futureQuickActionIds: ['new_consultation', 'new_prescription', 'order_lab', 'schedule_appointment', 'new_invoice'],
+    futureTemplateIds: ['rheum_consultation', 'rheum_joint_followup', 'rheum_autoimmune_followup', 'rheum_infusion_followup', 'rheum_medication_monitoring', 'rheum_joint_aspiration_followup', 'rheum_bone_health_review', 'rheum_discharge_followup'],
+    futureAiToolIds: ['get_patient_consultations', 'get_patient_prescriptions', 'get_patient_lab_results', 'get_patient_outstanding', 'get_patient_followups'],
+    futureDocHelperIds: ['rheum_brief', 'rheum_completeness', 'rheum_event_tracker', 'rheum_investigation_followup', 'rheum_medication_review', 'rheum_followup'],
+    futureTimelineEventTypes: ['consultation', 'appointment', 'prescription', 'lab', 'invoice', 'dispensing'],
+  },
+  {
     ...BASE, id: 'dentistry.core', code: 'DENT-CORE',
     labelKey: 'pk_dentistry_core', descKey: 'pkd_dentistry_core',
     category: 'clinical', requiredProfessions: ['doctor'],

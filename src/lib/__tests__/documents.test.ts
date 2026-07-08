@@ -19,7 +19,7 @@ const CTX: DocumentContext = {
 
 // ── Registry integrity ──────────────────────────────────────────────
 describe('document registry — integrity', () => {
-  it('defines the required documents (9 initial + 4 cardiology + 3 emergency + 4 internal medicine + 4 orthopedics + 4 ophthalmology + 4 mental health + 4 pulmonology + 4 nephrology + 4 oncology + 4 general surgery + 4 neurology + 4 endocrinology + 4 dermatology + 4 urology + 4 gastroenterology + 4 infectious diseases)', () => {
+  it('defines the required documents (9 initial + 4 cardiology + 3 emergency + 4 internal medicine + 4 orthopedics + 4 ophthalmology + 4 mental health + 4 pulmonology + 4 nephrology + 4 oncology + 4 general surgery + 4 neurology + 4 endocrinology + 4 dermatology + 4 urology + 4 gastroenterology + 4 infectious diseases + 4 rheumatology)', () => {
     const ids = DOCUMENT_DEFINITIONS.map(d => d.id)
     for (const id of [
       'gp_referral_letter', 'gp_medical_certificate', 'gp_sick_leave',
@@ -42,8 +42,9 @@ describe('document registry — integrity', () => {
       'urology_referral', 'catheter_followup_summary', 'postop_urology_summary', 'urology_followup_summary',
       'gastroenterology_referral', 'endoscopy_followup_summary', 'colonoscopy_followup_summary', 'gastroenterology_followup_summary',
       'infectious_disease_referral', 'microbiology_followup_summary', 'hospital_infection_followup_summary', 'infectious_disease_followup_summary',
+      'rheumatology_referral', 'joint_followup_summary', 'infusion_followup_summary', 'rheumatology_followup_summary',
     ]) expect(ids).toContain(id)
-    expect(DOCUMENT_DEFINITIONS.length).toBe(72)
+    expect(DOCUMENT_DEFINITIONS.length).toBe(76)
   })
   it('has unique ids and every field/section is coherent', () => {
     const ids = DOCUMENT_DEFINITIONS.map(d => d.id)

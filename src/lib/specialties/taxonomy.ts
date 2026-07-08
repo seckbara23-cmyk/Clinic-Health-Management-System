@@ -33,7 +33,7 @@ export type ClinicalSpecialtyId =
   | 'psychiatry' | 'general_surgery' | 'orthopedics' | 'ent' | 'ophthalmology'
   | 'emergency_medicine' | 'anesthesiology' | 'radiology' | 'laboratory_medicine'
   | 'oncology' | 'urology' | 'nephrology' | 'pulmonology' | 'endocrinology' | 'gastroenterology'
-  | 'infectious_diseases' | 'dentistry' | 'nutrition' | 'physiotherapy' | 'pharmacy' | 'nursing'
+  | 'infectious_diseases' | 'rheumatology' | 'dentistry' | 'nutrition' | 'physiotherapy' | 'pharmacy' | 'nursing'
 
 export interface SubSpecialtyDef {
   id: string
@@ -194,6 +194,11 @@ export const SPECIALTY_TAXONOMY: ClinicalSpecialty[] = [
   },
   {
     id: 'infectious_diseases', labelKey: 'sp_infectious_diseases', descKey: 'spd_infectious_diseases',
+    category: 'medical', usesSubspecialties: false, subSpecialties: [],
+    defaultProfessions: ['doctor'], futurePackIds: [], status: 'active', version: 1,
+  },
+  {
+    id: 'rheumatology', labelKey: 'sp_rheumatology', descKey: 'spd_rheumatology',
     category: 'medical', usesSubspecialties: false, subSpecialties: [],
     defaultProfessions: ['doctor'], futurePackIds: [], status: 'active', version: 1,
   },

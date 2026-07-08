@@ -514,6 +514,30 @@ const INFX_SMART_TEMPLATES: ConsultationTemplate[] = [
   infxTemplate('infx_discharge_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
 ]
 
+// ── Rheumatology Copilot — smart templates (Phase 38) ────────────
+// Rheumatology visit scaffolds mapping ONLY to existing consultation columns (no
+// schema change). Documentation guides — they generate NO diagnosis, laboratory/
+// imaging interpretation or content.
+function rheumTemplate(id: string, sections: Sec[]): ConsultationTemplate {
+  return { id, specialty: 'rheumatology', noteStyle: 'soap', sections }
+}
+
+export const RHEUM_SMART_TEMPLATE_IDS = [
+  'rheum_consultation', 'rheum_joint_followup', 'rheum_autoimmune_followup', 'rheum_infusion_followup',
+  'rheum_medication_monitoring', 'rheum_joint_aspiration_followup', 'rheum_bone_health_review', 'rheum_discharge_followup',
+] as const
+
+const RHEUM_SMART_TEMPLATES: ConsultationTemplate[] = [
+  rheumTemplate('rheum_consultation', [S.cc(), S.hpi(), S.exam(), S.assessment(), S.plan(true)]),
+  rheumTemplate('rheum_joint_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  rheumTemplate('rheum_autoimmune_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  rheumTemplate('rheum_infusion_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  rheumTemplate('rheum_medication_monitoring', [S.cc(), S.assessment(), S.plan(true)]),
+  rheumTemplate('rheum_joint_aspiration_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  rheumTemplate('rheum_bone_health_review', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+  rheumTemplate('rheum_discharge_followup', [S.cc(), S.exam(), S.assessment(), S.plan(true)]),
+]
+
 export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   GP_CONSULTATION,
   ...GP_SMART_TEMPLATES,
@@ -536,6 +560,7 @@ export const TEMPLATE_REGISTRY: ConsultationTemplate[] = [
   ...URO_SMART_TEMPLATES,
   ...GI_SMART_TEMPLATES,
   ...INFX_SMART_TEMPLATES,
+  ...RHEUM_SMART_TEMPLATES,
 ]
 
 export function getTemplate(id: string): ConsultationTemplate | undefined {
