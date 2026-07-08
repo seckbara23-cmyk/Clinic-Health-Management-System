@@ -5,11 +5,12 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Users, CalendarDays, Receipt,
   Settings, LogOut, Stethoscope, ShieldCheck,
-  Building2, ChevronRight, ClipboardList, Pill, FlaskConical, BarChart2, Inbox, X, CreditCard, TestTube, Package, PackageSearch, BookMarked, ScanLine, Activity, ShieldAlert, IdCard, Radiation,
+  Building2, ChevronRight, ClipboardList, Pill, FlaskConical, BarChart2, Inbox, X, CreditCard, TestTube, Package, PackageSearch, BookMarked, ScanLine, Activity, ShieldAlert, IdCard, Radiation, Lock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { isNavVisible } from '@/lib/tenant'
 import { useClinic } from '@/context/ClinicContext'
+import { usePermissions } from '@/hooks/usePermissions'
 import { useSidebar } from '@/context/SidebarContext'
 import { signOut } from '@/lib/auth/actions'
 import { Button } from '@/components/ui/button'
@@ -21,42 +22,49 @@ interface NavItem {
   href: string
   labelKey: string
   icon: React.ElementType
+  /** Enterprise Authorization permission gating this item (Phase 40). */
+  perm?: string
+  /** Legacy role gate — retained as documentation/fallback when `perm` is absent. */
   roles?: Role[]
 }
 
+// Each main-nav item now carries a `perm` from the Enterprise Authorization
+// registry; visibility resolves through `can(perm)`. The default matrix
+// (lib/authz/matrix.ts) is calibrated to reproduce the previous role gates
+// exactly, so this is a zero-regression switch. `roles` is kept for reference.
 const navItems: NavItem[] = [
-  { href: '/dashboard',     labelKey: 'dashboard',     icon: LayoutDashboard },
-  { href: '/patients',      labelKey: 'patients',      icon: Users,
+  { href: '/dashboard',     labelKey: 'dashboard',     icon: LayoutDashboard, perm: 'dashboard.view' },
+  { href: '/patients',      labelKey: 'patients',      icon: Users, perm: 'patients.view',
     roles: ['super_admin', 'admin', 'doctor', 'nurse', 'receptionist', 'cashier'] },
-  { href: '/queue',         labelKey: 'queue',         icon: ClipboardList,
+  { href: '/queue',         labelKey: 'queue',         icon: ClipboardList, perm: 'queue.view',
     roles: ['super_admin', 'admin', 'doctor', 'nurse', 'receptionist'] },
-  { href: '/appointments',  labelKey: 'appointments',  icon: CalendarDays,
+  { href: '/appointments',  labelKey: 'appointments',  icon: CalendarDays, perm: 'appointments.view',
     roles: ['super_admin', 'admin', 'doctor', 'nurse', 'receptionist'] },
-  { href: '/consultations', labelKey: 'consultations', icon: Stethoscope,
+  { href: '/consultations', labelKey: 'consultations', icon: Stethoscope, perm: 'consultations.view',
     roles: ['super_admin', 'admin', 'doctor', 'nurse'] },
-  { href: '/prescriptions', labelKey: 'prescriptions', icon: Pill,
+  { href: '/prescriptions', labelKey: 'prescriptions', icon: Pill, perm: 'prescriptions.view',
     roles: ['super_admin', 'admin', 'doctor', 'nurse'] },
-  { href: '/lab-orders',    labelKey: 'labOrders',     icon: FlaskConical,
+  { href: '/lab-orders',    labelKey: 'labOrders',     icon: FlaskConical, perm: 'laboratory.view',
     roles: ['super_admin', 'admin', 'doctor', 'nurse', 'lab_technician'] },
-  { href: '/lab-catalog',   labelKey: 'labCatalog',    icon: TestTube,
+  { href: '/lab-catalog',   labelKey: 'labCatalog',    icon: TestTube, perm: 'laboratory.catalog',
     roles: ['super_admin', 'admin'] },
-  { href: '/radiology',     labelKey: 'radiology',     icon: Radiation,
+  { href: '/radiology',     labelKey: 'radiology',     icon: Radiation, perm: 'radiology.view',
     roles: ['super_admin', 'admin', 'doctor'] },
-  { href: '/pharmacy',          labelKey: 'pharmacy',          icon: Pill,
+  { href: '/pharmacy',          labelKey: 'pharmacy',          icon: Pill, perm: 'pharmacy.view',
     roles: ['super_admin', 'admin', 'pharmacist'] },
-  { href: '/pharmacy/inventory', labelKey: 'pharmacyInventory', icon: Package,
+  { href: '/pharmacy/inventory', labelKey: 'pharmacyInventory', icon: Package, perm: 'pharmacy.inventory',
     roles: ['super_admin', 'admin', 'pharmacist'] },
-  { href: '/pharmacy/reports',   labelKey: 'pharmacyReports',   icon: PackageSearch,
+  { href: '/pharmacy/reports',   labelKey: 'pharmacyReports',   icon: PackageSearch, perm: 'pharmacy.reports',
     roles: ['super_admin', 'admin', 'pharmacist'] },
-  { href: '/pharmacy/catalog',   labelKey: 'pharmacyCatalog',   icon: BookMarked,
+  { href: '/pharmacy/catalog',   labelKey: 'pharmacyCatalog',   icon: BookMarked, perm: 'pharmacy.catalog',
     roles: ['super_admin', 'admin', 'pharmacist', 'doctor', 'nurse'] },
-  { href: '/pharmacy/scan',      labelKey: 'pharmacyScan',      icon: ScanLine,
+  { href: '/pharmacy/scan',      labelKey: 'pharmacyScan',      icon: ScanLine, perm: 'pharmacy.scan',
     roles: ['super_admin', 'admin', 'pharmacist'] },
-  { href: '/billing',       labelKey: 'billing',       icon: Receipt,
+  { href: '/billing',       labelKey: 'billing',       icon: Receipt, perm: 'billing.view',
     roles: ['super_admin', 'admin', 'receptionist', 'cashier', 'doctor'] },
-  { href: '/analytics',     labelKey: 'analytics',     icon: BarChart2,
+  { href: '/analytics',     labelKey: 'analytics',     icon: BarChart2, perm: 'reports.view',
     roles: ['super_admin', 'admin'] },
-  { href: '/settings',      labelKey: 'settings',      icon: Settings },
+  { href: '/settings',      labelKey: 'settings',      icon: Settings, perm: 'settings.view' },
 ]
 
 const adminItems: NavItem[] = [
@@ -65,6 +73,7 @@ const adminItems: NavItem[] = [
   { href: '/admin/clinics',          labelKey: 'adminClinics',   icon: Building2 },
   { href: '/admin/clinic-requests',  labelKey: 'adminRequests',  icon: Inbox, roles: ['super_admin'] },
   { href: '/admin/users',            labelKey: 'adminUsers',     icon: ShieldCheck },
+  { href: '/admin/authorization',    labelKey: 'adminAuthorization', icon: Lock, roles: ['super_admin', 'admin'] },
   { href: '/workforce',              labelKey: 'workforce',      icon: IdCard, roles: ['super_admin', 'admin'] },
   { href: '/admin/billing',          labelKey: 'adminBilling',   icon: CreditCard, roles: ['super_admin'] },
 ]
@@ -72,12 +81,18 @@ const adminItems: NavItem[] = [
 function SidebarInner() {
   const pathname = usePathname()
   const { clinic, profile } = useClinic()
+  const { can } = usePermissions()
   const role = profile?.role as Role | undefined
   const isSuperAdmin = role === 'super_admin'
   const isAdminOrSuper = role === 'super_admin' || role === 'admin'
   const t = useTranslations('nav')
 
-  const visibleNav = navItems.filter(item => isNavVisible(role, item.roles))
+  // Permission-driven visibility (Phase 40): a module hides itself when the
+  // principal lacks its `perm`. Falls back to the legacy role gate if an item
+  // has no permission mapping.
+  const visibleNav = navItems.filter(item =>
+    item.perm ? can(item.perm) : isNavVisible(role, item.roles),
+  )
 
   return (
     <>
