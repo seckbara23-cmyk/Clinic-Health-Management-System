@@ -38,6 +38,7 @@ import { UrologyCopilot } from '@/components/consultations/UrologyCopilot'
 import { GastroenterologyCopilot } from '@/components/consultations/GastroenterologyCopilot'
 import { InfectiousDiseasesCopilot } from '@/components/consultations/InfectiousDiseasesCopilot'
 import { RheumatologyCopilot } from '@/components/consultations/RheumatologyCopilot'
+import { RadiologyReports } from '@/components/radiology/RadiologyReports'
 import { DocumentsPanel } from '@/components/documents/DocumentsPanel'
 import { InsightsPanel } from '@/components/ai/InsightsPanel'
 import { DraftLauncher } from '@/components/ai/DraftLauncher'
@@ -675,6 +676,9 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
                 consultations={patientConsults}
                 invoices={patientInvoices}
               />
+              {/* Signed radiology reports (Radiora, Phase 39) — read-only surface so
+                  the ordering doctor sees finalized reports in the chart context. */}
+              <RadiologyReports patientId={consultation.patient_id} />
               {/* Clinical Documents & Forms — shared, registry-driven (Phase 20).
                   Lists role/specialty-permitted documents; clinician edits + prints. */}
               <DocumentsPanel
