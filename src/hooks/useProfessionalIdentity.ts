@@ -43,7 +43,19 @@ export function useProfessionalIdentity() {
   const options = useMemo(() => selectableProfessions(role), [role])
   // The full identity chain (14.2.3): Profession → Primary Specialty →
   // Secondary Specialties → Sub-specialties. Unknown ids resolve to nothing.
-  const specialties = useMemo(() => resolveSpecialtySelection(profile), [profile])
+  //
+  // Phase 42: the ADMIN-managed primary specialty lives on user_profiles
+  // (set from the Users page). When the richer self-service professional_profiles
+  // record has no primary specialty, fall back to user_profiles.primary_specialty
+  // so the admin's assignment activates the correct specialty copilot. The
+  // self-service record still takes precedence when the professional set it
+  // themselves. This changes ONLY specialty resolution — never RBAC/RLS/can().
+  const specialties = useMemo(() => {
+    const effective = profile?.primarySpecialty
+      ? profile
+      : { ...(profile ?? {}), primarySpecialty: account?.primary_specialty ?? null }
+    return resolveSpecialtySelection(effective)
+  }, [profile, account?.primary_specialty])
 
   return {
     profile,

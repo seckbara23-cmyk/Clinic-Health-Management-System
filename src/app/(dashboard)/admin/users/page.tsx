@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, Users, Mail, KeyRound, Copy, Check, ShieldAlert, UserPlus } from 'lucide-react'
+import { Loader2, Users, Mail, KeyRound, Copy, Check, ShieldAlert, UserPlus, Pencil } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Topbar } from '@/components/layout/Topbar'
 import { Button } from '@/components/ui/button'
@@ -19,10 +19,20 @@ import { Badge } from '@/components/ui/badge'
 import { useClinic } from '@/context/ClinicContext'
 import { useFormatters } from '@/hooks/useFormatters'
 import { RolePermissionPreview } from '@/components/admin/RolePermissionPreview'
+import { EditUserDialog } from '@/components/admin/EditUserDialog'
+import { listDepartments, departmentLabelKey } from '@/lib/workforce/departments'
+import { specialtyOptions } from '@/lib/identity/model'
+import { getClinicalSpecialty } from '@/lib/specialties/taxonomy'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 import type { UserProfile, Clinic, Role } from '@/types/database'
+
+// Distinct badge palettes per identity axis — Role, Department and Specialty must
+// never share a colour (Phase 42). Role keeps its per-role colours below;
+// Department is indigo; Specialty is teal.
+const DEPT_BADGE = 'bg-indigo-100 text-indigo-700'
+const SPECIALTY_BADGE = 'bg-teal-100 text-teal-700'
 
 interface ResetResult {
   temp_password: string
@@ -45,13 +55,23 @@ const roleColors: Record<string, string> = {
 
 export default function AdminUsersPage() {
   const t = useTranslations('adminUsers')
+  const ts = useTranslations('specialties')
+  const tw = useTranslations('workforce')
   const { formatDate } = useFormatters()
   const { profile } = useClinic()
   const [open, setOpen] = useState(false)
   const [resetResult, setResetResult] = useState<ResetResult | null>(null)
   const [copied, setCopied] = useState(false)
+  const [editTarget, setEditTarget] = useState<UserProfile | null>(null)
+  const [deptFilter, setDeptFilter] = useState<string>('all')
+  const [specialtyFilter, setSpecialtyFilter] = useState<string>('all')
   const supabase = createClient()
   const queryClient = useQueryClient()
+
+  // Registry-driven labels — specialty from the taxonomy (single source of truth),
+  // department from the identity registry. Unknown/legacy ids degrade to the raw id.
+  const specLabel = (id?: string | null) => { const s = getClinicalSpecialty(id); return s ? ts(s.labelKey) : (id ?? '—') }
+  const deptLabel = (id?: string | null) => (id ? tw(departmentLabelKey(id)) : '—')
 
   const roleLabels: Record<string, string> = {
     super_admin:  t('roleSuperAdmin'),
@@ -73,9 +93,15 @@ export default function AdminUsersPage() {
     full_name:  z.string().optional(),
     role:       z.enum(['admin', 'doctor', 'receptionist', 'nurse', 'cashier', 'lab_technician', 'pharmacist']),
     clinic_id:  z.string().min(1, t('zodClinicRequired')),
+    department: z.string().min(1, t('zodDepartmentRequired')),
+    primary_specialty: z.string().optional(),
   }).superRefine((val, ctx) => {
     if (val.method === 'temp' && !val.full_name?.trim()) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['full_name'], message: t('zodFullNameRequired') })
+    }
+    // A primary specialty is required for — and only for — doctors.
+    if (val.role === 'doctor' && !val.primary_specialty?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['primary_specialty'], message: t('zodSpecialtyRequired') })
     }
   })
   type OnboardFormData = z.infer<typeof onboardSchema>
@@ -109,6 +135,13 @@ export default function AdminUsersPage() {
 
   const isSuperAdmin = profile?.role === 'super_admin'
 
+  // Department / Specialty filters (search is unchanged). Organizational filtering
+  // only — never affects what the user can do.
+  const filteredUsers = (users ?? []).filter(u =>
+    (deptFilter === 'all' || u.department === deptFilter) &&
+    (specialtyFilter === 'all' || u.primary_specialty === specialtyFilter),
+  )
+
   const resetPasswordMutation = useMutation({
     mutationFn: async (userId: string) => {
       const res = await fetch('/api/admin/reset-password', {
@@ -133,6 +166,9 @@ export default function AdminUsersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: input.email, full_name: input.full_name, role: input.role, clinic_id: input.clinic_id,
+          department: input.department,
+          // Only doctors carry a specialty; the server also enforces this.
+          primary_specialty: input.role === 'doctor' ? input.primary_specialty : null,
         }),
       })
       const bodyJson = await res.json()
@@ -158,7 +194,11 @@ export default function AdminUsersPage() {
     mutationFn: async (input: OnboardFormData) => {
       const { data, error } = await supabase
         .from('clinic_invitations')
-        .insert({ email: input.email, role: input.role, clinic_id: input.clinic_id, invited_by: profile!.id })
+        .insert({
+          email: input.email, role: input.role, clinic_id: input.clinic_id, invited_by: profile!.id,
+          department: input.department,
+          primary_specialty: input.role === 'doctor' ? input.primary_specialty : null,
+        } as never)
         .select()
         .single()
       if (error) throw error
@@ -178,6 +218,8 @@ export default function AdminUsersPage() {
   })
   const selectedRole = watch('role')
   const method = watch('method')
+  const department = watch('department')
+  const specialty = watch('primary_specialty')
 
   // Route the single form to the chosen onboarding method.
   function onSubmit(d: OnboardFormData) {
@@ -205,9 +247,32 @@ export default function AdminUsersPage() {
       <div className="flex-1 p-6 space-y-4">
         <div className="flex justify-between items-center">
           <p className="text-sm text-gray-500">{t('userCount', { count: users?.length ?? 0 })}</p>
-          <Button onClick={() => { reset({ method: 'invite', clinic_id: profile?.clinic_id ?? '' }); setOpen(true) }}>
+          <Button onClick={() => { reset({ method: 'invite', clinic_id: profile?.clinic_id ?? '', department: '', primary_specialty: '' }); setOpen(true) }}>
             <UserPlus className="h-4 w-4" /> {t('addUserBtn')}
           </Button>
+        </div>
+
+        {/* Organizational filters — never affect access, only the view. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={deptFilter} onValueChange={setDeptFilter}>
+            <SelectTrigger className="h-8 w-48 text-sm"><SelectValue placeholder={t('filterDepartment')} /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('allDepartments')}</SelectItem>
+              {listDepartments().map(d => <SelectItem key={d.code} value={d.code}>{tw(d.labelKey)}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={specialtyFilter} onValueChange={setSpecialtyFilter}>
+            <SelectTrigger className="h-8 w-56 text-sm"><SelectValue placeholder={t('filterSpecialty')} /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('allSpecialties')}</SelectItem>
+              {specialtyOptions().map(s => <SelectItem key={s.id} value={s.id}>{ts(s.labelKey)}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {(deptFilter !== 'all' || specialtyFilter !== 'all') && (
+            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setDeptFilter('all'); setSpecialtyFilter('all') }}>
+              {t('clearFilters')}
+            </Button>
+          )}
         </div>
 
         <Card>
@@ -218,29 +283,31 @@ export default function AdminUsersPage() {
                   <TableHead>{t('colName')}</TableHead>
                   <TableHead>{t('colEmail')}</TableHead>
                   <TableHead>{t('colRole')}</TableHead>
+                  <TableHead>{t('colDepartment')}</TableHead>
+                  <TableHead>{t('colSpecialty')}</TableHead>
                   <TableHead>{t('colClinic')}</TableHead>
                   <TableHead>{t('colStatus')}</TableHead>
                   <TableHead>{t('colRegistered')}</TableHead>
-                  {isSuperAdmin && <TableHead className="text-right">{t('colActions')}</TableHead>}
+                  <TableHead className="text-right">{t('colActions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading && (
                   <TableRow>
-                    <TableCell colSpan={isSuperAdmin ? 7 : 6} className="text-center py-8">
+                    <TableCell colSpan={9} className="text-center py-8">
                       <Loader2 className="mx-auto h-5 w-5 animate-spin text-gray-400" />
                     </TableCell>
                   </TableRow>
                 )}
-                {!isLoading && (!users || users.length === 0) && (
+                {!isLoading && filteredUsers.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={isSuperAdmin ? 7 : 6} className="text-center py-12 text-gray-400">
+                    <TableCell colSpan={9} className="text-center py-12 text-gray-400">
                       <Users className="mx-auto h-10 w-10 mb-3 opacity-30" />
                       <p>{t('emptyTitle')}</p>
                     </TableCell>
                   </TableRow>
                 )}
-                {users?.map(u => (
+                {filteredUsers.map(u => (
                   <TableRow key={u.id}>
                     <TableCell className="font-medium">
                       <span className="flex items-center gap-1.5">
@@ -258,6 +325,16 @@ export default function AdminUsersPage() {
                         {roleLabels[u.role]}
                       </span>
                     </TableCell>
+                    <TableCell>
+                      {u.department
+                        ? <span className={cn('rounded-full px-2.5 py-1 text-xs font-medium', DEPT_BADGE)}>{deptLabel(u.department)}</span>
+                        : <span className="text-sm text-gray-300">—</span>}
+                    </TableCell>
+                    <TableCell>
+                      {u.role === 'doctor' && u.primary_specialty
+                        ? <span className={cn('rounded-full px-2.5 py-1 text-xs font-medium', SPECIALTY_BADGE)}>{specLabel(u.primary_specialty)}</span>
+                        : <span className="text-sm text-gray-300">—</span>}
+                    </TableCell>
                     <TableCell className="text-sm">{u.clinic?.name ?? '—'}</TableCell>
                     <TableCell>
                       <Badge variant={u.is_active ? 'success' : 'destructive'} className="text-xs">
@@ -265,9 +342,18 @@ export default function AdminUsersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-gray-400">{formatDate(u.created_at)}</TableCell>
-                    {isSuperAdmin && (
-                      <TableCell className="text-right">
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1.5">
                         {u.role !== 'super_admin' && (
+                          <Button
+                            size="sm" variant="outline"
+                            className="h-7 text-xs gap-1.5"
+                            onClick={() => setEditTarget(u)}
+                          >
+                            <Pencil className="h-3 w-3" /> {t('editBtn')}
+                          </Button>
+                        )}
+                        {isSuperAdmin && u.role !== 'super_admin' && (
                           <Button
                             size="sm" variant="outline"
                             className="h-7 text-xs gap-1.5"
@@ -281,8 +367,8 @@ export default function AdminUsersPage() {
                             {t('resetPasswordBtn')}
                           </Button>
                         )}
-                      </TableCell>
-                    )}
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -290,6 +376,15 @@ export default function AdminUsersPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit identity (department + specialty) — never touches role/permissions/auth */}
+      {editTarget && (
+        <EditUserDialog
+          user={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSaved={() => { setEditTarget(null); queryClient.invalidateQueries({ queryKey: ['admin-users'] }) }}
+        />
+      )}
 
       {/* Temp password result dialog */}
       {resetResult && (
@@ -381,7 +476,14 @@ export default function AdminUsersPage() {
             </div>
             <div className="space-y-1.5">
               <Label>{t('labelRole')}</Label>
-              <Select value={selectedRole ?? ''} onValueChange={v => setValue('role', v as Exclude<Role, 'super_admin'>, { shouldValidate: true })}>
+              <Select
+                value={selectedRole ?? ''}
+                onValueChange={v => {
+                  setValue('role', v as Exclude<Role, 'super_admin'>, { shouldValidate: true })
+                  // Specialty belongs to doctors only — clear it when the role changes away.
+                  if (v !== 'doctor') setValue('primary_specialty', '', { shouldValidate: true })
+                }}
+              >
                 <SelectTrigger><SelectValue placeholder={t('selectRole')} /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">{t('roleAdmin')}</SelectItem>
@@ -395,6 +497,33 @@ export default function AdminUsersPage() {
               </Select>
               {errors.role && <p className="text-xs text-red-500">{errors.role.message}</p>}
             </div>
+
+            {/* Department — organizational metadata for every role (never a permission). */}
+            <div className="space-y-1.5">
+              <Label>{t('labelDepartment')}</Label>
+              <Select value={department ?? ''} onValueChange={v => setValue('department', v, { shouldValidate: true })}>
+                <SelectTrigger><SelectValue placeholder={t('selectDepartment')} /></SelectTrigger>
+                <SelectContent>
+                  {listDepartments().map(d => <SelectItem key={d.code} value={d.code}>{tw(d.labelKey)}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {errors.department && <p className="text-xs text-red-500">{errors.department.message}</p>}
+            </div>
+
+            {/* Primary Specialty — DOCTORS ONLY. Activates exactly one specialty copilot. */}
+            {selectedRole === 'doctor' && (
+              <div className="space-y-1.5">
+                <Label>{t('labelSpecialty')}</Label>
+                <Select value={specialty ?? ''} onValueChange={v => setValue('primary_specialty', v, { shouldValidate: true })}>
+                  <SelectTrigger><SelectValue placeholder={t('selectSpecialty')} /></SelectTrigger>
+                  <SelectContent>
+                    {specialtyOptions().map(s => <SelectItem key={s.id} value={s.id}>{ts(s.labelKey)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                {errors.primary_specialty && <p className="text-xs text-red-500">{errors.primary_specialty.message}</p>}
+                <p className="text-xs text-gray-400">{t('specialtyActivationHint')}</p>
+              </div>
+            )}
 
             {/* Live duty description + permission preview */}
             {selectedRole

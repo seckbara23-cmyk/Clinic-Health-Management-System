@@ -8,6 +8,7 @@ import {
   resolveTargetClinicId,
   isOnboardableRole,
 } from '@/lib/admin/user-onboarding'
+import { normalizeIdentity } from '@/lib/identity/model'
 
 // POST /api/admin/create-user
 // body: { email, full_name, role, clinic_id }
@@ -41,6 +42,13 @@ export async function POST(req: NextRequest) {
   const fullName = typeof body?.full_name === 'string' ? body.full_name.trim() : ''
   const role     = body?.role
   const reqClinic = typeof body?.clinic_id === 'string' ? body.clinic_id : null
+  // Identity metadata (organizational only — never a permission). normalizeIdentity
+  // strips a specialty from any non-doctor role, so the rule is enforced server-side.
+  const { department, primary_specialty } = normalizeIdentity({
+    role,
+    department:        typeof body?.department === 'string' ? body.department : null,
+    primary_specialty: typeof body?.primary_specialty === 'string' ? body.primary_specialty : null,
+  })
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: 'Email invalide' }, { status: 400 })
@@ -114,6 +122,8 @@ export async function POST(req: NextRequest) {
       clinic_id:            targetClinicId,
       is_active:            true,
       must_change_password: true,
+      department,
+      primary_specialty,
     } as never)
 
   if (profileError) {

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { normalizeIdentity } from '@/lib/identity/model'
 
 export async function signIn(formData: FormData) {
   const supabase = await createClient()
@@ -108,10 +109,24 @@ export async function acceptInvite(token: string, formData: FormData) {
 
   if (authError || !authData.user) return { error: authError?.message ?? 'Signup failed' }
 
-  // Attach to clinic
+  // Attach to clinic + apply the invitation's identity metadata (department +
+  // primary specialty). normalizeIdentity enforces "specialty is doctors-only";
+  // the invite columns are additive (migration 069) and read as null pre-migration.
+  const identity = normalizeIdentity({
+    role: invite.role,
+    department: (invite as { department?: string | null }).department ?? null,
+    primary_specialty: (invite as { primary_specialty?: string | null }).primary_specialty ?? null,
+  })
   await supabase
     .from('user_profiles')
-    .update({ clinic_id: invite.clinic_id, role: invite.role })
+    // department / primary_specialty exist since migration 037 but are absent from
+    // the generated types — cast (as the create-user route does) so the write compiles.
+    .update({
+      clinic_id: invite.clinic_id,
+      role: invite.role,
+      department: identity.department,
+      primary_specialty: identity.primary_specialty,
+    } as never)
     .eq('id', authData.user.id)
 
   // Mark invitation accepted

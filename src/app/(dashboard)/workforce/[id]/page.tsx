@@ -35,6 +35,8 @@ import {
   VERIFICATION_STYLES, EVENT_LABEL_KEY, tierStyle, prettifySpecialty,
 } from '@/components/workforce/common'
 import { WorkforceDocumentBuilder } from '@/components/workforce/WorkforceDocumentBuilder'
+import { IdentityCard } from '@/components/admin/IdentityCard'
+import { getClinicalSpecialty } from '@/lib/specialties/taxonomy'
 import type { EmploymentStatus, EmploymentType, VerificationStatus } from '@/lib/workforce/types'
 
 const EMPLOYMENT_TYPES: EmploymentType[] = ['permanent', 'contract', 'intern', 'resident', 'consultant', 'volunteer']
@@ -43,6 +45,7 @@ const CREDENTIAL_TYPES = ['license', 'board_certification', 'diploma', 'training
 export default function EmployeeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: userId } = use(params)
   const t = useTranslations('workforce')
+  const tsp = useTranslations('specialties')
   const { formatDate } = useFormatters()
   const { clinic, profile } = useClinic()
   const { can } = usePermissions()
@@ -146,6 +149,23 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
             </div>
           </CardContent>
         </Card>
+
+        {/* Employee identity card — Role / Department / Specialty / title / license /
+            employee ID / clinic / status at a glance. Specialty label reuses the
+            clinical taxonomy (single source of truth). */}
+        <IdentityCard
+          role={t(`role_${member.role}`)}
+          department={emp?.department ? t(departmentLabelKey(emp.department)) : null}
+          specialty={(() => {
+            const s = getClinicalSpecialty(member.primarySpecialty)
+            return member.primarySpecialty ? (s ? tsp(s.labelKey) : member.primarySpecialty) : null
+          })()}
+          title={emp?.position ?? null}
+          license={emp?.medicalLicenseNumber ?? null}
+          employeeId={emp?.matricule ?? null}
+          clinic={clinic?.name ?? null}
+          active={member.isActive}
+        />
 
         <div className="grid gap-5 lg:grid-cols-3">
           <div className="space-y-5 lg:col-span-2">
