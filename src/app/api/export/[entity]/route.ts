@@ -19,7 +19,10 @@ const EXPORTS: Record<string, { table: string; columns: string[]; soft: boolean 
 function toCsv(rows: Record<string, unknown>[], columns: string[]): string {
   const escape = (v: unknown): string => {
     if (v === null || v === undefined) return ''
-    const s = typeof v === 'object' ? JSON.stringify(v) : String(v)
+    let s = typeof v === 'object' ? JSON.stringify(v) : String(v)
+    // CSV formula-injection guard: a leading = + - @ (or tab/CR) makes Excel/Sheets
+    // treat the value as a formula. Prefix with a single quote to neutralize it.
+    if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
   }
   const header = columns.join(',')

@@ -42,8 +42,10 @@ export default function PharmacyPage() {
   const t = useTranslations('pharmacy')
   const nowTs = new Date().getTime()
   const { data: prescriptions, isLoading } = usePrescriptions()
-  // Existing hooks only — no new queries beyond these reused ones.
-  const { data: dispensings } = useDispensings()
+  // The "dispensed today" KPI only needs today's rows — bound the query to
+  // start-of-day so it doesn't scan the whole dispensing history.
+  const startOfToday = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString() }, [])
+  const { data: dispensings } = useDispensings({ sinceCreatedAt: startOfToday })
   const { data: lowStock } = useLowStock()
   const { data: nearExpiry } = useNearExpiry()
   const [target, setTarget] = useState<RxRow | null>(null)

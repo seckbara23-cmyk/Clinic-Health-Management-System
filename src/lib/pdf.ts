@@ -8,6 +8,19 @@ function formatDateFR(date: string) {
   return new Intl.DateTimeFormat('fr-SN', { dateStyle: 'long' }).format(new Date(date))
 }
 
+// Escape user-entered text before it is interpolated into the print HTML. Names,
+// notes, descriptions and medication fields can contain <, >, &, " or ' (common
+// in Senegalese names/addresses) — without this they break the layout or inject
+// markup into the printed document.
+function esc(v: unknown): string {
+  return String(v ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 const baseStyles = `
   body { font-family: Arial, sans-serif; color: #111; margin: 0; padding: 0; }
   .page { max-width: 680px; margin: 0 auto; padding: 40px 32px; }
@@ -73,8 +86,8 @@ export function openInvoicePDF(invoice: Invoice, clinic: Clinic) {
 <div class="page">
   <div class="header">
     <div>
-      <div class="clinic-name">${clinic.name}</div>
-      <div class="clinic-meta">${clinic.location}${clinic.phone ? ' · ' + clinic.phone : ''}${clinic.email ? ' · ' + clinic.email : ''}</div>
+      <div class="clinic-name">${esc(clinic.name)}</div>
+      <div class="clinic-meta">${esc(clinic.location)}${clinic.phone ? ' · ' + esc(clinic.phone) : ''}${clinic.email ? ' · ' + esc(clinic.email) : ''}</div>
       ${registrationLine ? `<div class="clinic-meta">${registrationLine}</div>` : ''}
     </div>
     <div>
@@ -86,9 +99,9 @@ export function openInvoicePDF(invoice: Invoice, clinic: Clinic) {
   <div class="meta-grid">
     <div class="meta-box">
       <div class="meta-label">Patient</div>
-      <div class="meta-value">${patient?.full_name ?? '—'}</div>
-      ${patient?.patient_number ? `<div style="font-size:12px;color:#888;font-family:monospace">${patient.patient_number}</div>` : ''}
-      ${patient?.cni ? `<div style="font-size:12px;color:#888;font-family:monospace">CNI: ${patient.cni}</div>` : ''}
+      <div class="meta-value">${esc(patient?.full_name ?? '—')}</div>
+      ${patient?.patient_number ? `<div style="font-size:12px;color:#888;font-family:monospace">${esc(patient.patient_number)}</div>` : ''}
+      ${patient?.cni ? `<div style="font-size:12px;color:#888;font-family:monospace">CNI: ${esc(patient.cni)}</div>` : ''}
     </div>
     <div class="meta-box">
       <div class="meta-label">Date d'émission</div>
@@ -116,7 +129,7 @@ export function openInvoicePDF(invoice: Invoice, clinic: Clinic) {
     <tbody>
       ${items.map(item => `
       <tr>
-        <td>${item.description}</td>
+        <td>${esc(item.description)}</td>
         <td style="text-align:center">${item.quantity}</td>
         <td style="text-align:right">${formatXOF(item.unit_price)}</td>
         <td style="text-align:right">${formatXOF(item.quantity * item.unit_price)}</td>
@@ -130,16 +143,16 @@ export function openInvoicePDF(invoice: Invoice, clinic: Clinic) {
     ${Number(invoice.tax_amount) > 0 ? `<div class="total-row"><span>Taxes</span><span>${formatXOF(Number(invoice.tax_amount))}</span></div>` : ''}
     <div class="total-final"><span>Total</span><span>${formatXOF(Number(invoice.total_amount))}</span></div>
     ${insuranceShare > 0 ? `
-    <div class="total-row"><span>Part tiers payeur${payerLine ? ` (${payerLine})` : ''}</span><span>${formatXOF(insuranceShare)}</span></div>
+    <div class="total-row"><span>Part tiers payeur${payerLine ? ` (${esc(payerLine)})` : ''}</span><span>${formatXOF(insuranceShare)}</span></div>
     <div class="total-row"><span>Part patient</span><span>${formatXOF(patientShare)}</span></div>` : ''}
     <div class="total-row"><span>Montant payé</span><span style="color:#065f46">${formatXOF(Number(invoice.amount_paid))}</span></div>
     ${balance > 0 ? `<div class="total-row"><span>Reste à payer</span><span style="color:#dc2626;font-weight:600">${formatXOF(balance)}</span></div>` : ''}
   </div>
 
-  ${invoice.notes ? `<div style="margin-top:24px;padding:12px 16px;background:#f8fafc;border-radius:8px;font-size:13px;color:#555"><strong>Notes:</strong> ${invoice.notes}</div>` : ''}
+  ${invoice.notes ? `<div style="margin-top:24px;padding:12px 16px;background:#f8fafc;border-radius:8px;font-size:13px;color:#555"><strong>Notes:</strong> ${esc(invoice.notes)}</div>` : ''}
 
   <div class="footer">
-    Généré par CHMS — ${clinic.name} · ${new Date().toLocaleDateString('fr-SN')}
+    Généré par CHMS — ${esc(clinic.name)} · ${new Date().toLocaleDateString('fr-SN')}
   </div>
 </div>
 <script>window.onload = () => window.print()</script>
@@ -171,9 +184,9 @@ ${baseStyles}
 <div class="page">
   <div class="header">
     <div>
-      <div class="clinic-name">${clinic.name}</div>
-      <div class="clinic-meta">${clinic.location}${clinic.phone ? ' · ' + clinic.phone : ''}</div>
-      <div class="clinic-meta" style="margin-top:8px"><strong>Dr. ${doctorName}</strong></div>
+      <div class="clinic-name">${esc(clinic.name)}</div>
+      <div class="clinic-meta">${esc(clinic.location)}${clinic.phone ? ' · ' + esc(clinic.phone) : ''}</div>
+      <div class="clinic-meta" style="margin-top:8px"><strong>Dr. ${esc(doctorName)}</strong></div>
     </div>
     <div style="text-align:right">
       <div class="rx-header">Ordonnance</div>
@@ -185,7 +198,7 @@ ${baseStyles}
   <div class="meta-grid" style="grid-template-columns: 1fr; margin-bottom: 28px;">
     <div class="meta-box">
       <div class="meta-label">Patient</div>
-      <div class="meta-value">${patientName}</div>
+      <div class="meta-value">${esc(patientName)}</div>
     </div>
   </div>
 
@@ -193,14 +206,14 @@ ${baseStyles}
 
   ${prescription.medications.map((m, i) => `
   <div class="med-card">
-    <div class="med-name">${i + 1}. ${m.name} — ${m.dosage}${m.dosage_form ? ` <span style="font-weight:normal;color:#888;font-size:13px">(${m.dosage_form})</span>` : ''}</div>
-    <div class="med-detail">${m.frequency} pendant ${m.duration}</div>
-    ${m.instructions ? `<div class="med-detail" style="font-style:italic;color:#888">${m.instructions}</div>` : ''}
+    <div class="med-name">${i + 1}. ${esc(m.name)} — ${esc(m.dosage)}${m.dosage_form ? ` <span style="font-weight:normal;color:#888;font-size:13px">(${esc(m.dosage_form)})</span>` : ''}</div>
+    <div class="med-detail">${esc(m.frequency)} pendant ${esc(m.duration)}</div>
+    ${m.instructions ? `<div class="med-detail" style="font-style:italic;color:#888">${esc(m.instructions)}</div>` : ''}
   </div>`).join('')}
 
   ${prescription.instructions ? `
   <div style="margin-top:16px;padding:12px 16px;background:#eff6ff;border-radius:8px;font-size:13px;color:#1e40af">
-    <strong>Instructions générales:</strong> ${prescription.instructions}
+    <strong>Instructions générales:</strong> ${esc(prescription.instructions)}
   </div>` : ''}
 
   <div style="text-align:right;margin-top:40px">
@@ -209,7 +222,7 @@ ${baseStyles}
   </div>
 
   <div class="footer">
-    CHMS — ${clinic.name} · ${new Date().toLocaleDateString('fr-SN')}
+    CHMS — ${esc(clinic.name)} · ${new Date().toLocaleDateString('fr-SN')}
   </div>
 </div>
 <script>window.onload = () => window.print()</script>
@@ -246,10 +259,10 @@ export function openLabResultPDF(
     const flag = item.flag as LabResultFlag
     const bold = flag !== 'normal'
     return `<tr>
-      <td>${item.test_name}</td>
-      <td style="text-align:right;color:${flagColorHex[flag]};${bold ? 'font-weight:bold' : ''}">${item.result_value ?? '—'}</td>
-      <td style="text-align:center">${item.unit ?? '—'}</td>
-      <td style="text-align:center">${range}</td>
+      <td>${esc(item.test_name)}</td>
+      <td style="text-align:right;color:${flagColorHex[flag]};${bold ? 'font-weight:bold' : ''}">${esc(item.result_value ?? '—')}</td>
+      <td style="text-align:center">${esc(item.unit ?? '—')}</td>
+      <td style="text-align:center">${esc(range)}</td>
       <td style="text-align:center;color:${flagColorHex[flag]};${bold ? 'font-weight:bold' : ''}">${flagLabelFR[flag]}</td>
     </tr>`
   }).join('')
@@ -264,8 +277,8 @@ export function openLabResultPDF(
 <div class="page">
   <div class="header" style="border-bottom-color:#0f766e">
     <div>
-      <div class="clinic-name" style="color:#0f766e">${clinic.name}</div>
-      <div class="clinic-meta">${clinic.location}${clinic.phone ? ' · ' + clinic.phone : ''}${clinic.email ? ' · ' + clinic.email : ''}</div>
+      <div class="clinic-name" style="color:#0f766e">${esc(clinic.name)}</div>
+      <div class="clinic-meta">${esc(clinic.location)}${clinic.phone ? ' · ' + esc(clinic.phone) : ''}${clinic.email ? ' · ' + esc(clinic.email) : ''}</div>
       ${registrationLine ? `<div class="clinic-meta">${registrationLine}</div>` : ''}
     </div>
     <div>
@@ -277,14 +290,14 @@ export function openLabResultPDF(
   <div class="meta-grid">
     <div class="meta-box">
       <div class="meta-label">Patient</div>
-      <div class="meta-value">${identity?.full_name ?? order.patient_name ?? '—'}</div>
-      ${(identity?.patient_number ?? order.patient_number) ? `<div style="font-size:12px;color:#888;font-family:monospace">${identity?.patient_number ?? order.patient_number}</div>` : ''}
-      ${identity?.cni ? `<div style="font-size:12px;color:#888;font-family:monospace">CNI: ${identity.cni}</div>` : ''}
+      <div class="meta-value">${esc(identity?.full_name ?? order.patient_name ?? '—')}</div>
+      ${(identity?.patient_number ?? order.patient_number) ? `<div style="font-size:12px;color:#888;font-family:monospace">${esc(identity?.patient_number ?? order.patient_number)}</div>` : ''}
+      ${identity?.cni ? `<div style="font-size:12px;color:#888;font-family:monospace">CNI: ${esc(identity.cni)}</div>` : ''}
       ${identity?.date_of_birth ? `<div style="font-size:12px;color:#888">Né(e) le ${formatDateFR(identity.date_of_birth)}${identity.gender ? ' · ' + identity.gender : ''}</div>` : ''}
     </div>
     <div class="meta-box">
       <div class="meta-label">Prescripteur</div>
-      <div class="meta-value">${doctorName || '—'}</div>
+      <div class="meta-value">${esc(doctorName) || '—'}</div>
       ${order.priority !== 'normal' ? `<div style="font-size:12px;color:#b91c1c;text-transform:capitalize">${order.priority}</div>` : ''}
     </div>
   </div>
@@ -302,22 +315,22 @@ export function openLabResultPDF(
 
   ${order.interpretation ? `
   <div style="margin-top:16px;padding:12px 16px;background:#f0fdfa;border-radius:8px;font-size:13px;color:#0f766e">
-    <strong>Interprétation:</strong> ${order.interpretation}
+    <strong>Interprétation:</strong> ${esc(order.interpretation)}
   </div>` : ''}
 
   <div style="display:flex;justify-content:space-between;margin-top:40px;font-size:12px;color:#555">
     <div>
       <div style="border-top:1px solid #111;width:180px;padding-top:4px">Technicien de laboratoire</div>
-      <div>${techName || '—'}</div>
+      <div>${esc(techName) || '—'}</div>
     </div>
     <div style="text-align:right">
       <div style="border-top:1px solid #111;width:180px;padding-top:4px;margin-left:auto">Médecin validateur</div>
-      <div>${order.reviewed_by ? (order.reviewer?.full_name ?? doctorName) : '—'}${order.reviewed_at ? ' · ' + formatDateFR(order.reviewed_at) : ''}</div>
+      <div>${order.reviewed_by ? esc(order.reviewer?.full_name ?? doctorName) : '—'}${order.reviewed_at ? ' · ' + formatDateFR(order.reviewed_at) : ''}</div>
     </div>
   </div>
 
   <div class="footer">
-    Généré par CHMS — ${clinic.name} · ${new Date().toLocaleDateString('fr-SN')}
+    Généré par CHMS — ${esc(clinic.name)} · ${new Date().toLocaleDateString('fr-SN')}
   </div>
 </div>
 <script>window.onload = () => window.print()</script>

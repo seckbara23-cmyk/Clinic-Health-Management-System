@@ -15,7 +15,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useLabTests, useUpsertLabTest } from '@/hooks/useLab'
-import { useClinic } from '@/context/ClinicContext'
+import { usePermissions } from '@/hooks/usePermissions'
 import { useFormatters } from '@/hooks/useFormatters'
 import { useTranslations } from 'next-intl'
 import type { LabTest } from '@/types/database'
@@ -23,8 +23,9 @@ import type { LabTest } from '@/types/database'
 export default function LabCatalogPage() {
   const t = useTranslations('labCatalog')
   const { formatCurrency } = useFormatters()
-  const { profile } = useClinic()
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
+  const { can } = usePermissions()
+  // Phase 41: page access via Enterprise Authorization (maps 1:1 to laboratory.catalog).
+  const isAdmin = can('laboratory.catalog')
 
   const [open, setOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)

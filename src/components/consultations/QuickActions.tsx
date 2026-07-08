@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Pill, FlaskConical, CalendarPlus, Receipt, Plus, Trash2, Loader2 } from 'lucide-react'
+import { Pill, FlaskConical, CalendarPlus, Receipt, Plus, Trash2, Loader2, Radiation } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,7 +15,10 @@ import { useCreatePrescription } from '@/hooks/usePrescriptions'
 import { useCreateLabOrder, useLabTests } from '@/hooks/useLab'
 import { useCreateAppointment } from '@/hooks/useAppointments'
 import { useCreateInvoice } from '@/hooks/useInvoices'
+import { useCreateRadiologyOrder } from '@/hooks/useRadiology'
 import { useMedicationSafety } from '@/hooks/useMedicationSafety'
+import { usePermissions } from '@/hooks/usePermissions'
+import { MODALITIES, PRIORITIES } from '@/lib/radiology/types'
 import type { Medication, AppointmentPriority } from '@/types/database'
 
 interface QuickActionsCtx {
@@ -27,16 +30,22 @@ interface QuickActionsCtx {
   currency?: string
 }
 
-type ActiveDialog = null | 'rx' | 'lab' | 'followup' | 'invoice'
+type ActiveDialog = null | 'rx' | 'lab' | 'imaging' | 'followup' | 'invoice'
 
 export function QuickActions(ctx: QuickActionsCtx) {
   const t = useTranslations('consultationDetail')
+  const { can } = usePermissions()
   const [open, setOpen] = useState<ActiveDialog>(null)
   const close = () => setOpen(null)
 
   const actions: { key: ActiveDialog; icon: React.ElementType; label: string; color: string }[] = [
     { key: 'rx',       icon: Pill,         label: t('actionNewRx'),      color: 'text-indigo-600' },
     { key: 'lab',      icon: FlaskConical, label: t('actionOrderLab'),   color: 'text-amber-600' },
+    // Imaging order — only for clinicians who can reach radiology (doctor/admin).
+    // This closes the Radiora workflow: the order is what populates the worklist.
+    ...(can('radiology.view')
+      ? [{ key: 'imaging' as const, icon: Radiation, label: t('actionOrderImaging'), color: 'text-teal-600' }]
+      : []),
     { key: 'followup', icon: CalendarPlus, label: t('actionFollowUp'),   color: 'text-blue-600' },
     { key: 'invoice',  icon: Receipt,      label: t('actionInvoice'),    color: 'text-emerald-600' },
   ]
@@ -64,9 +73,84 @@ export function QuickActions(ctx: QuickActionsCtx) {
 
       {open === 'rx'       && <PrescriptionDialog ctx={ctx} onClose={close} />}
       {open === 'lab'      && <LabOrderDialog ctx={ctx} onClose={close} />}
+      {open === 'imaging'  && <ImagingOrderDialog ctx={ctx} onClose={close} />}
       {open === 'followup' && <FollowUpDialog ctx={ctx} onClose={close} />}
       {open === 'invoice'  && <InvoiceDialog ctx={ctx} onClose={close} />}
     </Card>
+  )
+}
+
+// ─── Order Imaging (radiology) — populates the Radiora worklist ─────
+function ImagingOrderDialog({ ctx, onClose }: { ctx: QuickActionsCtx; onClose: () => void }) {
+  const t = useTranslations('consultationDetail')
+  const tr = useTranslations('radiology')
+  const create = useCreateRadiologyOrder()
+  const [modality, setModality] = useState<string>('xray')
+  const [examType, setExamType] = useState('')
+  const [priority, setPriority] = useState<string>('routine')
+  const [indication, setIndication] = useState('')
+
+  async function submit() {
+    if (!examType.trim()) return
+    await create.mutateAsync({
+      patientId: ctx.patientId,
+      consultationId: ctx.consultationId,
+      modality,
+      examType: examType.trim(),
+      clinicalIndication: indication.trim() || null,
+      priority,
+    })
+    onClose()
+  }
+
+  return (
+    <Dialog open onOpenChange={o => { if (!o) onClose() }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{t('actionOrderImaging')}</DialogTitle>
+          <DialogDescription>{ctx.patientName}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label>{t('imagingModality')}</Label>
+            <Select value={modality} onValueChange={setModality}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {MODALITIES.map(m => <SelectItem key={m} value={m}>{tr(`mod_${m}`)}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>{t('imagingExamType')}</Label>
+            <Input
+              placeholder={t('imagingExamPlaceholder')}
+              value={examType}
+              onChange={e => setExamType(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>{t('imagingPriority')}</Label>
+            <Select value={priority} onValueChange={setPriority}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PRIORITIES.map(p => <SelectItem key={p} value={p}>{tr(`prio_${p}`)}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>{t('imagingIndication')}</Label>
+            <Textarea rows={2} value={indication} onChange={e => setIndication(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose}>{t('cancel')}</Button>
+          <Button type="button" onClick={submit} disabled={!examType.trim() || create.isPending}>
+            {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            {t('imagingCreate')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 

@@ -17,7 +17,7 @@ import { ScanBarcode } from '@/components/scan/ScanBarcode'
 import { useMedicationCatalog } from '@/hooks/useMedications'
 import { useInventory, useBatches } from '@/hooks/usePharmacy'
 import { fetchMedicationByBarcode, useCreateCycleCount, useCycleCounts } from '@/hooks/usePharmacyScan'
-import { useClinic } from '@/context/ClinicContext'
+import { usePermissions } from '@/hooks/usePermissions'
 import { useFormatters } from '@/hooks/useFormatters'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -38,7 +38,7 @@ const EXPIRY_CLS: Record<ExpiryLevel, string> = {
 
 export default function PharmacyScanPage() {
   const t = useTranslations('pharmacyScan')
-  const { profile } = useClinic()
+  const { can } = usePermissions()
   const { formatDate } = useFormatters()
   const nowMs = new Date().getTime()
 
@@ -48,7 +48,8 @@ export default function PharmacyScanPage() {
   const [medId, setMedId] = useState<string | null>(null)
   const [counted, setCounted] = useState('')
 
-  const isPharmacyRole = profile?.role === 'admin' || profile?.role === 'pharmacist' || profile?.role === 'super_admin'
+  // Phase 41: page access via Enterprise Authorization (maps 1:1 to pharmacy.scan).
+  const isPharmacyRole = can('pharmacy.scan')
 
   const { data: catalog } = useMedicationCatalog()
   const { data: inventory } = useInventory(true)

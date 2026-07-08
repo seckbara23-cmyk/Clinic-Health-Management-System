@@ -159,11 +159,14 @@ export function useStockMovements(inventoryId?: string) {
 }
 
 // ─── Dispensing ─────────────────────────────────────────────────
-export function useDispensings(opts?: { prescriptionId?: string; patientId?: string }) {
+// `sinceCreatedAt` bounds the query to recent rows (ISO). The pharmacy landing
+// page passes start-of-today so its "dispensed today" KPI no longer pulls the
+// entire clinic dispensing history just to count one day.
+export function useDispensings(opts?: { prescriptionId?: string; patientId?: string; sinceCreatedAt?: string }) {
   const { clinic } = useClinic()
   const supabase = createClient()
   return useQuery({
-    queryKey: ['dispensings', clinic?.id, opts?.prescriptionId ?? '', opts?.patientId ?? ''],
+    queryKey: ['dispensings', clinic?.id, opts?.prescriptionId ?? '', opts?.patientId ?? '', opts?.sinceCreatedAt ?? ''],
     enabled: !!clinic?.id,
     queryFn: async () => {
       let q = supabase
@@ -174,6 +177,7 @@ export function useDispensings(opts?: { prescriptionId?: string; patientId?: str
         .order('created_at', { ascending: false })
       if (opts?.prescriptionId) q = q.eq('prescription_id', opts.prescriptionId)
       if (opts?.patientId) q = q.eq('patient_id', opts.patientId)
+      if (opts?.sinceCreatedAt) q = q.gte('created_at', opts.sinceCreatedAt)
       const { data, error } = await q
       if (error) throw error
       return data as MedicationDispensing[]

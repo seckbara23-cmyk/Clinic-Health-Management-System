@@ -519,12 +519,14 @@ export default function BillingPage() {
       {receiptInvoice && (
         <Dialog open onOpenChange={() => setReceiptInvoice(null)}>
           <DialogContent className="sm:max-w-md">
+            {/* Scoped print CSS: print only the receipt, not the app chrome. */}
+            <style>{`@media print { body * { visibility: hidden !important; } #receipt-print, #receipt-print * { visibility: visible !important; } #receipt-print { position: absolute; inset: 0; margin: 0; padding: 16px; } }`}</style>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Receipt className="h-5 w-5" /> {t('receiptTitle', { number: receiptInvoice.invoice_number })}
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 text-sm">
+            <div id="receipt-print" className="space-y-4 text-sm">
               <div className="flex justify-between text-gray-500">
                 <span>{t('receiptClinic')}</span>
                 <span className="font-medium text-gray-900">{clinic?.name}</span>

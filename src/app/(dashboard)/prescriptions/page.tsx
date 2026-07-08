@@ -439,6 +439,8 @@ function PrescriptionPrintDialog({ rx, onClose }: { rx: PrescriptionRow; onClose
   return (
     <Dialog open onOpenChange={open => { if (!open) onClose() }}>
       <DialogContent className="sm:max-w-lg">
+        {/* Scoped print CSS: print only the prescription, not the app chrome. */}
+        <style>{`@media print { body * { visibility: hidden !important; } #rx-print, #rx-print * { visibility: visible !important; } #rx-print { position: absolute; inset: 0; margin: 0; padding: 16px; } }`}</style>
         <DialogHeader>
           <DialogTitle>{rx.patient?.full_name}</DialogTitle>
         </DialogHeader>

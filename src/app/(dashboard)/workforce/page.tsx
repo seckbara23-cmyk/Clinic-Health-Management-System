@@ -11,7 +11,7 @@ import { Topbar } from '@/components/layout/Topbar'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useClinic } from '@/context/ClinicContext'
+import { usePermissions } from '@/hooks/usePermissions'
 import { useFormatters } from '@/hooks/useFormatters'
 import { useWorkforceMembers, useClinicCredentials, useClinicTrainings } from '@/hooks/useWorkforce'
 import { buildWorkforceDashboard } from '@/lib/workforce/dashboard'
@@ -28,9 +28,11 @@ const ROLES: Role[] = ['admin', 'doctor', 'nurse', 'receptionist', 'cashier', 'l
 export default function WorkforcePage() {
   const t = useTranslations('workforce')
   const { formatDate } = useFormatters()
-  const { profile } = useClinic()
+  const { can } = usePermissions()
   const now = useMemo(() => new Date(), [])
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
+  // Phase 41: page access resolved through the Enterprise Authorization engine
+  // (was a hardcoded admin/super_admin role check; maps 1:1 to workforce.view).
+  const isAdmin = can('workforce.view')
 
   const { data: members, isLoading } = useWorkforceMembers()
   const { data: credentials } = useClinicCredentials()

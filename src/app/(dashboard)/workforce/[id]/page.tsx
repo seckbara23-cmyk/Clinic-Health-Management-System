@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { useClinic } from '@/context/ClinicContext'
+import { usePermissions } from '@/hooks/usePermissions'
 import { useFormatters } from '@/hooks/useFormatters'
 import {
   useWorkforceMembers, useClinicCredentials, useClinicTrainings, useEmployeeEvents,
@@ -44,8 +45,10 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
   const t = useTranslations('workforce')
   const { formatDate } = useFormatters()
   const { clinic, profile } = useClinic()
+  const { can } = usePermissions()
   const now = useMemo(() => new Date(), [])
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
+  // Phase 41: page access via Enterprise Authorization (maps 1:1 to workforce.view).
+  const isAdmin = can('workforce.view')
 
   const { data: members, isLoading } = useWorkforceMembers()
   const member = members?.find(m => m.userId === userId) ?? null
